@@ -1,0 +1,12 @@
+[package]
+name = "oneone-plz"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+body-plz = { path = "../body-plz" }
+buffer = { path = "../buffer" }
+bytes = { workspace = true }
+header-plz = { path = "../header-plz" }
+thiserror = { workspace = true }
+tracing = { workspace = true }

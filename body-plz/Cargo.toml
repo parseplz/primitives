@@ -1,0 +1,11 @@
+[package]
+name = "body-plz"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+buffer = { path = "../buffer" }
+bytes = { workspace = true }
+header-plz = { path = "../header-plz" }
+thiserror = { workspace = true }
+tracing = { workspace = true }

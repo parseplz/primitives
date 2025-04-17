@@ -1,0 +1,11 @@
+[package]
+name = "header-plz"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+buffer = { path = "../buffer" }
+mime = { path = "../mime" }
+bytes = { workspace = true }
+thiserror = { workspace = true }
+tracing = { workspace = true }
