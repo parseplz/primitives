@@ -1,5 +1,5 @@
 [package]
-name = "mime"
+name = "mime-plz"
 version = "0.1.0"
 edition = "2024"
 
@@ -14,7 +14,7 @@ serde.workspace = true
 serde_json.workspace = true
 
 [dev-dependencies]
-criterion = {workspace = true}
+criterion = { workspace = true }
 
 [[bench]]
 name = "mybench"
