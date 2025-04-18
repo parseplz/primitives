@@ -1,6 +1,6 @@
 [workspace]
 resolver = "2"
-members = ["body-plz", "buffer-plz", "header-plz", "mime-plz", "oneone-plz"]
+members = ["body-plz", "buffer-plz", "header-plz", "mime-plz"]
 
 [workspace.dependencies]
 bytes = "1.10"

@@ -4,8 +4,8 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-buffer-plz = { path = "../buffer-plz" }
-mime-plz = { path = "../mime-plz" }
+buffer-plz = { path = "../buffer-plz", version = "0.1.0" }
+mime-plz = { path = "../mime-plz", version = "0.1.0" }
 bytes = { workspace = true }
 thiserror = { workspace = true }
 tracing = { workspace = true }
