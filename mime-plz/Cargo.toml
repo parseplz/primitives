@@ -1,6 +1,10 @@
 [package]
 name = "mime-plz"
-version = "0.1.0"
+version = "0.0.1"
+authors = ["darkseid", "sytten <emile@caido.io>"]
+description = "Mime for the ParsePlz ecosystem"
+repository = "https://github.com/parseplz/primitives"
+license = "MIT"
 edition = "2024"
 
 [dependencies]
@@ -15,5 +19,5 @@ serde_json.workspace = true
 criterion = { workspace = true }
 
 [[bench]]
-name = "mybench"
+name = "performance"
 harness = false

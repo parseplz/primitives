@@ -1,9 +1,11 @@
 [package]
 name = "buffer-plz"
-version = "0.1.0"
+version = "0.0.1"
+authors = ["darkseid", "sytten <emile@caido.io>"]
+description = "Buffer for the ParsePlz ecosystem"
+repository = "https://github.com/parseplz/primitives"
+license = "MIT"
 edition = "2024"
-
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
 bytes = { workspace = true }

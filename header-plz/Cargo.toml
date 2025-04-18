@@ -1,11 +1,15 @@
 [package]
 name = "header-plz"
-version = "0.1.0"
+version = "0.0.1"
+authors = ["darkseid", "sytten <emile@caido.io>"]
+description = "Header for the ParsePlz ecosystem"
+repository = "https://github.com/parseplz/primitives"
+license = "MIT"
 edition = "2024"
 
 [dependencies]
-buffer-plz = { path = "../buffer-plz", version = "0.1.0" }
-mime-plz = { path = "../mime-plz", version = "0.1.0" }
+buffer-plz = { path = "../buffer-plz", version = "0.0.1" }
+mime-plz = { path = "../mime-plz", version = "0.0.1" }
 bytes = { workspace = true }
 thiserror = { workspace = true }
 tracing = { workspace = true }

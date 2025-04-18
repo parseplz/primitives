@@ -31,7 +31,7 @@ checksum = "ace50bade8e6234aa140d9a2f552bbee1db4d353f69b8217bc503490fc1a9f26"
 
 [[package]]
 name = "body-plz"
-version = "0.1.0"
+version = "0.0.1"
 dependencies = [
  "buffer-plz",
  "bytes",
@@ -42,7 +42,7 @@ dependencies = [
 
 [[package]]
 name = "buffer-plz"
-version = "0.1.0"
+version = "0.0.1"
 dependencies = [
  "bytes",
 ]
@@ -208,7 +208,7 @@ dependencies = [
 
 [[package]]
 name = "header-plz"
-version = "0.1.0"
+version = "0.0.1"
 dependencies = [
  "buffer-plz",
  "bytes",
@@ -285,7 +285,7 @@ checksum = "78ca9ab1a0babb1e7d5695e3530886289c18cf2f87ec19a575a0abdce112e3a3"
 
 [[package]]
 name = "mime-plz"
-version = "0.1.0"
+version = "0.0.1"
 dependencies = [
  "criterion",
  "lazy_static",
