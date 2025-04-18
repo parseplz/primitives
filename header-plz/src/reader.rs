@@ -1,4 +1,4 @@
-use buffer::Cursor;
+use buffer_plz::Cursor;
 
 use crate::abnf::HEADER_DELIMITER;
 

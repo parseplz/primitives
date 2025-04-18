@@ -1,4 +1,4 @@
-use mime::ContentType;
+use mime_plz::ContentType;
 
 use super::{
     BodyHeader,

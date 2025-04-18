@@ -1,6 +1,6 @@
 use std::num::ParseIntError;
 
-use buffer::Cursor;
+use buffer_plz::Cursor;
 use bytes::BytesMut;
 use thiserror::Error;
 

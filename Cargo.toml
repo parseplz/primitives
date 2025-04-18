@@ -3,9 +3,9 @@ resolver = "2"
 members = ["body-plz", "buffer-plz", "header-plz", "mime-plz", "oneone-plz"]
 
 [workspace.dependencies]
-bytes = "*"
-criterion = "*"
-serde = { version = "1.0.219", features = ["derive", "rc"] }
-serde_json = "1.0.140"
-thiserror = { version = "2.0.12" }
-tracing = { version = "0.1.41" }
+bytes = "1.10"
+criterion = "0.5"
+serde = { version = "1", features = ["derive", "rc"] }
+serde_json = "1"
+thiserror = { version = "2" }
+tracing = { version = "0.1" }

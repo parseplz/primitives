@@ -1,5 +1,5 @@
 use content_encoding::ContentEncoding;
-use mime::ContentType;
+use mime_plz::ContentType;
 use transfer_types::TransferType;
 
 pub mod content_encoding;

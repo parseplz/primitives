@@ -1,6 +1,6 @@
 use std::cmp::Ordering;
 
-use buffer::Cursor;
+use buffer_plz::Cursor;
 
 /* Steps:
  *      1. Compare remaining length with size.

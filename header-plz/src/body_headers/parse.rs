@@ -49,7 +49,7 @@ impl ParseBodyHeaders for HeaderStruct<Response> {
 mod tests {
     use crate::body_headers::{TransferType, content_encoding::ContentEncoding};
     use bytes::BytesMut;
-    use mime::ContentType;
+    use mime_plz::ContentType;
 
     use super::*;
 

@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-buffer = { path = "../buffer" }
+buffer-plz = { path = "../buffer-plz" }
 bytes = { workspace = true }
 header-plz = { path = "../header-plz" }
 thiserror = { workspace = true }

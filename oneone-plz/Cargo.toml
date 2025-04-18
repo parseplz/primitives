@@ -5,7 +5,7 @@ edition = "2024"
 
 [dependencies]
 body-plz = { path = "../body-plz" }
-buffer = { path = "../buffer" }
+buffer-plz = { path = "../buffer-plz" }
 bytes = { workspace = true }
 header-plz = { path = "../header-plz" }
 thiserror = { workspace = true }

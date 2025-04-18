@@ -1,5 +1,5 @@
 use criterion::{Criterion, criterion_group, criterion_main};
-use mime::from_extension::EXTENSION_MAP;
+use mime_plz::from_extension::EXTENSION_MAP;
 
 pub fn criterion_benchmark_hashmap(c: &mut Criterion) {
     let mut group = c.benchmark_group("content_type");

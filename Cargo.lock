@@ -33,7 +33,7 @@ checksum = "ace50bade8e6234aa140d9a2f552bbee1db4d353f69b8217bc503490fc1a9f26"
 name = "body-plz"
 version = "0.1.0"
 dependencies = [
- "buffer",
+ "buffer-plz",
  "bytes",
  "header-plz",
  "thiserror",
@@ -41,7 +41,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "buffer"
+name = "buffer-plz"
 version = "0.1.0"
 dependencies = [
  "bytes",
@@ -210,9 +210,9 @@ dependencies = [
 name = "header-plz"
 version = "0.1.0"
 dependencies = [
- "buffer",
+ "buffer-plz",
  "bytes",
- "mime",
+ "mime-plz",
  "thiserror",
  "tracing",
 ]
@@ -284,7 +284,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "78ca9ab1a0babb1e7d5695e3530886289c18cf2f87ec19a575a0abdce112e3a3"
 
 [[package]]
-name = "mime"
+name = "mime-plz"
 version = "0.1.0"
 dependencies = [
  "criterion",
@@ -313,7 +313,7 @@ name = "oneone-plz"
 version = "0.1.0"
 dependencies = [
  "body-plz",
- "buffer",
+ "buffer-plz",
  "bytes",
  "header-plz",
  "thiserror",
