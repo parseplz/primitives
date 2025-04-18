@@ -358,7 +358,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "protocol_traits_plz"
+name = "protocol-traits-plz"
 version = "0.0.1"
 dependencies = [
  "buffer-plz",

@@ -1,5 +1,5 @@
 [package]
-name = "protocol_traits_plz"
+name = "protocol-traits-plz"
 version = "0.0.1"
 authors = ["darkseid", "sytten <emile@caido.io>"]
 description = "Protocol traits for the ParsePlz ecosystem"
