@@ -1,0 +1,53 @@
+name: Run CI
+
+on:
+  pull_request:
+  push:
+    branches:
+      - 'main'
+
+concurrency:
+  group: test-${{ github.ref_name }}
+  cancel-in-progress: true
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Checkout project
+        uses: actions/checkout@v4
+
+      - name: Setup Rust
+        uses: actions-rust-lang/setup-rust-toolchain@9399c7bb15d4c7d47b27263d024f0a4978346ba4
+        with:
+          toolchain: stable
+          components: clippy, rustfmt
+
+      - name: Run linter
+        uses: giraffate/clippy-action@871cc4173f2594435c7ea6b0bce499cf6c2164a1
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          clippy_flags: --all-features -- -D warnings
+          reporter: github-pr-review
+
+      - name: Run formatter
+        run: cargo fmt --all -- --check
+
+  test:
+    needs: lint
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout project
+        uses: actions/checkout@v4
+
+      - name: Setup Rust
+        uses: actions-rust-lang/setup-rust-toolchain@9399c7bb15d4c7d47b27263d024f0a4978346ba4
+        with:
+          cache: false
+
+      - name: Run tests
+        run: cargo test --all-features
