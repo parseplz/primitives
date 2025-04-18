@@ -1,4 +1,4 @@
-use buffer::Event;
+use buffer_plz::Event;
 
 use crate::frame::Frame;
 
