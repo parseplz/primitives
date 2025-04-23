@@ -1,4 +1,4 @@
-use crate::{error::HttpReadError, header_map::HeaderMap, info_line::InfoLine};
+use crate::{error::HeaderReadError, header_map::HeaderMap, info_line::InfoLine};
 use bytes::BytesMut;
 
 #[cfg_attr(any(test, debug_assertions), derive(Debug, PartialEq, Eq))]
@@ -26,7 +26,7 @@ where
      *      HttpDecodeError::HeaderStruct   [Default]
      */
 
-    pub fn new(mut data: BytesMut) -> Result<Self, HttpReadError> {
+    pub fn new(mut data: BytesMut) -> Result<Self, HeaderReadError> {
         if let Some(infoline_index) = data.iter().position(|&x| x == 13) {
             let raw = data.split_to(infoline_index + 2);
             let info_line = T::build_infoline(raw)?;
@@ -35,7 +35,7 @@ where
                 header_map: HeaderMap::new(data),
             });
         }
-        Err(HttpReadError::HeaderStruct(
+        Err(HeaderReadError::HeaderStruct(
             String::from_utf8_lossy(&data).to_string(),
         ))
     }

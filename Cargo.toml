@@ -6,6 +6,7 @@ members = [
   "header-plz",
   "mime-plz",
   "protocol-traits-plz",
+  "oneone-plz"
 ]
 
 [workspace.dependencies]

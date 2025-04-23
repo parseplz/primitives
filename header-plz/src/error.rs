@@ -3,7 +3,7 @@ use std::fmt::Debug;
 use thiserror::Error;
 
 #[derive(Debug, Error)]
-pub enum HttpReadError {
+pub enum HeaderReadError {
     #[error("infoline| {0}")]
     InfoLine(#[from] InfoLineError),
     #[error("header struct| {0}")]
