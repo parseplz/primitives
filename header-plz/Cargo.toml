@@ -8,8 +8,8 @@ license = "MIT"
 edition = "2024"
 
 [dependencies]
-buffer-plz = { path = "../buffer-plz", version = "0.0.1" }
-mime-plz = { path = "../mime-plz", version = "0.0.1" }
+buffer-plz = { path = "../buffer-plz", version = "0.0.2" }
+mime-plz = { path = "../mime-plz", version = "0.0.2" }
 bytes = { workspace = true }
 thiserror = { workspace = true }
 tracing = { workspace = true }
