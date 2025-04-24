@@ -15,60 +15,76 @@ env:
   CARGO_PROFILE_TEST_DEBUG: 0
 
 jobs:
-  lint:
+  cargo-fmt:
+    name: Cargo fmt
     runs-on: ubuntu-latest
-    timeout-minutes: 5
 
     steps:
-      - name: Checkout project
+      - name: Fetch Repository
         uses: actions/checkout@v4
 
-      - name: Setup Rust
-        uses: actions-rust-lang/setup-rust-toolchain@9399c7bb15d4c7d47b27263d024f0a4978346ba4
+      - name: Install stable toolchain
+        uses: actions-rust-lang/setup-rust-toolchain@v1
         with:
           toolchain: stable
-          components: clippy, rustfmt
+          components: rustfmt
 
       - name: Caching
-        uses: Swatinem/rust-cache@9d47c6ad4b02e050fd481d890b2ea34778fd09d6
+        uses: Swatinem/rust-cache@v2
         with:
           cache-all-crates: true
           save-if: ${{ github.ref == 'refs/heads/master' }}
-          cache-provider: 'github'
+          cache-provider: "github"
 
-      - name: Run linter
-        uses: giraffate/clippy-action@871cc4173f2594435c7ea6b0bce499cf6c2164a1
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          clippy_flags: --all-features -- -D warnings
-          reporter: github-pr-review
+      - name: Rustfmt Check
+        run: cargo fmt --all --check
 
-      - name: Run formatter
-        run: cargo fmt --all -- --check
-
-  test:
-    needs: lint
+  cargo-clippy:
+    name: Cargo clippy
     runs-on: ubuntu-latest
-    timeout-minutes: 10
 
     steps:
-      - name: Checkout project
+      - name: Fetch Repository
         uses: actions/checkout@v4
 
-      - name: Setup Rust
-        uses: actions-rust-lang/setup-rust-toolchain@9399c7bb15d4c7d47b27263d024f0a4978346ba4
+      - name: Install stable toolchain
+        uses: actions-rust-lang/setup-rust-toolchain@v1
+        with:
+          components: clippy
 
       - name: Caching
-        uses: Swatinem/rust-cache@9d47c6ad4b02e050fd481d890b2ea34778fd09d6
+        uses: Swatinem/rust-cache@v2
         with:
           cache-all-crates: true
           save-if: ${{ github.ref == 'refs/heads/master' }}
-          cache-provider: 'github'
+          cache-provider: "github"
 
-      - name: Install nextest
-        uses: taiki-e/install-action@9903ab6feadaec33945de535fe9d181b91802a55
+      - name: Clippy Check
+        run: cargo clippy --workspace --all-targets --all-features -- -Dwarnings 
+
+  cargo-test:
+    name: Cargo test
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Fetch Repository
+        uses: actions/checkout@v4
+
+      - name: Install stable toolchain
+        uses: actions-rust-lang/setup-rust-toolchain@v1
+
+      - name: Caching
+        uses: Swatinem/rust-cache@v2
         with:
-          tool: nextest
+          cache-all-crates: true
+          save-if: ${{ github.ref == 'refs/heads/master' }}
+          cache-provider: "github"
 
-      - name: Run tests
-        run: cargo nextest run --all-features
+      - name: Install latest nextest release
+        uses: taiki-e/install-action@nextest
+
+      - name: Test with latest nextest release
+        uses: actions-rs/cargo@v1
+        with:
+          command: nextest
+          args: run
