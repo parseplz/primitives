@@ -71,9 +71,6 @@ pub enum ChunkReader {
  *      5. EndCRLF If buf is CRLF, then change state to End and return
  *         ChunkedBody::EndCRLF
  *
- * Returns:
- *      Some(ChunkedBody)
- *
  * Error:
  *      ChunkReaderError::LastChunkPoll [3]
  */
@@ -175,9 +172,6 @@ impl ChunkReader {
      *      3. Move cursor pos to include CRLF.
      *
      *      NOTE: chunk_extension is ignored.
-     *
-     * Returns:
-     *      Ok(usize)
      *
      * Error:
      *      ChunkReaderError::NotValidUtf       [1]
