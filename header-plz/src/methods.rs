@@ -1,5 +1,3 @@
-//use serde::Serialize;
-
 pub const CONNECT: &[u8] = b"CONNECT";
 pub const DELETE: &[u8] = b"DELETE";
 pub const GET: &[u8] = b"GET";

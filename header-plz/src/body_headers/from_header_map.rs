@@ -36,9 +36,6 @@ use crate::{const_headers::*, header_map::HeaderMap};
  *         to Close
  *
  *      8. Call sanitize() on BodyHeader to remove empty values.
- *
- * Returns:
- *      Option<BodyHeader>
  */
 
 impl From<&HeaderMap> for Option<BodyHeader> {
@@ -86,17 +83,7 @@ impl From<&HeaderMap> for Option<BodyHeader> {
     }
 }
 
-/* Description:
- *      Convert compression header values to Vec<ContentEncoding>.
- *
- * Steps:
- *      1. Split at ','
- *      2. Trim
- *      3. Filter_map with ContentEncoding::from()
- *      4. collect()
- *      5. If vec is not empty, return Some(vec), else return None.
- *
- */
+//  Convert compression header values to Vec<ContentEncoding>.
 pub fn match_compression(value: &str) -> Option<Vec<ContentEncoding>> {
     let encoding: Vec<ContentEncoding> = value
         .split(',')

@@ -12,10 +12,7 @@ pub trait ParseBodyHeaders {
     fn parse_body_headers(&self) -> Option<BodyHeader>;
 }
 
-/*  Steps:
- *      If request method is in METHODS_WITH_BODY , build BodyHeader
- *      from HeaderMap
- */
+// If request method is in METHODS_WITH_BODY , build BodyHeader from HeaderMap
 impl ParseBodyHeaders for HeaderStruct<Request> {
     fn parse_body_headers(&self) -> Option<BodyHeader> {
         let method: Method = self.infoline().method().into();
@@ -26,10 +23,8 @@ impl ParseBodyHeaders for HeaderStruct<Request> {
     }
 }
 
-/*  Steps:
- *      If status code is in 100-199, 204, 304, then return None
- *      else build BodyHeader from HeaderMap
- */
+// If status code is in 100-199, 204, 304, then return None else build
+// BodyHeader from HeaderMap
 impl ParseBodyHeaders for HeaderStruct<Response> {
     fn parse_body_headers(&self) -> Option<BodyHeader> {
         match self.infoline().status_as_u8() {

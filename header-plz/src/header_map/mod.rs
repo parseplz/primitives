@@ -6,7 +6,7 @@ use header::*;
 
 use crate::abnf::{CRLF, HEADER_FS};
 
-// Struct for HeaderMap
+// Vec<Header> + CRLF
 #[cfg_attr(any(test, debug_assertions), derive(Debug, PartialEq, Eq))]
 #[derive(Default)]
 pub struct HeaderMap {
@@ -27,9 +27,6 @@ impl HeaderMap {
      *      6. Split the line at crlf_index + 2.
      *      7. Create a new Header.
      *      8. Add the new Header to the new HeaderMap.
-     *
-     * Returns:
-     *      HeaderMap
      */
 
     pub fn new(mut input: BytesMut) -> Self {

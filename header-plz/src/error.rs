@@ -8,7 +8,6 @@ pub enum HeaderReadError {
     InfoLine(#[from] InfoLineError),
     #[error("header struct| {0}")]
     HeaderStruct(String),
-    // Not enough data
     #[error("header not enough data")]
     HeaderNotEnoughData,
 }

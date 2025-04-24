@@ -7,11 +7,7 @@ pub struct HeaderStruct<T> {
     header_map: HeaderMap,
 }
 
-/* Struct to represent the Header region Infoline + HeaderMap.
- *
- * info_line : Request/Response
- */
-
+// Represent the Header region Infoline + HeaderMap.
 impl<T> HeaderStruct<T>
 where
     T: InfoLine,
@@ -22,8 +18,8 @@ where
      *      3. Build Infoline
      *
      * Error:
-     *      HttpDecodeError::InfoLine       [3]
-     *      HttpDecodeError::HeaderStruct   [Default]
+     *      HttpReadError::InfoLine       [3]
+     *      HttpReadError::HeaderStruct   [Default]
      */
 
     pub fn new(mut data: BytesMut) -> Result<Self, HeaderReadError> {

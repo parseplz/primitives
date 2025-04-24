@@ -29,8 +29,8 @@ impl Header {
         // utf8 already checked in HeaderMap::new()
         // safe to unwrap
         let data = str::from_utf8(&input).unwrap();
-        // Find ": " index
         let fs_index = data.find(HEADER_FS).unwrap_or(0);
+
         // 2. If no ": " found, split at index 1 as atleast CRLF if present.
         let key = if fs_index == 0 {
             input.split_to(1)
