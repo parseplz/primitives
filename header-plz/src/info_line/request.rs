@@ -58,10 +58,8 @@ impl InfoLine for Request {
 }
 
 impl Request {
-    // Fix
-    // https://doc.rust-lang.org/std/primitive.slice.html#method.trim_ascii_end
     pub fn method(&self) -> &[u8] {
-        self.method.split_last().unwrap().1
+        self.method.trim_ascii_end()
     }
 
     pub fn method_raw(&self) -> &BytesMut {
