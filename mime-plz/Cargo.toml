@@ -1,6 +1,6 @@
 [package]
 name = "mime-plz"
-version = "0.0.1"
+version = "0.0.2"
 authors = ["darkseid", "sytten <emile@caido.io>"]
 description = "Mime for the ParsePlz ecosystem"
 repository = "https://github.com/parseplz/primitives"
