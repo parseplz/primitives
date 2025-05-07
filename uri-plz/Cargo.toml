@@ -1,0 +1,11 @@
+[package]
+name = "uri-plz"
+version = "0.0.1"
+authors = ["darkseid", "sytten <emile@caido.io>"]
+description = "Uri parser for the ParsePlz ecosystem"
+repository = "https://github.com/parseplz/primitives"
+license = "MIT"
+edition = "2024"
+
+[dependencies]
+bytes = "1.10.1"
