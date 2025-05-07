@@ -13,3 +13,4 @@ mime-plz = { path = "../mime-plz", version = "0.0.2" }
 bytes = { workspace = true }
 thiserror = { workspace = true }
 tracing = { workspace = true }
+http = "1.3.1"

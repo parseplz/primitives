@@ -2,6 +2,7 @@ use std::borrow::Cow;
 use std::str::{self};
 
 use bytes::BytesMut;
+use http::uri::{InvalidUri, PathAndQuery};
 
 use super::{InfoLine, InfoLineError};
 use crate::abnf::OWS;
@@ -78,11 +79,16 @@ impl Request {
     pub fn uri_as_string(&self) -> Cow<str> {
         String::from_utf8_lossy(&self.uri)
     }
+
+    pub fn uri(&self) -> Result<PathAndQuery, InvalidUri> {
+        PathAndQuery::try_from(self.uri.as_ref())
+    }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::error::Error;
 
     #[test]
     fn test_infoline_request_basic() {
@@ -106,11 +112,11 @@ mod tests {
         let verify_ptr = buf[..37].as_ptr_range();
         let verify = buf.clone();
         match Request::build_infoline(buf) {
-            Ok(header) => {
-                assert_eq!(header.method, "CONNECT ");
-                assert_eq!(header.uri, "www.google.com:443");
-                assert_eq!(header.version, " HTTP/1.1\r\n");
-                let assembled = header.into_data();
+            Ok(info_line) => {
+                assert_eq!(info_line.method, "CONNECT ");
+                assert_eq!(info_line.uri, "www.google.com:443");
+                assert_eq!(info_line.version, " HTTP/1.1\r\n");
+                let assembled = info_line.into_data();
                 assert_eq!(assembled, verify);
                 assert_eq!(verify_ptr, assembled.as_ptr_range());
             }
@@ -127,11 +133,11 @@ mod tests {
         let verify_ptr = buf[..].as_ptr_range();
         let verify = buf.clone();
         match Request::build_infoline(buf) {
-            Ok(header) => {
-                assert_eq!(header.method, "GET ");
-                assert_eq!(header.uri, "http://www.google.com/");
-                assert_eq!(header.version, " HTTP/1.1\r\n");
-                let assembled = header.into_data();
+            Ok(info_line) => {
+                assert_eq!(info_line.method, "GET ");
+                assert_eq!(info_line.uri, "http://www.google.com/");
+                assert_eq!(info_line.version, " HTTP/1.1\r\n");
+                let assembled = info_line.into_data();
                 assert_eq!(assembled, verify);
                 assert_eq!(verify_ptr, assembled.as_ptr_range());
             }
@@ -148,11 +154,11 @@ mod tests {
         let verify_ptr = buf[..].as_ptr_range();
         let verify = buf.clone();
         match Request::build_infoline(buf) {
-            Ok(header) => {
-                assert_eq!(header.method, "GET ");
-                assert_eq!(header.uri, "http://www.google.com:8080/");
-                assert_eq!(header.version, " HTTP/1.1\r\n");
-                let assembled = header.into_data();
+            Ok(info_line) => {
+                assert_eq!(info_line.method, "GET ");
+                assert_eq!(info_line.uri, "http://www.google.com:8080/");
+                assert_eq!(info_line.version, " HTTP/1.1\r\n");
+                let assembled = info_line.into_data();
                 assert_eq!(assembled, verify);
                 assert_eq!(verify_ptr, assembled.as_ptr_range());
             }
@@ -161,4 +167,73 @@ mod tests {
             }
         }
     }
+
+    #[test]
+    fn test_return_queries() -> Result<(), Box<dyn Error>> {
+        let req = "GET /users?param=value&param2=value2 HTTP/1.1\r\n\r\n";
+        let buf = BytesMut::from(req);
+        let info_line = Request::build_infoline(buf)?;
+        let uri = info_line.uri()?;
+        let query = uri.query().unwrap();
+        assert_eq!("param=value&param2=value2", query);
+        Ok(())
+    }
+
+    /*
+        #[test]
+        fn it_should_return_first_line_query_params() {
+            let raw = HttpRaw::new(b"GET /users?param=value&param2=value2 HTTP/1.1\r\n\r\n".to_vec());
+            let mut params = raw.first_line().unwrap().query().unwrap().params();
+            assert_eq!(2, params.len());
+
+            let param2 = params.pop().unwrap();
+            let param2_raw = param2.raw();
+            assert_eq!(b"param2=value2", param2_raw.data);
+            assert_eq!(Bound::Included(&23), param2_raw.range.start_bound());
+            assert_eq!(Bound::Excluded(&36), param2_raw.range.end_bound());
+            let param2_parts = param2.parts().unwrap();
+            assert_eq!(b"param2", param2_parts.0.data);
+            assert_eq!(Bound::Included(&23), param2_parts.0.range.start_bound());
+            assert_eq!(Bound::Excluded(&29), param2_parts.0.range.end_bound());
+            assert_eq!(b"value2", param2_parts.1.data);
+            assert_eq!(Bound::Included(&30), param2_parts.1.range.start_bound());
+            assert_eq!(Bound::Excluded(&36), param2_parts.1.range.end_bound());
+
+            let param1 = params.pop().unwrap();
+            let param1_raw = param1.raw();
+            assert_eq!(b"param=value", param1_raw.data);
+            assert_eq!(Bound::Included(&11), param1_raw.range.start_bound());
+            assert_eq!(Bound::Excluded(&22), param1_raw.range.end_bound());
+            let param1_parts = param1.parts().unwrap();
+            assert_eq!(b"param", param1_parts.0.data);
+            assert_eq!(Bound::Included(&11), param1_parts.0.range.start_bound());
+            assert_eq!(Bound::Excluded(&16), param1_parts.0.range.end_bound());
+            assert_eq!(b"value", param1_parts.1.data);
+            assert_eq!(Bound::Included(&17), param1_parts.1.range.start_bound());
+            assert_eq!(Bound::Excluded(&22), param1_parts.1.range.end_bound());
+        }
+
+
+
+    #[test]
+    fn test_return_first_line_query_params_end_ampersand() {
+        let req = "GET /users?param=value& HTTP/1.1\r\n\r\n";
+        let buf = BytesMut::from(req);
+        assert_eq!(1, params.len());
+
+        let param1 = params.pop().unwrap();
+        let param1_raw = param1.raw();
+        assert_eq!(b"param=value", param1_raw.data);
+        assert_eq!(Bound::Included(&11), param1_raw.range.start_bound());
+        assert_eq!(Bound::Excluded(&22), param1_raw.range.end_bound());
+        let param1_parts = param1.parts().unwrap();
+        assert_eq!(b"param", param1_parts.0.data);
+        assert_eq!(Bound::Included(&11), param1_parts.0.range.start_bound());
+        assert_eq!(Bound::Excluded(&16), param1_parts.0.range.end_bound());
+        assert_eq!(b"value", param1_parts.1.data);
+        assert_eq!(Bound::Included(&17), param1_parts.1.range.start_bound());
+        assert_eq!(Bound::Excluded(&22), param1_parts.1.range.end_bound());
+    }
+
+    */
 }
