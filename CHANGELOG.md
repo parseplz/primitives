@@ -2,11 +2,31 @@
 
 All notable changes to this project will be documented in this file.
 
+## [unreleased]
+
+### 💼 Other
+
+- Update ci - run checks before publishing
+
+## [uri-plz-v0.0.1] - 2025-05-11
+
+### 🚀 Features
+
+- Add uri-plz crate
+- Add uri-plz crate
+
+### 🐛 Bug Fixes
+
+- Modified uri-plz Cargo.toml
+- Removed uri-plz
+
 ## [0.0.2] - 2025-04-24
 
 ### 💼 Other
 
 - Removed rust-toolchain.toml
+- Added CHANGELOG.md and cliff.toml
+- Bump version in Cargo.toml
 
 ### 🚜 Refactor
 
