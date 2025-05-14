@@ -214,7 +214,7 @@ dependencies = [
 
 [[package]]
 name = "header-plz"
-version = "0.0.2"
+version = "0.0.3"
 dependencies = [
  "buffer-plz",
  "bytes",
