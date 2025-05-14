@@ -2,13 +2,13 @@ use crate::{error::HeaderReadError, header_map::HeaderMap, info_line::InfoLine};
 use bytes::BytesMut;
 
 #[cfg_attr(any(test, debug_assertions), derive(Debug, PartialEq, Eq))]
-pub struct HeaderStruct<T> {
+pub struct MessageHead<T> {
     info_line: T,
     header_map: HeaderMap,
 }
 
 // Represent the Header region Infoline + HeaderMap.
-impl<T> HeaderStruct<T>
+impl<T> MessageHead<T>
 where
     T: InfoLine,
 {
@@ -79,7 +79,7 @@ mod tests {
                        ";
         let buf = BytesMut::from(request);
         let org = buf.as_ptr_range();
-        let result = HeaderStruct::<Request>::new(buf).unwrap();
+        let result = MessageHead::<Request>::new(buf).unwrap();
         assert_eq!(result.info_line.method(), b"GET");
         assert_eq!(result.info_line.uri_as_string(), "/");
         let verify = result.into_data();
@@ -95,7 +95,7 @@ mod tests {
                         Content-Length: 12\r\n\r\n";
         let buf = BytesMut::from(response);
         let org = buf.as_ptr_range();
-        let result = HeaderStruct::<Response>::new(buf).unwrap();
+        let result = MessageHead::<Response>::new(buf).unwrap();
         assert_eq!(result.info_line.status(), b"200");
         let verify = result.into_data();
         assert_eq!(verify, response);
