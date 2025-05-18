@@ -42,6 +42,7 @@ pub enum ChunkedBody {
     LastChunk(BytesMut),
     Trailers(HeaderMap),
     EndCRLF(BytesMut),
+    Extra(BytesMut),
 }
 
 pub fn total_chunk_size(chunks: &[ChunkedBody]) -> usize {
