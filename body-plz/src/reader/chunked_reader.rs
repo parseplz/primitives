@@ -133,8 +133,12 @@ impl ChunkReader {
                 }
             }
             Self::EndCRLF => {
-                if buf.remaining() == CRLF.as_bytes() {
-                    buf.set_position(buf.position() + 2);
+                if let Some(index) = buf
+                    .remaining()
+                    .windows(2)
+                    .position(|window| window == CRLF.as_bytes())
+                {
+                    buf.set_position(index + 2);
                     *self = Self::End;
                     Some(ChunkedBody::EndCRLF(buf.split_at_current_pos()))
                 } else {
@@ -491,5 +495,18 @@ pub(crate) mod tests {
         assert!(result);
         let size = ChunkReader::get_size(&mut cbuf).unwrap();
         assert_eq!(size, 7);
+    }
+
+    #[test]
+    fn test_chunked_reader_extra_data() {
+        let data = "\r\n\
+                    extra data";
+        let mut buf = BytesMut::from(data);
+        let mut cbuf = Cursor::new(&mut buf);
+        let mut state = ChunkReader::EndCRLF;
+        let chunk = state.next(&mut cbuf).unwrap();
+        assert!(matches!(chunk, ChunkedBody::EndCRLF(_)));
+        assert_eq!(state, ChunkReader::End);
+        assert_eq!(cbuf.remaining(), &b"extra data"[..]);
     }
 }
