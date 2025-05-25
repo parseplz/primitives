@@ -8,5 +8,5 @@ license = "MIT"
 edition = "2024"
 
 [dependencies]
-buffer-plz = { path = "../buffer-plz", version = "0.0.2" }
+buffer-plz = "0.0.2"
 bytes = { workspace = true }
