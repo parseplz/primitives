@@ -10,7 +10,7 @@ use crate::abnf::HEADER_DELIMITER;
  *         false.
  */
 
-pub fn read_header(buf: &mut Cursor) -> bool {
+pub fn find_message_head_end(buf: &mut Cursor) -> bool {
     // 1. Find HEADER_DELIMITER
     if let Some(index) = buf
         .as_ref()
@@ -41,7 +41,7 @@ mod tests {
         let mut buf = BytesMut::from(req);
         let mut cur = Cursor::new(&mut buf);
         let verify = BytesMut::from(req);
-        let status: bool = read_header(&mut cur);
+        let status: bool = find_message_head_end(&mut cur);
         assert!(status);
         assert_eq!(cur.position(), verify.len());
     }
@@ -52,7 +52,7 @@ mod tests {
                     Host: reqbin.com\r\n";
         let mut buf = BytesMut::from(req);
         let mut cur = Cursor::new(&mut buf);
-        let status: bool = read_header(&mut cur);
+        let status: bool = find_message_head_end(&mut cur);
         assert!(!status);
         assert_eq!(cur.position(), req.len() - 3);
     }
@@ -62,17 +62,17 @@ mod tests {
         let req = "GET /echo HTTP/1.1\r\n";
         let mut buf = BytesMut::from(req);
         let mut cur = Cursor::new(&mut buf);
-        let mut status = read_header(&mut cur);
+        let mut status = find_message_head_end(&mut cur);
         assert!(!status);
         assert_eq!(cur.position(), req.len() - 3);
         let toadd = b"Host: reqbin.com\r";
         cur.as_mut().extend_from_slice(toadd);
-        status = read_header(&mut cur);
+        status = find_message_head_end(&mut cur);
         assert!(!status);
         assert_eq!(cur.position(), cur.as_ref().len() - 3);
         let toadd = b"\n\r\n";
         cur.as_mut().extend_from_slice(toadd);
-        status = read_header(&mut cur);
+        status = find_message_head_end(&mut cur);
         assert!(status);
         assert_eq!(cur.position(), cur.as_ref().len());
     }

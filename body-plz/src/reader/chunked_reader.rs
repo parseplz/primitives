@@ -9,7 +9,7 @@ use crate::body_struct::ChunkedBody;
 use super::content_length_reader::read_content_length;
 use header_plz::abnf::CRLF;
 use header_plz::header_map::HeaderMap;
-use header_plz::reader::read_header;
+use header_plz::reader::find_message_head_end;
 
 // Enum to represent chunked reader errors
 #[cfg_attr(any(debug_assertions, test), derive(Eq, PartialEq))]
@@ -124,7 +124,7 @@ impl ChunkReader {
                     return Some(ChunkedBody::EndCRLF(buf.split_at_current_pos()));
                 }
                 // 4.b. Actual Headers
-                if read_header(buf) {
+                if find_message_head_end(buf) {
                     *self = Self::End;
                     let header_map = HeaderMap::new(buf.split_at_current_pos());
                     Some(ChunkedBody::Trailers(header_map))
