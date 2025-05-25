@@ -31,22 +31,13 @@ checksum = "ace50bade8e6234aa140d9a2f552bbee1db4d353f69b8217bc503490fc1a9f26"
 
 [[package]]
 name = "body-plz"
-version = "0.0.6"
+version = "0.0.7"
 dependencies = [
  "buffer-plz 0.0.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "bytes",
  "header-plz 0.0.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "thiserror",
  "tracing",
-]
-
-[[package]]
-name = "buffer-plz"
-version = "0.0.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "32b71d9230fe8b40f9736014ff6d9dfb3701440bb575f112b704b9bee98e4388"
-dependencies = [
- "bytes",
 ]
 
 [[package]]
@@ -422,7 +413,7 @@ dependencies = [
 name = "protocol-traits-plz"
 version = "0.0.2"
 dependencies = [
- "buffer-plz 0.0.2",
+ "buffer-plz 0.0.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "bytes",
 ]
 
