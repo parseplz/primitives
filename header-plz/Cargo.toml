@@ -8,7 +8,7 @@ license = "MIT"
 edition = "2024"
 
 [dependencies]
-buffer-plz = "0.0.2"
+buffer-plz = "0.0.3"
 mime-plz = "0.0.2"
 bytes = { workspace = true }
 thiserror = { workspace = true }
