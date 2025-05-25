@@ -1,6 +1,6 @@
 [package]
 name = "body-plz"
-version = "0.0.5"
+version = "0.0.6"
 authors = ["darkseid", "sytten <emile@caido.io>"]
 description = "Body for the ParsePlz ecosystem"
 repository = "https://github.com/parseplz/primitives"
@@ -10,6 +10,6 @@ edition = "2024"
 [dependencies]
 buffer-plz = { path = "../buffer-plz", version = "0.0.2" }
 bytes = { workspace = true }
-header-plz = { path = "../header-plz", version = "0.0.3" }
+header-plz = { path = "../header-plz", version = "0.0.4" }
 thiserror = { workspace = true }
 tracing = { workspace = true }
