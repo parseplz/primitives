@@ -9,5 +9,6 @@ pub trait InfoLine {
     fn build_infoline(raw: BytesMut) -> Result<Self, InfoLineError>
     where
         Self: Sized;
+
     fn into_data(self) -> BytesMut;
 }

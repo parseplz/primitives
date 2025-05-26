@@ -70,6 +70,10 @@ impl Header {
             .nth(0)
             .unwrap()
     }
+
+    pub fn len(&self) -> usize {
+        self.key.len() + self.value.len()
+    }
 }
 
 #[cfg(test)]
@@ -78,8 +82,7 @@ mod test {
 
     #[test]
     fn test_header_basic() {
-        let data = "content-type: application/json\r\n";
-        let buf = BytesMut::from(data);
+        let buf = BytesMut::from("content-type: application/json\r\n");
         let verify_ptr = buf.as_ptr_range();
         let header = Header::new(buf);
         assert_eq!(header.key_as_str(), "content-type");
@@ -89,10 +92,16 @@ mod test {
 
     #[test]
     fn test_header_fail_no_fs() {
-        let data = "\r\n";
-        let buf = BytesMut::from(data);
+        let buf = BytesMut::from("\r\n");
         let header = Header::new(buf);
         assert_eq!(header.key_as_str(), "\r");
         assert_eq!(header.value_as_str(), "\n");
+    }
+
+    #[test]
+    fn test_header_len() {
+        let buf: BytesMut = "content-type: application/json\r\n".into();
+        let header = Header::new(buf);
+        assert_eq!(header.len(), 32);
     }
 }

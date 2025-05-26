@@ -178,6 +178,13 @@ impl HeaderMap {
                 && header.value_as_str().eq_ignore_ascii_case(value)
         })
     }
+
+    pub fn len(&self) -> usize {
+        self.headers
+            .iter()
+            .fold(0, |total, entry| total + entry.len())
+            + 2
+    }
 }
 
 #[cfg(test)]
@@ -320,5 +327,26 @@ mod tests {
         let val = map.into_data();
         let verify = "Content-Length: 30\r\n\r\n";
         assert_eq!(val, verify);
+    }
+
+    #[test]
+    fn test_header_map_len_small() {
+        let data = "a: b\r\n\r\n";
+        let buf = BytesMut::from(data);
+        let header_map = HeaderMap::new(buf);
+        assert_eq!(header_map.len(), 8);
+    }
+
+    #[test]
+    fn test_header_map_len_large() {
+        let data = "content-type: application/json\r\n\
+                    transfer-encoding: chunked\r\n\
+                    content-encoding: gzip\r\n\
+                    trailer: Some\r\n\
+                    x-custom-header: somevalue\r\n\r\n";
+        let buf = BytesMut::from(data);
+        let header_map = HeaderMap::new(buf);
+        // 32 + 28 + 24 + 15 + 28 + 2
+        assert_eq!(header_map.len(), 129);
     }
 }
