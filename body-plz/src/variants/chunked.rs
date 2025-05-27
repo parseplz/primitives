@@ -44,10 +44,6 @@ pub fn total_chunk_size(chunks: &[ChunkType]) -> usize {
     })
 }
 
-pub fn total_chunk_size_unchecked(chunks: &[ChunkType]) -> usize {
-    chunks.iter().fold(0, |acc, chunk| acc + chunk.len())
-}
-
 #[cfg(test)]
 mod tests {
     use buffer_plz::Cursor;
@@ -94,23 +90,6 @@ mod tests {
             vec_body.push(ChunkType::Chunk(buf.clone()));
         }
         assert_eq!(total_chunk_size(&vec_body), 40);
-    }
-
-    #[test]
-    fn test_total_chunk_size_unchecked() {
-        let data = "7; hola amigo\r\n\
-                   Mozilla\r\n\
-                   9\r\n\
-                   Developer\r\n\
-                   7\r\n\
-                   Network\r\n\
-                   0\r\n\
-                   a: b\r\n\
-                   c: d\r\n\
-                   \r\n";
-        let chunk_vec = parse_chunked_body(data, true);
-        let size = total_chunk_size_unchecked(&chunk_vec);
-        assert_eq!(size, 67);
     }
 
     #[test]
