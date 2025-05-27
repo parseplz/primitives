@@ -22,7 +22,7 @@ impl ChunkType {
         }
     }
 
-    fn into_data(self) -> BytesMut {
+    pub fn into_data(self) -> BytesMut {
         match self {
             ChunkType::Size(buf)
             | ChunkType::Chunk(buf)
