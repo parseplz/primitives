@@ -1,17 +1,17 @@
 use bytes::BytesMut;
-use chunked::ChunkedBody;
+use chunked::ChunkType;
 use tracing::error;
 pub mod chunked;
 
 // Enum to represent Body
 #[cfg_attr(any(test, debug_assertions), derive(Debug, PartialEq, Eq))]
 pub enum Body {
-    Chunked(Vec<ChunkedBody>),
+    Chunked(Vec<ChunkType>),
     Raw(BytesMut),
 }
 
 impl Body {
-    pub fn push_chunk(&mut self, body: ChunkedBody) {
+    pub fn push_chunk(&mut self, body: ChunkType) {
         if let &mut Body::Chunked(ref mut chunks) = self {
             chunks.push(body);
         }
@@ -27,7 +27,7 @@ impl Body {
         }
     }
 
-    pub fn into_chunks(self) -> Vec<ChunkedBody> {
+    pub fn into_chunks(self) -> Vec<ChunkType> {
         match self {
             Body::Chunked(chunks) => chunks,
             _ => Vec::new(),

@@ -3,7 +3,7 @@ use header_plz::header_map::HeaderMap;
 
 // Enum to represent different types of Chunked Body
 #[cfg_attr(any(test, debug_assertions), derive(Debug, PartialEq, Eq))]
-pub enum ChunkedBody {
+pub enum ChunkType {
     Size(BytesMut),
     Chunk(BytesMut),
     LastChunk(BytesMut),
@@ -12,20 +12,31 @@ pub enum ChunkedBody {
     Extra(BytesMut),
 }
 
-impl ChunkedBody {
+impl ChunkType {
     fn len(&self) -> usize {
         match self {
-            ChunkedBody::Size(buf) | ChunkedBody::Chunk(buf) | ChunkedBody::Extra(buf) => buf.len(),
-            ChunkedBody::LastChunk(_) => 3,
-            ChunkedBody::EndCRLF(_) => 2,
-            ChunkedBody::Trailers(header_map) => header_map.len(),
+            ChunkType::Size(buf) | ChunkType::Chunk(buf) | ChunkType::Extra(buf) => buf.len(),
+            ChunkType::LastChunk(_) => 3,
+            ChunkType::EndCRLF(_) => 2,
+            ChunkType::Trailers(header_map) => header_map.len(),
+        }
+    }
+
+    fn into_data(self) -> BytesMut {
+        match self {
+            ChunkType::Size(buf)
+            | ChunkType::Chunk(buf)
+            | ChunkType::Extra(buf)
+            | ChunkType::LastChunk(buf)
+            | ChunkType::EndCRLF(buf) => buf,
+            ChunkType::Trailers(header_map) => header_map.into_data(),
         }
     }
 }
 
-pub fn total_chunk_size(chunks: &[ChunkedBody]) -> usize {
+pub fn total_chunk_size(chunks: &[ChunkType]) -> usize {
     chunks.iter().fold(0, |acc, chunk| {
-        if let ChunkedBody::Chunk(data) = chunk {
+        if let ChunkType::Chunk(data) = chunk {
             acc + data.len() - 2 // CRLF
         } else {
             acc
@@ -33,41 +44,95 @@ pub fn total_chunk_size(chunks: &[ChunkedBody]) -> usize {
     })
 }
 
-pub fn total_chunk_size_unchecked(chunks: &[ChunkedBody]) -> usize {
+pub fn total_chunk_size_unchecked(chunks: &[ChunkType]) -> usize {
     chunks.iter().fold(0, |acc, chunk| acc + chunk.len())
 }
 
 #[cfg(test)]
 mod tests {
+    use buffer_plz::Cursor;
+
+    use crate::reader::chunked_reader::ChunkReaderState;
+
     use super::*;
+
+    fn parse_chunked_body(input: &str, with_trailers: bool) -> Vec<ChunkType> {
+        let mut buf = BytesMut::from(input);
+        let mut cbuf = Cursor::new(&mut buf);
+        let mut state = ChunkReaderState::ReadSize;
+        let mut chunk_vec = vec![];
+        loop {
+            match state.next(&mut cbuf) {
+                Some(chunk_to_add) => {
+                    chunk_vec.push(chunk_to_add);
+                    match state {
+                        ChunkReaderState::LastChunk => {
+                            state = if with_trailers {
+                                ChunkReaderState::ReadTrailers
+                            } else {
+                                ChunkReaderState::EndCRLF
+                            };
+                            continue;
+                        }
+                        ChunkReaderState::End => break,
+                        ChunkReaderState::Failed(e) => panic!("{}", e),
+                        _ => continue,
+                    }
+                }
+                None => continue,
+            }
+        }
+        chunk_vec
+    }
 
     #[test]
     fn test_total_chunk_size() {
         let buf = BytesMut::from("data\r\n");
         let mut vec_body = Vec::with_capacity(20);
         for _ in 0..10 {
-            vec_body.push(ChunkedBody::Size(buf.clone()));
-            vec_body.push(ChunkedBody::Chunk(buf.clone()));
+            vec_body.push(ChunkType::Size(buf.clone()));
+            vec_body.push(ChunkType::Chunk(buf.clone()));
         }
         assert_eq!(total_chunk_size(&vec_body), 40);
     }
 
     #[test]
     fn test_total_chunk_size_unchecked() {
-        let header_buf = BytesMut::from("a: b\r\nc: d\r\n"); // 12
-        let header_map = HeaderMap::new(header_buf);
-        let body_vec = vec![
-            ChunkedBody::Size(BytesMut::from("7; hola amigo\r\n")), // 15
-            ChunkedBody::Chunk(BytesMut::from("Mozilla\r\n")),      // 9
-            ChunkedBody::Size(BytesMut::from("9\r\n")),             // 3
-            ChunkedBody::Chunk(BytesMut::from("Developer\r\n")),    // 11
-            ChunkedBody::Size(BytesMut::from("7\r\n")),             // 3
-            ChunkedBody::Chunk(BytesMut::from("Network\r\n")),      // 9
-            ChunkedBody::LastChunk(BytesMut::from("0\r\n")),        // 3
-            ChunkedBody::Trailers(header_map),                      // 12
-            ChunkedBody::EndCRLF(BytesMut::from("\r\n")),           // 2
-        ];
-        let size = total_chunk_size_unchecked(&body_vec);
+        let data = "7; hola amigo\r\n\
+                   Mozilla\r\n\
+                   9\r\n\
+                   Developer\r\n\
+                   7\r\n\
+                   Network\r\n\
+                   0\r\n\
+                   a: b\r\n\
+                   c: d\r\n\
+                   \r\n";
+        let chunk_vec = parse_chunked_body(data, true);
+        let size = total_chunk_size_unchecked(&chunk_vec);
         assert_eq!(size, 67);
+    }
+
+    #[test]
+    fn test_chunk_into_data() {
+        let data = "7; hola amigo\r\n\
+                   Mozilla\r\n\
+                   9\r\n\
+                   Developer\r\n\
+                   7\r\n\
+                   Network\r\n\
+                   0\r\n\
+                   a: b\r\n\
+                   c: d\r\n\
+                   \r\n";
+        let mut chunk_vec = parse_chunked_body(data, true);
+        assert_eq!(chunk_vec.pop().unwrap().into_data(), "a: b\r\nc: d\r\n\r\n");
+        assert_eq!(chunk_vec.pop().unwrap().into_data(), "0\r\n");
+        assert_eq!(chunk_vec.pop().unwrap().into_data(), "Network\r\n");
+        assert_eq!(chunk_vec.pop().unwrap().into_data(), "7\r\n");
+        assert_eq!(chunk_vec.pop().unwrap().into_data(), "Developer\r\n");
+        assert_eq!(chunk_vec.pop().unwrap().into_data(), "9\r\n");
+        assert_eq!(chunk_vec.pop().unwrap().into_data(), "Mozilla\r\n");
+        assert_eq!(chunk_vec.pop().unwrap().into_data(), "7; hola amigo\r\n");
     }
 }
