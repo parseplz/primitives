@@ -4,7 +4,7 @@ use buffer_plz::Cursor;
 use bytes::BytesMut;
 use thiserror::Error;
 
-use crate::body_struct::ChunkedBody;
+use crate::variants::chunked::ChunkedBody;
 
 use super::content_length_reader::read_content_length;
 use header_plz::abnf::CRLF;
@@ -113,7 +113,7 @@ impl ChunkReader {
             }
             Self::LastChunk => {
                 *self = Self::Failed(ChunkReaderError::LastChunkPoll);
-                // Temproary return Should panic at this state
+                // Temproary return Should not reach this state
                 Some(ChunkedBody::LastChunk(BytesMut::new()))
             }
             Self::ReadTrailers => {
