@@ -126,7 +126,7 @@ impl ChunkReaderState {
                 // 4.b. Actual Headers
                 if find_message_head_end(buf) {
                     *self = Self::End;
-                    let header_map = HeaderMap::new(buf.split_at_current_pos());
+                    let header_map = HeaderMap::from(buf.split_at_current_pos());
                     Some(ChunkType::Trailers(header_map))
                 } else {
                     None
@@ -412,7 +412,7 @@ pub(crate) mod tests {
                 assert_eq!(ChunkReaderState::End, state);
                 let buf = "a: b\r\n\
                        c: d\r\n\r\n";
-                let verify = HeaderMap::new(BytesMut::from(buf));
+                let verify = HeaderMap::from(BytesMut::from(buf));
                 assert_eq!(data, verify);
             }
             _ => {
