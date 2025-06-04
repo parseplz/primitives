@@ -28,7 +28,7 @@ pub struct Request {
  */
 
 impl InfoLine for Request {
-    fn build_infoline(mut data: BytesMut) -> Result<Request, InfoLineError> {
+    fn try_build_infoline(mut data: BytesMut) -> Result<Request, InfoLineError> {
         let mut index =
             data.iter()
                 .position(|&x| x == OWS as u8)
@@ -96,7 +96,7 @@ mod tests {
         let buf = BytesMut::from(req);
         let verify = buf[0..20].to_owned();
         let verify_ptr = buf[0..20].as_ptr_range();
-        let request = Request::build_infoline(buf).unwrap();
+        let request = Request::try_build_infoline(buf).unwrap();
         assert_eq!(request.method(), b"GET");
         assert_eq!(request.uri_as_string(), "/echo");
         assert_eq!(request.version, " HTTP/1.1\r\n");
@@ -111,7 +111,7 @@ mod tests {
         let buf = BytesMut::from(req);
         let verify_ptr = buf[..37].as_ptr_range();
         let verify = buf.clone();
-        match Request::build_infoline(buf) {
+        match Request::try_build_infoline(buf) {
             Ok(info_line) => {
                 assert_eq!(info_line.method, "CONNECT ");
                 assert_eq!(info_line.uri, "www.google.com:443");
@@ -132,7 +132,7 @@ mod tests {
         let buf = BytesMut::from(req);
         let verify_ptr = buf[..].as_ptr_range();
         let verify = buf.clone();
-        match Request::build_infoline(buf) {
+        match Request::try_build_infoline(buf) {
             Ok(info_line) => {
                 assert_eq!(info_line.method, "GET ");
                 assert_eq!(info_line.uri, "http://www.google.com/");
@@ -153,7 +153,7 @@ mod tests {
         let buf = BytesMut::from(req);
         let verify_ptr = buf[..].as_ptr_range();
         let verify = buf.clone();
-        match Request::build_infoline(buf) {
+        match Request::try_build_infoline(buf) {
             Ok(info_line) => {
                 assert_eq!(info_line.method, "GET ");
                 assert_eq!(info_line.uri, "http://www.google.com:8080/");
@@ -172,7 +172,7 @@ mod tests {
     fn test_return_queries() -> Result<(), Box<dyn Error>> {
         let req = "GET /users?param=value&param2=value2 HTTP/1.1\r\n\r\n";
         let buf = BytesMut::from(req);
-        let info_line = Request::build_infoline(buf)?;
+        let info_line = Request::try_build_infoline(buf)?;
         let uri = info_line.uri()?;
         let query = uri.query().unwrap();
         assert_eq!("param=value&param2=value2", query);

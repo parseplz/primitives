@@ -58,7 +58,7 @@ mod tests {
                        User-Agent: curl/7.29.0\r\n\
                        Connection: keep-alive\r\n\r\n";
         let buf = BytesMut::from(request);
-        let result = MessageHead::<Request>::new(buf).unwrap();
+        let result = MessageHead::<Request>::try_from(buf).unwrap();
         let body_headers = result.parse_body_headers();
         assert!(body_headers.is_none());
     }
@@ -72,7 +72,7 @@ mod tests {
                        User-Agent: curl/7.29.0\r\n\
                        Connection: keep-alive\r\n\r\n";
         let buf = BytesMut::from(request);
-        let result = MessageHead::<Request>::new(buf).unwrap();
+        let result = MessageHead::<Request>::try_from(buf).unwrap();
         let body_headers = result.parse_body_headers();
         assert!(body_headers.is_none());
     }
@@ -84,7 +84,7 @@ mod tests {
                        Content-Type: application/json\r\n\
                        \r\n";
         let buf = BytesMut::from(request);
-        let result = MessageHead::<Request>::new(buf).unwrap();
+        let result = MessageHead::<Request>::try_from(buf).unwrap();
         match result.parse_body_headers() {
             Some(body_headers) => {
                 assert!(body_headers.content_type.is_some());
@@ -106,7 +106,7 @@ mod tests {
                        Content-Encoding: gzip\r\n\
                        Transfer-Encoding: chunked\r\n\r\n";
         let buf = BytesMut::from(request);
-        let result = MessageHead::<Request>::new(buf).unwrap();
+        let result = MessageHead::<Request>::try_from(buf).unwrap();
         match result.parse_body_headers() {
             Some(body_headers) => {
                 assert_eq!(body_headers.content_type.unwrap(), ContentType::Application);
@@ -130,7 +130,7 @@ mod tests {
                         Content-Type: text/plain\r\n\
                         Content-Length: 12\r\n\r\n";
         let buf = BytesMut::from(response);
-        let result = MessageHead::<Response>::new(buf).unwrap();
+        let result = MessageHead::<Response>::try_from(buf).unwrap();
         let body_headers = result.parse_body_headers();
         if let Some(body_headers) = body_headers {
             assert!(body_headers.content_encoding.is_none());
@@ -151,7 +151,7 @@ mod tests {
                         Host: localhost\r\n\
                         Content-Type: text/plain\r\n\r\n";
         let buf = BytesMut::from(response);
-        let result = MessageHead::<Response>::new(buf).unwrap();
+        let result = MessageHead::<Response>::try_from(buf).unwrap();
         let body_headers = result.parse_body_headers();
         if let Some(body_headers) = body_headers {
             assert!(body_headers.content_encoding.is_none());
@@ -170,7 +170,7 @@ mod tests {
                         Content-Length: 0\r\n\
                         Content-Type: text/plain\r\n\r\n";
         let buf = BytesMut::from(response);
-        let result = MessageHead::<Response>::new(buf).unwrap();
+        let result = MessageHead::<Response>::try_from(buf).unwrap();
         let body_headers = result.parse_body_headers();
         assert!(body_headers.is_none());
     }

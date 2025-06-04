@@ -18,7 +18,7 @@ pub struct Response {
  */
 
 impl InfoLine for Response {
-    fn build_infoline(mut data: BytesMut) -> Result<Response, InfoLineError> {
+    fn try_build_infoline(mut data: BytesMut) -> Result<Response, InfoLineError> {
         // "1" in decimal
         let index = if data[5] == 49 {
             9
@@ -73,7 +73,7 @@ mod tests {
         let buf = BytesMut::from(response);
         let verify = buf.clone();
         let initial_ptr = buf.as_ptr_range();
-        let response = Response::build_infoline(buf).unwrap();
+        let response = Response::try_build_infoline(buf).unwrap();
         assert_eq!(response.version, "HTTP/1.1 ");
         assert_eq!(response.status, "200");
         assert_eq!(response.reason, " OK\r\n");
@@ -88,7 +88,7 @@ mod tests {
         let buf = BytesMut::from(response);
         let verify = buf.clone();
         let initial_ptr = buf.as_ptr_range();
-        let response = Response::build_infoline(buf).unwrap();
+        let response = Response::try_build_infoline(buf).unwrap();
         assert_eq!(response.version, "HTTP/2 ");
         assert_eq!(response.status, "200");
         assert_eq!(response.reason, " OK\r\n");

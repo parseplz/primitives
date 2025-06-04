@@ -6,7 +6,7 @@ use error::*;
 
 // Trait for parsing info line of request and response.
 pub trait InfoLine {
-    fn build_infoline(raw: BytesMut) -> Result<Self, InfoLineError>
+    fn try_build_infoline(raw: BytesMut) -> Result<Self, InfoLineError>
     where
         Self: Sized;
 
