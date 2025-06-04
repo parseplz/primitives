@@ -44,7 +44,7 @@ impl HeaderMap {
             let header_str = str::from_utf8(&input).unwrap();
             let crlf_index = header_str.find(CRLF).unwrap_or(0);
             let header_bytes = input.split_to(crlf_index + 2);
-            let h = Header::new(header_bytes);
+            let h = Header::from(header_bytes);
             header_vec.push(h);
         }
         HeaderMap {
