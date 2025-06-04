@@ -28,7 +28,7 @@ where
             let info_line = T::build_infoline(raw)?;
             return Ok(Self {
                 info_line,
-                header_map: HeaderMap::new(data),
+                header_map: HeaderMap::from(data),
             });
         }
         Err(HeaderReadError::HeaderStruct(

@@ -122,7 +122,7 @@ mod tests {
     fn test_header_map_to_body_headers_cl_only() {
         let data = "Content-Length: 10\r\n\r\n";
         let buf = BytesMut::from(data);
-        let header_map = HeaderMap::new(buf);
+        let header_map = HeaderMap::from(buf);
         let result = Option::<BodyHeader>::from(&header_map).unwrap();
         let verify = BodyHeader {
             transfer_type: Some(TransferType::ContentLength(10)),
@@ -135,7 +135,7 @@ mod tests {
     fn test_header_map_to_body_headers_cl_invalid() {
         let data = "Content-Length: invalid\r\n\r\n";
         let buf = BytesMut::from(data);
-        let header_map = HeaderMap::new(buf);
+        let header_map = HeaderMap::from(buf);
         let verify = BodyHeader {
             transfer_type: Some(TransferType::Close),
             ..Default::default()
@@ -148,7 +148,7 @@ mod tests {
     fn test_header_map_to_body_headers_te_chunked() {
         let data = "Transfer-Encoding: chunked\r\n\r\n";
         let buf = BytesMut::from(data);
-        let header_map = HeaderMap::new(buf);
+        let header_map = HeaderMap::from(buf);
         let verify = BodyHeader {
             transfer_type: Some(TransferType::Chunked),
             ..Default::default()
@@ -161,7 +161,7 @@ mod tests {
     fn test_header_map_to_body_headers_content_length_and_chunked() {
         let data = "Content-Length: 20\r\nTransfer-Encoding: chunked\r\n\r\n";
         let buf = BytesMut::from(data);
-        let header_map = HeaderMap::new(buf);
+        let header_map = HeaderMap::from(buf);
         let verify = BodyHeader {
             transfer_type: Some(TransferType::Chunked),
             ..Default::default()
@@ -174,7 +174,7 @@ mod tests {
     fn test_header_map_to_body_headers_ct_only() {
         let data = "Content-Type: application/json\r\n\r\n";
         let buf = BytesMut::from(data);
-        let header_map = HeaderMap::new(buf);
+        let header_map = HeaderMap::from(buf);
         let verify = BodyHeader {
             content_type: Some(ContentType::Application),
             transfer_type: Some(TransferType::Close),
@@ -188,7 +188,7 @@ mod tests {
     fn test_header_map_to_body_headers_ce_only() {
         let data = "Content-Encoding: gzip\r\n\r\n";
         let buf = BytesMut::from(data);
-        let header_map = HeaderMap::new(buf);
+        let header_map = HeaderMap::from(buf);
         let verify = BodyHeader {
             content_encoding: Some(vec![ContentEncoding::Gzip]),
             transfer_type: Some(TransferType::Close),

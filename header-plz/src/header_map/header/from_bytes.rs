@@ -5,7 +5,6 @@ use crate::abnf::HEADER_FS;
 use super::Header;
 
 /* Description:
- *      Associated method to build Header.
  *      Contains atleast CRLF.
  *
  * Steps:
