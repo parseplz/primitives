@@ -22,7 +22,7 @@ impl ChunkType {
         }
     }
 
-    pub fn into_data(self) -> BytesMut {
+    pub fn into_bytes(self) -> BytesMut {
         match self {
             ChunkType::Size(buf)
             | ChunkType::Chunk(buf)
@@ -105,13 +105,16 @@ mod tests {
                    c: d\r\n\
                    \r\n";
         let mut chunk_vec = parse_chunked_body(data, true);
-        assert_eq!(chunk_vec.pop().unwrap().into_data(), "a: b\r\nc: d\r\n\r\n");
-        assert_eq!(chunk_vec.pop().unwrap().into_data(), "0\r\n");
-        assert_eq!(chunk_vec.pop().unwrap().into_data(), "Network\r\n");
-        assert_eq!(chunk_vec.pop().unwrap().into_data(), "7\r\n");
-        assert_eq!(chunk_vec.pop().unwrap().into_data(), "Developer\r\n");
-        assert_eq!(chunk_vec.pop().unwrap().into_data(), "9\r\n");
-        assert_eq!(chunk_vec.pop().unwrap().into_data(), "Mozilla\r\n");
-        assert_eq!(chunk_vec.pop().unwrap().into_data(), "7; hola amigo\r\n");
+        assert_eq!(
+            chunk_vec.pop().unwrap().into_bytes(),
+            "a: b\r\nc: d\r\n\r\n"
+        );
+        assert_eq!(chunk_vec.pop().unwrap().into_bytes(), "0\r\n");
+        assert_eq!(chunk_vec.pop().unwrap().into_bytes(), "Network\r\n");
+        assert_eq!(chunk_vec.pop().unwrap().into_bytes(), "7\r\n");
+        assert_eq!(chunk_vec.pop().unwrap().into_bytes(), "Developer\r\n");
+        assert_eq!(chunk_vec.pop().unwrap().into_bytes(), "9\r\n");
+        assert_eq!(chunk_vec.pop().unwrap().into_bytes(), "Mozilla\r\n");
+        assert_eq!(chunk_vec.pop().unwrap().into_bytes(), "7; hola amigo\r\n");
     }
 }

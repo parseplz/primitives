@@ -17,7 +17,7 @@ impl Body {
         }
     }
 
-    pub fn into_data(self) -> Option<BytesMut> {
+    pub fn into_bytes(self) -> Option<BytesMut> {
         match self {
             Body::Raw(data) => Some(data),
             _ => {

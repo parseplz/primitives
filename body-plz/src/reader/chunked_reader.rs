@@ -82,7 +82,7 @@ impl ChunkReaderState {
             Self::ReadSize => {
                 // 1.a. call mark_size_chunk()
                 if ChunkReaderState::mark_size_chunk(buf) {
-                    match Self::get_size(buf) {
+                    match Self::try_get_size(buf) {
                         Ok(size) => {
                             // 1.b.1. If size == 0, then LastChunk
                             if size == 0 {
@@ -183,7 +183,7 @@ impl ChunkReaderState {
      *      ChunkReaderError::Size              [3]
      */
 
-    fn get_size(buf: &mut Cursor) -> Result<usize, ChunkReaderError> {
+    fn try_get_size(buf: &mut Cursor) -> Result<usize, ChunkReaderError> {
         // 1. Convert the chunk to str, split ";" , get first part (hex size).
         let hex_size = &buf.as_ref()[0..buf.position()]
             .split(|c| *c == b';')
@@ -496,7 +496,7 @@ pub(crate) mod tests {
         let mut cbuf = Cursor::new(&mut buf);
         let result = ChunkReaderState::mark_size_chunk(&mut cbuf);
         assert!(result);
-        let size = ChunkReaderState::get_size(&mut cbuf).unwrap();
+        let size = ChunkReaderState::try_get_size(&mut cbuf).unwrap();
         assert_eq!(size, 7);
     }
 
