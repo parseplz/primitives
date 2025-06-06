@@ -29,7 +29,7 @@ impl ChunkType {
             | ChunkType::Extra(buf)
             | ChunkType::LastChunk(buf)
             | ChunkType::EndCRLF(buf) => buf,
-            ChunkType::Trailers(header_map) => header_map.into_data(),
+            ChunkType::Trailers(header_map) => header_map.into_bytes(),
         }
     }
 }
