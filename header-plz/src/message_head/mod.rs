@@ -21,9 +21,9 @@ where
     }
 
     // Convert into Data
-    pub fn into_data(self) -> BytesMut {
-        let mut data = self.info_line.into_data();
-        data.unsplit(self.header_map.into_data());
+    pub fn into_bytes(self) -> BytesMut {
+        let mut data = self.info_line.into_bytes();
+        data.unsplit(self.header_map.into_bytes());
         data
     }
 

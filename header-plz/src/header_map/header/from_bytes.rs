@@ -42,7 +42,7 @@ mod test {
         let header = Header::from(buf);
         assert_eq!(header.key_as_str(), "content-type");
         assert_eq!(header.value_as_str(), "application/json");
-        assert_eq!(verify_ptr, header.into_data().as_ptr_range());
+        assert_eq!(verify_ptr, header.into_bytes().as_ptr_range());
     }
 
     #[test]

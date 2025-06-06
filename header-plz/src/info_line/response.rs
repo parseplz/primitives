@@ -36,7 +36,7 @@ impl InfoLine for Response {
         })
     }
 
-    fn into_data(mut self) -> BytesMut {
+    fn into_bytes(mut self) -> BytesMut {
         self.status.unsplit(self.reason);
         self.version.unsplit(self.status);
         self.version
@@ -77,7 +77,7 @@ mod tests {
         assert_eq!(response.version, "HTTP/1.1 ");
         assert_eq!(response.status, "200");
         assert_eq!(response.reason, " OK\r\n");
-        let toverify = response.into_data();
+        let toverify = response.into_bytes();
         assert_eq!(toverify.as_ptr_range(), initial_ptr);
         assert_eq!(toverify, verify);
     }
@@ -92,7 +92,7 @@ mod tests {
         assert_eq!(response.version, "HTTP/2 ");
         assert_eq!(response.status, "200");
         assert_eq!(response.reason, " OK\r\n");
-        let toverify = response.into_data();
+        let toverify = response.into_bytes();
         assert_eq!(toverify.as_ptr_range(), initial_ptr);
         assert_eq!(toverify, verify);
     }

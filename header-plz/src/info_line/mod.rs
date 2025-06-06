@@ -10,5 +10,5 @@ pub trait InfoLine {
     where
         Self: Sized;
 
-    fn into_data(self) -> BytesMut;
+    fn into_bytes(self) -> BytesMut;
 }

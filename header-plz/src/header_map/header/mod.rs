@@ -18,7 +18,7 @@ impl Header {
         Header { key, value }
     }
 
-    pub fn into_data(mut self) -> BytesMut {
+    pub fn into_bytes(mut self) -> BytesMut {
         self.key.unsplit(self.value);
         self.key
     }

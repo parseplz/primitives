@@ -55,7 +55,7 @@ mod tests {
         let verify = buf.clone();
         let verify_ptr = buf.as_ptr_range();
         let header_map = HeaderMap::from(buf);
-        let result = header_map.into_data();
+        let result = header_map.into_bytes();
         assert_eq!(verify, result);
         assert_eq!(verify_ptr, result.as_ptr_range());
     }

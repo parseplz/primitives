@@ -51,7 +51,7 @@ impl InfoLine for Request {
         })
     }
 
-    fn into_data(mut self) -> BytesMut {
+    fn into_bytes(mut self) -> BytesMut {
         self.uri.unsplit(self.version);
         self.method.unsplit(self.uri);
         self.method
@@ -100,7 +100,7 @@ mod tests {
         assert_eq!(request.method(), b"GET");
         assert_eq!(request.uri_as_string(), "/echo");
         assert_eq!(request.version, " HTTP/1.1\r\n");
-        let toverify = request.into_data();
+        let toverify = request.into_bytes();
         assert_eq!(verify_ptr, toverify.as_ptr_range());
         assert_eq!(toverify, verify);
     }
@@ -116,7 +116,7 @@ mod tests {
                 assert_eq!(info_line.method, "CONNECT ");
                 assert_eq!(info_line.uri, "www.google.com:443");
                 assert_eq!(info_line.version, " HTTP/1.1\r\n");
-                let assembled = info_line.into_data();
+                let assembled = info_line.into_bytes();
                 assert_eq!(assembled, verify);
                 assert_eq!(verify_ptr, assembled.as_ptr_range());
             }
@@ -137,7 +137,7 @@ mod tests {
                 assert_eq!(info_line.method, "GET ");
                 assert_eq!(info_line.uri, "http://www.google.com/");
                 assert_eq!(info_line.version, " HTTP/1.1\r\n");
-                let assembled = info_line.into_data();
+                let assembled = info_line.into_bytes();
                 assert_eq!(assembled, verify);
                 assert_eq!(verify_ptr, assembled.as_ptr_range());
             }
@@ -158,7 +158,7 @@ mod tests {
                 assert_eq!(info_line.method, "GET ");
                 assert_eq!(info_line.uri, "http://www.google.com:8080/");
                 assert_eq!(info_line.version, " HTTP/1.1\r\n");
-                let assembled = info_line.into_data();
+                let assembled = info_line.into_bytes();
                 assert_eq!(assembled, verify);
                 assert_eq!(verify_ptr, assembled.as_ptr_range());
             }

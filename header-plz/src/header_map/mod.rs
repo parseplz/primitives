@@ -20,9 +20,9 @@ impl HeaderMap {
         HeaderMap { headers, crlf }
     }
 
-    pub fn into_data(mut self) -> BytesMut {
+    pub fn into_bytes(mut self) -> BytesMut {
         for header in self.headers.into_iter().rev() {
-            let mut data = header.into_data();
+            let mut data = header.into_bytes();
             data.unsplit(self.crlf);
             self.crlf = data;
         }
@@ -176,7 +176,7 @@ mod tests {
         let new = ("Content-Type", "application/json").into();
         let result = map.change_header(old, new);
         assert!(result);
-        let val = map.into_data();
+        let val = map.into_bytes();
         let verify = "Content-Type: application/json\r\n\r\n";
         assert_eq!(val, verify);
     }
@@ -190,7 +190,7 @@ mod tests {
         let to_remove = ("Content-Length", "20").into();
         let result = map.remove_header(to_remove);
         assert!(result);
-        let val = map.into_data();
+        let val = map.into_bytes();
         let verify = "Content-Type: application/json\r\n\r\n";
         assert_eq!(val, verify);
     }
@@ -204,7 +204,7 @@ mod tests {
         let to_remove = ("Content-Type", "application/json").into();
         let result = map.remove_header(to_remove);
         assert!(result);
-        let val = map.into_data();
+        let val = map.into_bytes();
         let verify = "Content-Length: 20\r\n\r\n";
         assert_eq!(val, verify);
     }
@@ -217,7 +217,7 @@ mod tests {
         let new = "Content-Type";
         let result = map.change_header_key(old, new);
         assert!(result);
-        let val = map.into_data();
+        let val = map.into_bytes();
         let verify = "Content-Type: 20\r\n\r\n";
         assert_eq!(val, verify);
     }
@@ -230,7 +230,7 @@ mod tests {
         let new_val = "30";
         let result = map.change_header_value_on_key(key, new_val);
         assert!(result);
-        let val = map.into_data();
+        let val = map.into_bytes();
         let verify = "Content-Length: 30\r\n\r\n";
         assert_eq!(val, verify);
     }
@@ -242,7 +242,7 @@ mod tests {
         let key = "Content-Length";
         let result = map.remove_header_on_key(key);
         assert!(result);
-        let val = map.into_data();
+        let val = map.into_bytes();
         let verify = "\r\n";
         assert_eq!(val, verify);
     }
@@ -267,7 +267,7 @@ mod tests {
         let pos = 0;
         let new_val = "30";
         map.change_header_value_on_pos(pos, new_val);
-        let val = map.into_data();
+        let val = map.into_bytes();
         let verify = "Content-Length: 30\r\n\r\n";
         assert_eq!(val, verify);
     }
