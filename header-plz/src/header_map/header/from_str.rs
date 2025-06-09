@@ -8,6 +8,7 @@ use crate::abnf::{CRLF, HEADER_FS};
  *      4. Return Header
  */
 
+// (Content-Type, application/json)
 impl From<(&str, &str)> for Header {
     fn from((key, value): (&str, &str)) -> Self {
         let mut bkey = BytesMut::from(key);

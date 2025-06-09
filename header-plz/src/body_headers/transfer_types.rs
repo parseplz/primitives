@@ -23,7 +23,7 @@ pub fn cl_to_transfer_type(value: &str) -> TransferType {
 pub fn parse_and_remove_chunked(value: &mut Option<Vec<ContentEncoding>>) -> Option<TransferType> {
     if let Some(vec) = value {
         let original_len = vec.len();
-        vec.retain(|&ce| ce != ContentEncoding::Chunked);
+        vec.retain(|ce| *ce != ContentEncoding::Chunked);
         if vec.len() != original_len {
             if vec.is_empty() {
                 *value = None;

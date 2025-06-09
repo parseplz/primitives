@@ -6,7 +6,7 @@ pub const GZIP: &str = "gzip";
 pub const IDENTITY: &str = "identity";
 pub const ZSTD: &str = "zstd";
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ContentEncoding {
     Brotli,
     Compress,
@@ -15,6 +15,7 @@ pub enum ContentEncoding {
     Identity,
     Zstd,
     Chunked,
+    Unknown(String),
 }
 
 impl From<&str> for ContentEncoding {
@@ -27,7 +28,20 @@ impl From<&str> for ContentEncoding {
             IDENTITY => ContentEncoding::Identity,
             ZSTD => ContentEncoding::Zstd,
             CHUNKED => ContentEncoding::Chunked,
-            &_ => unreachable!("unknown content encoding| {}", s),
+            &_ => ContentEncoding::Unknown(s.to_string()),
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_content_encoding_from_str() {
+        assert_eq!(
+            ContentEncoding::Unknown("hola".to_string()),
+            ContentEncoding::from("hola")
+        );
     }
 }
