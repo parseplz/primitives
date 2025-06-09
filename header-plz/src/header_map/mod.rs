@@ -5,8 +5,6 @@ use bytes::BytesMut;
 use header::*;
 mod from_bytes;
 
-use crate::abnf::{CRLF, HEADER_FS};
-
 // Vec<Header> + CRLF
 #[cfg_attr(any(test, debug_assertions), derive(Debug, PartialEq, Eq))]
 #[derive(Default)]
@@ -90,9 +88,7 @@ impl HeaderMap {
     pub fn change_header_key(&mut self, old_key: &str, new_key: &str) -> bool {
         for h in self.headers.iter_mut() {
             if h.key_as_str().eq_ignore_ascii_case(old_key) {
-                let mut a = new_key.to_string();
-                a.push_str(HEADER_FS);
-                h.change_key(a.as_bytes().into());
+                h.change_key(new_key);
                 return true;
             }
         }
@@ -113,9 +109,7 @@ impl HeaderMap {
     pub fn change_header_value_on_key(&mut self, key: &str, value: &str) -> bool {
         for h in self.headers.iter_mut() {
             if h.key_as_str().eq_ignore_ascii_case(key) {
-                let mut a = value.to_string();
-                a.push_str(CRLF);
-                h.change_value(a.as_bytes().into());
+                h.change_value(value);
                 return true;
             }
         }
@@ -123,10 +117,7 @@ impl HeaderMap {
     }
 
     pub fn change_header_value_on_pos(&mut self, pos: usize, value: &str) {
-        let mut buf = BytesMut::with_capacity(value.len() + 2);
-        buf.extend_from_slice(value.as_bytes());
-        buf.extend_from_slice(CRLF.as_bytes());
-        self.headers[pos].change_value(buf);
+        self.headers[pos].change_value(value);
     }
 
     pub fn value_for_key(&self, key: &str) -> Option<&str> {
@@ -138,7 +129,7 @@ impl HeaderMap {
         None
     }
 
-    // common
+    // general
     pub fn has_key_and_value(&self, key: &str, value: &str) -> Option<usize> {
         self.headers.iter().position(|header| {
             header.key_as_str().eq_ignore_ascii_case(key)

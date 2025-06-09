@@ -13,6 +13,15 @@ pub struct Header {
     value: BytesMut, // Value + "\r\n"
 }
 
+fn reuse_or_swap(len: usize, target: &mut BytesMut, incoming: &str) {
+    if target.capacity() >= len {
+        target.clear();
+        target.extend_from_slice(incoming.as_bytes());
+    } else {
+        *target = BytesMut::from(incoming.as_bytes());
+    }
+}
+
 impl Header {
     pub fn new(key: BytesMut, value: BytesMut) -> Self {
         Header { key, value }
@@ -23,12 +32,14 @@ impl Header {
         self.key
     }
 
-    pub fn change_key(&mut self, key: BytesMut) {
-        self.key = key
+    pub fn change_key(&mut self, key: &str) {
+        reuse_or_swap(key.len() + 2, &mut self.key, key);
+        self.key.extend_from_slice(HEADER_FS.as_bytes());
     }
 
-    pub fn change_value(&mut self, value: BytesMut) {
-        self.value = value
+    pub fn change_value(&mut self, value: &str) {
+        reuse_or_swap(value.len() + 2, &mut self.value, value);
+        self.value.extend_from_slice(CRLF.as_bytes());
     }
 
     // new() method checked whether it is a valid str
@@ -51,5 +62,88 @@ impl Header {
 
     pub fn len(&self) -> usize {
         self.key.len() + self.value.len()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use bytes::BytesMut;
+
+    use super::Header;
+
+    // key change
+    #[test]
+    fn test_change_header_key_same_len() {
+        let input = BytesMut::from("Content-Length: 10");
+        let input_range = input.as_ptr_range();
+        let mut header = Header::from(input);
+        header.change_key("content-length");
+        let result = header.into_bytes();
+        let result_range = result.as_ptr_range();
+        assert_eq!(result, "content-length: 10");
+        assert_eq!(input_range, result_range);
+    }
+
+    #[test]
+    fn test_change_header_key_reduced_len() {
+        let input = BytesMut::from("Content-Length: 10");
+        let input_range = input.as_ptr_range();
+        let mut header = Header::from(input);
+        header.change_key("a");
+        let result = header.into_bytes();
+        let result_range = result.as_ptr_range();
+        assert_eq!(result, "a: 10");
+        assert!(input_range.contains(&result_range.start));
+        assert!(input_range.contains(&result_range.end));
+    }
+
+    #[test]
+    fn test_change_header_key_large_len() {
+        let input = BytesMut::from("Small: 10");
+        let input_range = input.as_ptr_range();
+        let mut header = Header::from(input);
+        header.change_key("VeryLargeHeader");
+        let result = header.into_bytes();
+        let result_range = result.as_ptr_range();
+        assert_eq!(result, "VeryLargeHeader: 10");
+        assert_ne!(input_range, result_range);
+    }
+
+    // value change
+    #[test]
+    fn test_change_header_value_same_len() {
+        let input = BytesMut::from("Content-Length: 10\r\n");
+        let input_range = input.as_ptr_range();
+        let mut header = Header::from(input);
+        header.change_value("20");
+        let result = header.into_bytes();
+        let result_range = result.as_ptr_range();
+        assert_eq!(result, "Content-Length: 20\r\n");
+        assert_eq!(input_range, result_range);
+    }
+
+    #[test]
+    fn test_change_header_value_reduced_len() {
+        let input = BytesMut::from("Content-Length: 1000\r\n");
+        let input_range = input.as_ptr_range();
+        let mut header = Header::from(input);
+        header.change_value("1");
+        let result = header.into_bytes();
+        let result_range = result.as_ptr_range();
+        assert_eq!(result, "Content-Length: 1\r\n");
+        assert!(input_range.contains(&result_range.start));
+        assert!(input_range.contains(&result_range.end));
+    }
+
+    #[test]
+    fn test_change_header_value_large_len() {
+        let input = BytesMut::from("Small: 10\r\n");
+        let input_range = input.as_ptr_range();
+        let mut header = Header::from(input);
+        header.change_value("10000");
+        let result = header.into_bytes();
+        let result_range = result.as_ptr_range();
+        assert_eq!(result, "Small: 10000\r\n");
+        assert_ne!(input_range, result_range);
     }
 }
