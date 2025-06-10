@@ -13,15 +13,6 @@ pub struct Header {
     value: BytesMut, // Value + "\r\n"
 }
 
-fn reuse_or_swap(len: usize, target: &mut BytesMut, incoming: &str) {
-    if target.capacity() >= len {
-        target.clear();
-        target.extend_from_slice(incoming.as_bytes());
-    } else {
-        *target = BytesMut::from(incoming.as_bytes());
-    }
-}
-
 impl Header {
     pub fn new(key: BytesMut, value: BytesMut) -> Self {
         Header { key, value }
@@ -63,6 +54,35 @@ impl Header {
     pub fn len(&self) -> usize {
         self.key.len() + self.value.len()
     }
+
+    pub fn key(&self) -> &BytesMut {
+        &self.key
+    }
+
+    pub fn value(&self) -> &BytesMut {
+        &self.value
+    }
+
+    pub fn key_as_mut(&mut self) -> &mut BytesMut {
+        &mut self.key
+    }
+
+    pub fn value_as_mut(&mut self) -> &mut BytesMut {
+        &mut self.value
+    }
+}
+
+fn reuse_or_swap(len: usize, target: &mut BytesMut, incoming: &str) {
+    if target.capacity() >= len {
+        clear_and_write(target, incoming.as_bytes());
+    } else {
+        *target = BytesMut::from(incoming.as_bytes());
+    }
+}
+
+fn clear_and_write(buf: &mut BytesMut, data: &[u8]) {
+    buf.clear();
+    buf.extend_from_slice(data);
 }
 
 #[cfg(test)]

@@ -3,6 +3,13 @@ use std::str;
 
 use bytes::BytesMut;
 use header::*;
+
+use crate::{
+    abnf::{CRLF, HEADER_FS},
+    body_headers::content_encoding::ContentEncoding,
+    const_headers::{CE, CONTENT_ENCODING, TE, TRANSFER_ENCODING},
+};
+
 mod from_bytes;
 
 // Vec<Header> + CRLF
@@ -40,22 +47,29 @@ impl HeaderMap {
     }
 
     // Entire header
-    pub fn change_header(&mut self, old: Header, new: Header) -> bool {
-        for (index, header) in self.headers.iter().enumerate() {
-            if *header == old {
-                self.headers[index] = new;
-                return true;
-            }
+    pub fn find_header_pos(&self, to_find: &str) -> Option<usize> {
+        let (key, val) = to_find.split_once(HEADER_FS).unwrap_or_default();
+        self.headers
+            .iter()
+            .position(|h| h.key_as_str() == key && h.value_as_str() == val)
+    }
+
+    // old : Content-Length: 20
+    // new : Content-Length: 10
+    pub fn change_header(&mut self, old: &str, new: &str) -> bool {
+        if let Some(index) = self.find_header_pos(old) {
+            let (new_key, new_val) = new.split_once(HEADER_FS).unwrap_or_default();
+            self.headers[index].change_key(new_key);
+            self.headers[index].change_value(new_val);
+            return true;
         }
         false
     }
 
-    pub fn remove_header(&mut self, toremove: Header) -> bool {
-        for (index, h) in self.headers.iter_mut().enumerate() {
-            if *h == toremove {
-                self.headers.remove(index);
-                return true;
-            }
+    pub fn remove_header(&mut self, to_remove: &str) -> bool {
+        if let Some(index) = self.find_header_pos(to_remove) {
+            self.headers.remove(index);
+            return true;
         }
         false
     }
@@ -64,21 +78,11 @@ impl HeaderMap {
         self.headers.push(header);
     }
 
-    pub fn change_header_on_key(&mut self, key: &str, new_header: Header) -> bool {
-        for h in self.headers.iter_mut() {
-            if h.key_as_str().eq_ignore_ascii_case(key) {
-                *h = new_header;
-                return true;
-            }
-        }
-        false
-    }
-
     pub fn remove_header_on_pos(&mut self, pos: usize) {
         self.headers.remove(pos);
     }
 
-    // Header Key
+    // Key
     pub fn has_header_key(&self, key: &str) -> Option<usize> {
         self.headers
             .iter()
@@ -143,6 +147,42 @@ impl HeaderMap {
             .fold(0, |total, entry| total + entry.len())
             + 2
     }
+
+    // Remove applied Encodings
+    pub fn remove_applied_compression(
+        &mut self,
+        compression_header: &str,
+        encodings: &[ContentEncoding],
+    ) {
+        let pos = match compression_header {
+            CONTENT_ENCODING => self
+                .has_header_key(CONTENT_ENCODING)
+                .or_else(|| self.has_header_key(CE)),
+            TRANSFER_ENCODING => self
+                .has_header_key(TRANSFER_ENCODING)
+                .or_else(|| self.has_header_key(TE)),
+            _ => None,
+        };
+
+        let Some(pos) = pos else { return };
+        let value = self.headers[pos].value_as_mut();
+        // Remove CRLF
+        value.truncate(value.len() - 2);
+
+        for e in encodings.iter().rev() {
+            let mut to_reduce = value.len().saturating_sub(e.as_str().len());
+            while to_reduce > 0 {
+                let b = value[to_reduce - 1];
+                // If it's in a-z, A-Z, 0-9 → stop trimming
+                if b.is_ascii_alphanumeric() {
+                    break;
+                }
+                to_reduce -= 1;
+            }
+            value.truncate(to_reduce);
+        }
+        value.extend_from_slice(CRLF.as_bytes());
+    }
 }
 
 #[cfg(test)]
@@ -161,15 +201,18 @@ mod tests {
 
     #[test]
     fn test_header_map_change_header() {
-        let raw_header: BytesMut = "Content-Length: 20\r\n\r\n".into();
-        let mut map = HeaderMap::from(raw_header);
-        let old = ("Content-Length", "20").into();
-        let new = ("Content-Type", "application/json").into();
+        let input: BytesMut = "Content-Length: 20\r\n\r\n".into();
+        let input_range = input.as_ptr_range();
+        let mut map = HeaderMap::from(input);
+        let old = "Content-Length: 20";
+        let new = "Content-Length: 10";
         let result = map.change_header(old, new);
         assert!(result);
         let val = map.into_bytes();
-        let verify = "Content-Type: application/json\r\n\r\n";
+        let verify = "Content-Length: 10\r\n\r\n";
         assert_eq!(val, verify);
+        let result_range = val.as_ptr_range();
+        assert_eq!(input_range, result_range);
     }
 
     #[test]
@@ -178,7 +221,7 @@ mod tests {
                           Content-Length: 20\r\n\r\n"
             .into();
         let mut map = HeaderMap::from(raw_header);
-        let to_remove = ("Content-Length", "20").into();
+        let to_remove = "Content-Length: 20";
         let result = map.remove_header(to_remove);
         assert!(result);
         let val = map.into_bytes();
@@ -192,7 +235,7 @@ mod tests {
                           Content-Length: 20\r\n\r\n"
             .into();
         let mut map = HeaderMap::from(raw_header);
-        let to_remove = ("Content-Type", "application/json").into();
+        let to_remove = "Content-Type: application/json";
         let result = map.remove_header(to_remove);
         assert!(result);
         let val = map.into_bytes();
@@ -282,5 +325,49 @@ mod tests {
         let header_map = HeaderMap::from(buf);
         // 32 + 28 + 24 + 15 + 28 + 2
         assert_eq!(header_map.len(), 129);
+    }
+
+    #[test]
+    fn test_header_map_remove_applied_compression_content_encoding() {
+        let data = "Content-Encoding: gzip, deflate, br\r\n\r\n";
+        let buf = BytesMut::from(data);
+        let mut header_map = HeaderMap::from(buf);
+        let applied_ce = [ContentEncoding::Deflate, ContentEncoding::Brotli];
+        header_map.remove_applied_compression(CONTENT_ENCODING, &applied_ce);
+        let result = header_map.into_bytes();
+        assert_eq!(result, "Content-Encoding: gzip\r\n\r\n");
+    }
+
+    #[test]
+    fn test_header_map_remove_applied_compression_ce() {
+        let data = "ce: gzip, deflate, br\r\n\r\n";
+        let buf = BytesMut::from(data);
+        let mut header_map = HeaderMap::from(buf);
+        let applied_ce = [ContentEncoding::Brotli];
+        header_map.remove_applied_compression(CONTENT_ENCODING, &applied_ce);
+        let result = header_map.into_bytes();
+        assert_eq!(result, "ce: gzip, deflate\r\n\r\n");
+    }
+
+    #[test]
+    fn test_header_map_remove_applied_compression_transfer_encoding() {
+        let data = "Transfer-Encoding: gzip, deflate, br\r\n\r\n";
+        let buf = BytesMut::from(data);
+        let mut header_map = HeaderMap::from(buf);
+        let applied_ce = [ContentEncoding::Deflate, ContentEncoding::Brotli];
+        header_map.remove_applied_compression(TRANSFER_ENCODING, &applied_ce);
+        let result = header_map.into_bytes();
+        assert_eq!(result, "Transfer-Encoding: gzip\r\n\r\n");
+    }
+
+    #[test]
+    fn test_header_map_remove_applied_compression_te() {
+        let data = "te: gzip, deflate, br\r\n\r\n";
+        let buf = BytesMut::from(data);
+        let mut header_map = HeaderMap::from(buf);
+        let applied_ce = [ContentEncoding::Brotli];
+        header_map.remove_applied_compression(TRANSFER_ENCODING, &applied_ce);
+        let result = header_map.into_bytes();
+        assert_eq!(result, "te: gzip, deflate\r\n\r\n");
     }
 }

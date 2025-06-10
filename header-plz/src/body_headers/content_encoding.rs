@@ -18,6 +18,21 @@ pub enum ContentEncoding {
     Unknown(String),
 }
 
+impl ContentEncoding {
+    pub fn as_str(&self) -> &str {
+        match self {
+            ContentEncoding::Brotli => BROTLI,
+            ContentEncoding::Compress => COMPRESS,
+            ContentEncoding::Deflate => DEFLATE,
+            ContentEncoding::Gzip => GZIP,
+            ContentEncoding::Identity => IDENTITY,
+            ContentEncoding::Zstd => ZSTD,
+            ContentEncoding::Chunked => CHUNKED,
+            ContentEncoding::Unknown(s) => s,
+        }
+    }
+}
+
 impl From<&str> for ContentEncoding {
     fn from(s: &str) -> Self {
         match s {
@@ -39,9 +54,9 @@ mod tests {
 
     #[test]
     fn test_content_encoding_from_str() {
-        assert_eq!(
-            ContentEncoding::Unknown("hola".to_string()),
-            ContentEncoding::from("hola")
-        );
+        let ce = ContentEncoding::Unknown("hola".to_string());
+        assert_eq!(ContentEncoding::from("hola"), ce);
+        assert_eq!(ce.as_str(), "hola");
+        dbg!(std::mem::size_of::<ContentEncoding>());
     }
 }
