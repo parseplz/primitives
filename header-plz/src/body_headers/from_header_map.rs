@@ -44,21 +44,19 @@ impl From<&HeaderMap> for Option<BodyHeader> {
         header_map.headers().iter().for_each(|header| {
             let key = header.key_as_str();
             // 3. Content-Length
-            if (key.eq_ignore_ascii_case(CL) || key.eq_ignore_ascii_case(CONTENT_LENGTH))
-                && body_headers.transfer_type.is_none()
-            {
+            if (key.eq_ignore_ascii_case(CONTENT_LENGTH)) && body_headers.transfer_type.is_none() {
                 let transfer_type = cl_to_transfer_type(header.value_as_str());
                 body_headers.transfer_type = Some(transfer_type);
             }
             // 4.Transfer-Encoding
-            if key.eq_ignore_ascii_case(TE) || key.eq_ignore_ascii_case(TRANSFER_ENCODING) {
+            if key.eq_ignore_ascii_case(TRANSFER_ENCODING) {
                 body_headers.transfer_encoding = match_compression(header.value_as_str());
 
                 body_headers.transfer_type =
                     parse_and_remove_chunked(&mut body_headers.transfer_encoding);
             }
             // 5. Content-Encoding
-            if key.eq_ignore_ascii_case(CE) || key.eq_ignore_ascii_case(CONTENT_ENCODING) {
+            if key.eq_ignore_ascii_case(CONTENT_ENCODING) {
                 body_headers.content_encoding = match_compression(header.value_as_str());
             }
 

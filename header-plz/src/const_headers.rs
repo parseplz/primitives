@@ -1,11 +1,8 @@
 pub const CONTENT_LENGTH: &str = "Content-Length";
-pub const CL: &str = "cl";
 
 pub const TRANSFER_ENCODING: &str = "Transfer-Encoding";
-pub const TE: &str = "te";
 
 pub const CONTENT_ENCODING: &str = "Content-Encoding";
-pub const CE: &str = "ce";
 
 pub const CONTENT_TYPE: &str = "Content-Type";
 pub const TRAILER: &str = "trailer";

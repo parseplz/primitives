@@ -4,11 +4,7 @@ use std::str;
 use bytes::BytesMut;
 use header::*;
 
-use crate::{
-    abnf::{CRLF, HEADER_FS},
-    body_headers::content_encoding::ContentEncoding,
-    const_headers::{CE, CONTENT_ENCODING, TE, TRANSFER_ENCODING},
-};
+use crate::abnf::{CRLF, HEADER_FS};
 
 mod from_bytes;
 
@@ -148,32 +144,23 @@ impl HeaderMap {
             + 2
     }
 
-    // Remove applied Encodings
-    pub fn remove_applied_compression(
-        &mut self,
-        compression_header: &str,
-        encodings: &[ContentEncoding],
-    ) {
-        let pos = match compression_header {
-            CONTENT_ENCODING => self
-                .has_header_key(CONTENT_ENCODING)
-                .or_else(|| self.has_header_key(CE)),
-            TRANSFER_ENCODING => self
-                .has_header_key(TRANSFER_ENCODING)
-                .or_else(|| self.has_header_key(TE)),
-            _ => None,
+    pub fn truncate_header_values<T, E>(&mut self, key: &str, remove: E)
+    where
+        T: AsRef<str>,
+        E: IntoIterator<Item = T>,
+    {
+        let Some(pos) = self.has_header_key(key) else {
+            return;
         };
-
-        let Some(pos) = pos else { return };
         let value = self.headers[pos].value_as_mut();
         // Remove CRLF
         value.truncate(value.len() - 2);
 
-        for e in encodings.iter().rev() {
-            let mut to_reduce = value.len().saturating_sub(e.as_str().len());
+        for e in remove.into_iter() {
+            let mut to_reduce = value.len().saturating_sub(AsRef::<str>::as_ref(&e).len());
             while to_reduce > 0 {
                 let b = value[to_reduce - 1];
-                // If it's in a-z, A-Z, 0-9 → stop trimming
+                // If it's in a-z, A-Z, 0-9 => stop trimming
                 if b.is_ascii_alphanumeric() {
                     break;
                 }
@@ -181,12 +168,18 @@ impl HeaderMap {
             }
             value.truncate(to_reduce);
         }
+        // Add CRLF
         value.extend_from_slice(CRLF.as_bytes());
     }
 }
 
 #[cfg(test)]
 mod tests {
+
+    use crate::{
+        body_headers::content_encoding::ContentEncoding,
+        const_headers::{CONTENT_ENCODING, TRANSFER_ENCODING},
+    };
 
     use super::*;
 
@@ -328,46 +321,41 @@ mod tests {
     }
 
     #[test]
-    fn test_header_map_remove_applied_compression_content_encoding() {
+    fn test_header_map_truncate_header_values() {
+        let data = "Header: a,  b,c\r\n\r\n";
+        let buf = BytesMut::from(data);
+        let mut header_map = HeaderMap::from(buf);
+        let to_remove = "c";
+        header_map.truncate_header_values("Header", [to_remove].iter());
+        let result = header_map.into_bytes();
+        assert_eq!(result, "Header: a,  b\r\n\r\n");
+
+        let mut header_map = HeaderMap::from(result);
+        let to_remove = "b";
+        header_map.truncate_header_values("Header", [to_remove].iter());
+        let result = header_map.into_bytes();
+        assert_eq!(result, "Header: a\r\n\r\n");
+    }
+
+    #[test]
+    fn test_header_map_truncate_header_values_ce() {
         let data = "Content-Encoding: gzip, deflate, br\r\n\r\n";
         let buf = BytesMut::from(data);
         let mut header_map = HeaderMap::from(buf);
         let applied_ce = [ContentEncoding::Deflate, ContentEncoding::Brotli];
-        header_map.remove_applied_compression(CONTENT_ENCODING, &applied_ce);
+        header_map.truncate_header_values(CONTENT_ENCODING, applied_ce.iter().rev());
         let result = header_map.into_bytes();
         assert_eq!(result, "Content-Encoding: gzip\r\n\r\n");
     }
 
     #[test]
-    fn test_header_map_remove_applied_compression_ce() {
-        let data = "ce: gzip, deflate, br\r\n\r\n";
-        let buf = BytesMut::from(data);
-        let mut header_map = HeaderMap::from(buf);
-        let applied_ce = [ContentEncoding::Brotli];
-        header_map.remove_applied_compression(CONTENT_ENCODING, &applied_ce);
-        let result = header_map.into_bytes();
-        assert_eq!(result, "ce: gzip, deflate\r\n\r\n");
-    }
-
-    #[test]
-    fn test_header_map_remove_applied_compression_transfer_encoding() {
+    fn test_header_map_truncate_header_values_te() {
         let data = "Transfer-Encoding: gzip, deflate, br\r\n\r\n";
         let buf = BytesMut::from(data);
         let mut header_map = HeaderMap::from(buf);
         let applied_ce = [ContentEncoding::Deflate, ContentEncoding::Brotli];
-        header_map.remove_applied_compression(TRANSFER_ENCODING, &applied_ce);
+        header_map.truncate_header_values(TRANSFER_ENCODING, applied_ce.iter().rev());
         let result = header_map.into_bytes();
         assert_eq!(result, "Transfer-Encoding: gzip\r\n\r\n");
-    }
-
-    #[test]
-    fn test_header_map_remove_applied_compression_te() {
-        let data = "te: gzip, deflate, br\r\n\r\n";
-        let buf = BytesMut::from(data);
-        let mut header_map = HeaderMap::from(buf);
-        let applied_ce = [ContentEncoding::Brotli];
-        header_map.remove_applied_compression(TRANSFER_ENCODING, &applied_ce);
-        let result = header_map.into_bytes();
-        assert_eq!(result, "te: gzip, deflate\r\n\r\n");
     }
 }

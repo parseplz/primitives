@@ -18,8 +18,8 @@ pub enum ContentEncoding {
     Unknown(String),
 }
 
-impl ContentEncoding {
-    pub fn as_str(&self) -> &str {
+impl AsRef<str> for ContentEncoding {
+    fn as_ref(&self) -> &str {
         match self {
             ContentEncoding::Brotli => BROTLI,
             ContentEncoding::Compress => COMPRESS,
@@ -56,7 +56,7 @@ mod tests {
     fn test_content_encoding_from_str() {
         let ce = ContentEncoding::Unknown("hola".to_string());
         assert_eq!(ContentEncoding::from("hola"), ce);
-        assert_eq!(ce.as_str(), "hola");
+        assert_eq!(ce.as_ref(), "hola");
         dbg!(std::mem::size_of::<ContentEncoding>());
     }
 }
