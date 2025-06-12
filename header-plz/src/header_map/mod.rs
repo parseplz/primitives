@@ -1,10 +1,10 @@
 pub mod header;
-use std::str;
+use std::str::{self};
 
 use bytes::BytesMut;
 use header::*;
 
-use crate::abnf::{COLON, CRLF};
+use crate::abnf::{COLON, COMMA, CRLF, SP};
 
 mod from_bytes;
 
@@ -136,6 +136,43 @@ impl HeaderMap {
     }
 
     // general
+    pub fn truncate_header_values<T, E>(&mut self, key: &str, remove: E)
+    where
+        T: AsRef<str>,
+        E: IntoIterator<Item = T>,
+    {
+        let Some(pos) = self.has_header_key(key) else {
+            return;
+        };
+
+        let value = self.headers[pos].value_as_str();
+        let mut index = value.len();
+
+        for e in remove.into_iter() {
+            if let Some(curr) = value.find(e.as_ref()) {
+                index = index.min(curr);
+            }
+        }
+
+        if index == 0 {
+            return;
+        }
+
+        loop {
+            let mut chars = value.chars();
+            match chars.nth(index - 1).unwrap() {
+                SP | COMMA => index -= 1,
+                _ => break,
+            }
+        }
+
+        self.headers[pos].value_as_mut().truncate(index);
+        self.headers[pos]
+            .value_as_mut()
+            .extend_from_slice(CRLF.as_bytes());
+    }
+
+    // common
     pub fn has_key_and_value(&self, key: &str, value: &str) -> Option<usize> {
         self.headers.iter().position(|header| {
             header.key_as_str().eq_ignore_ascii_case(key)
@@ -148,34 +185,6 @@ impl HeaderMap {
             .iter()
             .fold(0, |total, entry| total + entry.len())
             + 2
-    }
-
-    pub fn truncate_header_values<T, E>(&mut self, key: &str, remove: E)
-    where
-        T: AsRef<str>,
-        E: IntoIterator<Item = T>,
-    {
-        let Some(pos) = self.has_header_key(key) else {
-            return;
-        };
-        let value = self.headers[pos].value_as_mut();
-        // Remove CRLF
-        value.truncate(value.len() - 2);
-
-        for e in remove.into_iter() {
-            let mut to_reduce = value.len().saturating_sub(AsRef::<str>::as_ref(&e).len());
-            while to_reduce > 0 {
-                let b = value[to_reduce - 1];
-                // If it's in a-z, A-Z, 0-9 => stop trimming
-                if b.is_ascii_alphanumeric() {
-                    break;
-                }
-                to_reduce -= 1;
-            }
-            value.truncate(to_reduce);
-        }
-        // Add CRLF
-        value.extend_from_slice(CRLF.as_bytes());
     }
 }
 
