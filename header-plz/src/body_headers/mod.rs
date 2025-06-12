@@ -1,6 +1,7 @@
 use content_encoding::ContentEncoding;
 use mime_plz::ContentType;
 use transfer_types::TransferType;
+mod encoding_struct;
 
 pub mod content_encoding;
 pub mod transfer_types;

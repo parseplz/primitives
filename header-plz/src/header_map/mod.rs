@@ -43,8 +43,8 @@ impl HeaderMap {
     }
 
     // Entire header
-    pub fn find_header_pos(&self, to_find: &str) -> Option<usize> {
-        let (key, val) = to_find
+    pub fn header_position(&self, to_find_hdr: &str) -> Option<usize> {
+        let (key, val) = to_find_hdr
             .split_once(COLON)
             .map(|(k, v)| (k, v.trim()))
             .unwrap_or_default();
@@ -53,42 +53,103 @@ impl HeaderMap {
             .position(|h| h.key_as_str() == key && h.value_as_str() == val)
     }
 
+    pub fn header_position_all(&self, to_find_hdr: &str) -> Option<Vec<usize>> {
+        let (key, val) = to_find_hdr
+            .split_once(COLON)
+            .map(|(k, v)| (k, v.trim()))
+            .unwrap_or_default();
+        let pos: Vec<usize> = self
+            .headers
+            .iter()
+            .enumerate()
+            .filter_map(|(i, h)| {
+                if h.key_as_str() == key && h.value_as_str() == val {
+                    Some(i)
+                } else {
+                    None
+                }
+            })
+            .collect();
+
+        Some(pos).filter(|v| !v.is_empty())
+    }
+
     // old : Content-Length: 20
     // new : Content-Length: 10
     pub fn change_header(&mut self, old: &str, new: &str) -> bool {
-        if let Some(index) = self.find_header_pos(old) {
+        let mut result = false;
+        if let Some(position) = self.header_position(old) {
+            result = true;
             let (new_key, new_val) = new
                 .split_once(COLON)
                 .map(|(k, v)| (k, v.trim()))
                 .unwrap_or_default();
-            self.headers[index].change_key(new_key);
-            self.headers[index].change_value(new_val);
-            return true;
+            self.headers[position].change_key(new_key);
+            self.headers[position].change_value(new_val);
         }
-        false
+        result
+    }
+
+    pub fn change_header_all(&mut self, old: &str, new: &str) -> bool {
+        let mut result = false;
+        if let Some(positions) = self.header_position_all(old) {
+            result = true;
+            let (new_key, new_val) = new
+                .split_once(COLON)
+                .map(|(k, v)| (k, v.trim()))
+                .unwrap_or_default();
+            for index in positions {
+                self.headers[index].change_key(new_key);
+                self.headers[index].change_value(new_val);
+            }
+        }
+        result
+    }
+
+    // Content-Length: 10
+    pub fn remove_header_all(&mut self, to_remove: &str) -> bool {
+        let mut result = false;
+        if let Some(positions) = self.header_position_all(to_remove) {
+            result = true;
+            for index in positions.into_iter().rev() {
+                self.headers.remove(index);
+            }
+        }
+        result
     }
 
     pub fn remove_header(&mut self, to_remove: &str) -> bool {
-        if let Some(index) = self.find_header_pos(to_remove) {
-            self.headers.remove(index);
-            return true;
+        let mut result = false;
+        if let Some(position) = self.header_position(to_remove) {
+            result = true;
+            self.headers.remove(position);
         }
-        false
+        result
     }
 
     pub fn add_header(&mut self, header: Header) {
         self.headers.push(header);
     }
 
-    pub fn remove_header_on_pos(&mut self, pos: usize) {
+    pub fn remove_header_on_position(&mut self, pos: usize) {
         self.headers.remove(pos);
     }
 
     // Key
-    pub fn has_header_key(&self, key: &str) -> Option<usize> {
+    pub fn header_key_position(&self, key: &str) -> Option<usize> {
         self.headers
             .iter()
             .position(|header| header.key_as_str().eq_ignore_ascii_case(key))
+    }
+
+    pub fn header_key_position_all(&self, key: &str) -> Option<Vec<usize>> {
+        let pos: Vec<usize> = self
+            .headers
+            .iter()
+            .enumerate()
+            .filter_map(|(i, h)| if h.key_as_str() == key { Some(i) } else { None })
+            .collect();
+        Some(pos).filter(|v| !v.is_empty())
     }
 
     pub fn change_header_key(&mut self, old_key: &str, new_key: &str) -> bool {
@@ -101,6 +162,17 @@ impl HeaderMap {
         false
     }
 
+    pub fn change_header_key_all(&mut self, old_key: &str, new_key: &str) -> bool {
+        let mut result = false;
+        if let Some(positions) = self.header_key_position_all(old_key) {
+            result = true;
+            for index in positions {
+                self.headers[index].change_key(new_key);
+            }
+        }
+        result
+    }
+
     pub fn remove_header_on_key(&mut self, key: &str) -> bool {
         for (index, h) in self.headers.iter().enumerate() {
             if h.key_as_str().eq_ignore_ascii_case(key) {
@@ -109,6 +181,17 @@ impl HeaderMap {
             }
         }
         false
+    }
+
+    pub fn remove_header_on_key_all(&mut self, key: &str) -> bool {
+        let mut result = false;
+        if let Some(positions) = self.header_key_position_all(key) {
+            result = true;
+            for index in positions.into_iter().rev() {
+                self.headers.remove(index);
+            }
+        }
+        result
     }
 
     // Value
@@ -140,7 +223,7 @@ impl HeaderMap {
         T: AsRef<str>,
         E: IntoIterator<Item = T>,
     {
-        let Some(pos) = self.has_header_key(key) else {
+        let Some(pos) = self.header_key_position(key) else {
             return;
         };
 
@@ -197,23 +280,37 @@ mod tests {
 
     use super::*;
 
+    //..........Entire Header
+    // find_header_pos
     #[test]
-    fn test_header_map_has_header_key() {
-        let raw_header: BytesMut = "Content-Length: 20\r\n\r\n".into();
-        let map = HeaderMap::from(raw_header);
-        let key = "Content-Length";
-        let result = map.has_header_key(key);
-        assert_eq!(result, Some(0));
+    fn test_header_map_find_header_pos_single() {
+        let input = "Content-Length: 20\r\n\r\n";
+        let map = HeaderMap::from(BytesMut::from(input));
+        let key = "Content-Length: 20";
+        let result = map.header_position_all(key);
+        assert_eq!(result, Some(vec![0]));
     }
 
     #[test]
-    fn test_header_map_change_header() {
+    fn test_header_map_find_header_pos_multiple() {
+        let input = "Content-Length: 20\r\n\
+                     Content-Type: application/json\r\n\
+                     Content-Length: 20\r\n\r\n";
+        let map = HeaderMap::from(BytesMut::from(input));
+        let key = "Content-Length: 20";
+        let result = map.header_position_all(key);
+        assert_eq!(result, Some(vec![0, 2]));
+    }
+
+    // change_header
+    #[test]
+    fn test_header_map_change_header_single() {
         let input: BytesMut = "Content-Length: 20\r\n\r\n".into();
         let input_range = input.as_ptr_range();
         let mut map = HeaderMap::from(input);
         let old = "Content-Length: 20";
         let new = "Content-Length: 10";
-        let result = map.change_header(old, new);
+        let result = map.change_header_all(old, new);
         assert!(result);
         let val = map.into_bytes();
         let verify = "Content-Length: 10\r\n\r\n";
@@ -223,13 +320,31 @@ mod tests {
     }
 
     #[test]
+    fn test_header_map_change_header_multiple() {
+        let input = "Content-Length: 20\r\n\
+                     Content-Type: application/json\r\n\
+                     Content-Length: 20\r\n\r\n";
+        let mut map = HeaderMap::from(BytesMut::from(input));
+        let old = "Content-Length: 20";
+        let new = "Content-Length: 10";
+        let result = map.change_header_all(old, new);
+        assert!(result);
+        let val = map.into_bytes();
+        let verify = "Content-Length: 10\r\n\
+                      Content-Type: application/json\r\n\
+                      Content-Length: 10\r\n\r\n";
+        assert_eq!(val, verify);
+    }
+
+    // remove header
+    #[test]
     fn test_header_map_remove_header_first() {
         let raw_header: BytesMut = "Content-Type: application/json\r\n\
-                          Content-Length: 20\r\n\r\n"
+                                    Content-Length: 20\r\n\r\n"
             .into();
         let mut map = HeaderMap::from(raw_header);
         let to_remove = "Content-Length: 20";
-        let result = map.remove_header(to_remove);
+        let result = map.remove_header_all(to_remove);
         assert!(result);
         let val = map.into_bytes();
         let verify = "Content-Type: application/json\r\n\r\n";
@@ -238,16 +353,38 @@ mod tests {
 
     #[test]
     fn test_header_map_remove_header_second() {
-        let raw_header: BytesMut = "Content-Type: application/json\r\n\
-                          Content-Length: 20\r\n\r\n"
-            .into();
-        let mut map = HeaderMap::from(raw_header);
+        let input = "Content-Type: application/json\r\n\
+                     Content-Length: 20\r\n\r\n";
+        let mut map = HeaderMap::from(BytesMut::from(input));
         let to_remove = "Content-Type: application/json";
-        let result = map.remove_header(to_remove);
+        let result = map.remove_header_all(to_remove);
         assert!(result);
         let val = map.into_bytes();
         let verify = "Content-Length: 20\r\n\r\n";
         assert_eq!(val, verify);
+    }
+
+    #[test]
+    fn test_header_map_remove_header_multiple() {
+        let input = "Content-Type: application/json\r\n\
+                     Content-Length: 20\r\n\
+                     Content-Type: application/json\r\n\r\n";
+        let mut map = HeaderMap::from(BytesMut::from(input));
+        let to_remove = "Content-Type: application/json";
+        let result = map.remove_header_all(to_remove);
+        assert!(result);
+        let val = map.into_bytes();
+        let verify = "Content-Length: 20\r\n\r\n";
+        assert_eq!(val, verify);
+    }
+
+    #[test]
+    fn test_header_map_has_header_key() {
+        let raw_header: BytesMut = "Content-Length: 20\r\n\r\n".into();
+        let map = HeaderMap::from(raw_header);
+        let key = "Content-Length";
+        let result = map.header_key_position(key);
+        assert_eq!(result, Some(0));
     }
 
     #[test]
