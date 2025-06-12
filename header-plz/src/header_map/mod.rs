@@ -135,7 +135,6 @@ impl HeaderMap {
         None
     }
 
-    // general
     pub fn truncate_header_values<T, E>(&mut self, key: &str, remove: E)
     where
         T: AsRef<str>,
@@ -160,10 +159,10 @@ impl HeaderMap {
 
         loop {
             let mut chars = value.chars();
-            match chars.nth(index - 1).unwrap() {
-                SP | COMMA => index -= 1,
+            match chars.nth(index.saturating_sub(1)).unwrap() {
+                SP | COMMA => index = index.saturating_sub(1),
                 _ => break,
-            }
+            };
         }
 
         self.headers[pos].value_as_mut().truncate(index);
