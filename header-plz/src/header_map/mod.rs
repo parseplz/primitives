@@ -4,7 +4,7 @@ use std::str;
 use bytes::BytesMut;
 use header::*;
 
-use crate::abnf::{CRLF, HEADER_FS};
+use crate::abnf::{COLON, CRLF};
 
 mod from_bytes;
 
@@ -44,7 +44,10 @@ impl HeaderMap {
 
     // Entire header
     pub fn find_header_pos(&self, to_find: &str) -> Option<usize> {
-        let (key, val) = to_find.split_once(HEADER_FS).unwrap_or_default();
+        let (key, val) = to_find
+            .split_once(COLON)
+            .map(|(k, v)| (k, v.trim()))
+            .unwrap_or_default();
         self.headers
             .iter()
             .position(|h| h.key_as_str() == key && h.value_as_str() == val)
@@ -54,7 +57,10 @@ impl HeaderMap {
     // new : Content-Length: 10
     pub fn change_header(&mut self, old: &str, new: &str) -> bool {
         if let Some(index) = self.find_header_pos(old) {
-            let (new_key, new_val) = new.split_once(HEADER_FS).unwrap_or_default();
+            let (new_key, new_val) = new
+                .split_once(COLON)
+                .map(|(k, v)| (k, v.trim()))
+                .unwrap_or_default();
             self.headers[index].change_key(new_key);
             self.headers[index].change_value(new_val);
             return true;

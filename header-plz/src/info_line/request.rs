@@ -5,7 +5,7 @@ use bytes::BytesMut;
 use http::uri::{InvalidUri, PathAndQuery};
 
 use super::{InfoLine, InfoLineError};
-use crate::abnf::OWS;
+use crate::abnf::SP;
 
 // Request Info Line
 #[derive(Debug)]
@@ -29,17 +29,17 @@ pub struct Request {
 
 impl InfoLine for Request {
     fn try_build_infoline(mut data: BytesMut) -> Result<Request, InfoLineError> {
-        let mut index =
-            data.iter()
-                .position(|&x| x == OWS as u8)
-                .ok_or(InfoLineError::FirstOWS(
-                    String::from_utf8_lossy(&data).to_string(),
-                ))?;
+        let mut index = data
+            .iter()
+            .position(|&x| x == SP as u8)
+            .ok_or(InfoLineError::FirstOWS(
+                String::from_utf8_lossy(&data).to_string(),
+            ))?;
         let method = data.split_to(index + 1);
         // 2. Second OWS
         index = data
             .iter()
-            .position(|&x| x == OWS as u8)
+            .position(|&x| x == SP as u8)
             .ok_or(InfoLineError::SecondOWS(
                 String::from_utf8_lossy(&data).to_string(),
             ))?;

@@ -1,5 +1,8 @@
 use super::*;
-use crate::abnf::{CRLF, HEADER_FS};
+use crate::{
+    abnf::{CRLF, HEADER_FS},
+    header_map::header::from_bytes::find_header_fs,
+};
 
 /* Steps:
  *      1. Convert str to BytesMut
@@ -26,17 +29,14 @@ impl From<(&str, &str)> for Header {
 // Content-Type: application/json
 impl From<&str> for Header {
     fn from(input: &str) -> Self {
-        let fs_index = input.find(HEADER_FS);
+        let fs_index = find_header_fs(input);
 
-        // key: val\r\n
-        let (key, val) = if let Some(index) = fs_index {
-            input.split_at(index + 2)
-            // key\r\n
-        } else if input.ends_with(CRLF) {
-            input.split_at(input.len() - 2)
+        let (key, val) = if fs_index == 0 {
             // key
+            (input, "")
         } else {
-            (input, CRLF)
+            // key: val
+            input.split_at(fs_index)
         };
 
         Header::from((key, val))

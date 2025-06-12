@@ -2,7 +2,7 @@ use std::str::{self};
 
 use bytes::BytesMut;
 
-use crate::abnf::{CRLF, HEADER_FS};
+use crate::abnf::{COLON, CRLF, HEADER_FS};
 mod from_bytes;
 mod from_str;
 
@@ -38,7 +38,7 @@ impl Header {
     pub fn key_as_str(&self) -> &str {
         str::from_utf8(&self.key)
             .unwrap()
-            .split(HEADER_FS)
+            .split(COLON)
             .nth(0)
             .unwrap()
     }
