@@ -1,5 +1,5 @@
 #![allow(clippy::len_without_is_empty)]
-//#![allow(warnings, unused)]
+#![allow(warnings, unused)]
 pub mod abnf;
 pub mod body_headers;
 pub mod const_headers;

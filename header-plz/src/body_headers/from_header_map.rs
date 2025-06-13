@@ -8,13 +8,9 @@ use super::{
 use crate::{const_headers::*, header_map::HeaderMap};
 
 /* Steps:
- *      1. Create default BodyHeader.
- *
- *      2. Iterate through headers.
- *
- *      3. If header.key is "cl" or "Content-Length", and if
- *         body_headers.transfer_type is not set then convert content length to
- *         TransferType by calling cl_to_transfer_type()
+ *      3. If header.key "Content-Length", and if body_headers.transfer_type is
+ *         not set then convert content length to TransferType by calling
+ *         cl_to_transfer_type()
  *
  *      4. If header.key is "te" or "Transfer-Encoding",
  *          a. build Vec<TransferEncoding> by calling match_compression() with
@@ -40,44 +36,34 @@ use crate::{const_headers::*, header_map::HeaderMap};
 
 impl From<&HeaderMap> for Option<BodyHeader> {
     fn from(header_map: &HeaderMap) -> Option<BodyHeader> {
-        let mut body_headers = BodyHeader::default();
-        header_map.headers().iter().for_each(|header| {
+        let mut bh = BodyHeader::default();
+        for header in header_map.headers().iter() {
             let key = header.key_as_str();
-            // 3. Content-Length
-            if (key.eq_ignore_ascii_case(CONTENT_LENGTH)) && body_headers.transfer_type.is_none() {
+            if (key.eq_ignore_ascii_case(CONTENT_LENGTH)) && bh.transfer_type.is_none() {
                 let transfer_type = cl_to_transfer_type(header.value_as_str());
-                body_headers.transfer_type = Some(transfer_type);
-            }
-            // 4.Transfer-Encoding
-            if key.eq_ignore_ascii_case(TRANSFER_ENCODING) {
-                body_headers.transfer_encoding = match_compression(header.value_as_str());
-
-                body_headers.transfer_type =
-                    parse_and_remove_chunked(&mut body_headers.transfer_encoding);
-            }
-            // 5. Content-Encoding
-            if key.eq_ignore_ascii_case(CONTENT_ENCODING) {
-                body_headers.content_encoding = match_compression(header.value_as_str());
-            }
-
-            // 6. Content-Type
-            if key.eq_ignore_ascii_case(CONTENT_TYPE) {
+                bh.transfer_type = Some(transfer_type);
+            } else if key.eq_ignore_ascii_case(TRANSFER_ENCODING) {
+                bh.transfer_encoding = match_compression(header.value_as_str());
+                bh.transfer_type = parse_and_remove_chunked(&mut bh.transfer_encoding);
+            } else if key.eq_ignore_ascii_case(CONTENT_ENCODING) {
+                bh.content_encoding = match_compression(header.value_as_str());
+            } else if key.eq_ignore_ascii_case(CONTENT_TYPE) {
                 if let Some((main_type, _)) = header.value_as_str().split_once('/') {
-                    body_headers.content_type = Some(ContentType::from(main_type));
+                    bh.content_type = Some(ContentType::from(main_type));
                 }
             }
-        });
+        }
 
         // if TransferType is Unknown, and if content_encoding or transfer_encoding
         // or content_type is present, then set TransferType to Close
-        if body_headers.transfer_type.is_none()
-            && (body_headers.content_encoding.is_some()
-                || body_headers.transfer_encoding.is_some()
-                || body_headers.content_type.is_some())
+        if bh.transfer_type.is_none()
+            && (bh.content_encoding.is_some()
+                || bh.transfer_encoding.is_some()
+                || bh.content_type.is_some())
         {
-            body_headers.transfer_type = Some(TransferType::Close);
+            bh.transfer_type = Some(TransferType::Close);
         }
-        body_headers.sanitize()
+        bh.sanitize()
     }
 }
 

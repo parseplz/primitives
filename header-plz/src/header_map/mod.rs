@@ -111,15 +111,18 @@ impl HeaderMap {
     }
 
     // ----- remove
+    pub fn remove_header_all_pos(&mut self, positions: Vec<usize>) {
+        for index in positions.into_iter().rev() {
+            self.headers.remove(index);
+        }
+    }
+
     // Content-Length: 10
     pub fn remove_header_all(&mut self, to_remove: &str) -> bool {
         let mut result = false;
         if let Some(positions) = self.header_position_all(to_remove) {
-            dbg!(&positions);
             result = true;
-            for index in positions.into_iter().rev() {
-                self.headers.remove(index);
-            }
+            self.remove_header_all_pos(positions);
         }
         result
     }
@@ -224,9 +227,7 @@ impl HeaderMap {
         let mut result = false;
         if let Some(positions) = self.header_key_position_all(key) {
             result = true;
-            for index in positions.into_iter().rev() {
-                self.headers.remove(index);
-            }
+            self.remove_header_all_pos(positions);
         }
         result
     }
@@ -615,12 +616,20 @@ mod tests {
     }
 
     #[test]
-    fn test_header_map_truncate_header_values_ce() {
-        let data = "Content-Encoding: gzip, deflate, br\r\n\r\n";
-        let buf = BytesMut::from(data);
-        let mut header_map = HeaderMap::from(buf);
+    fn test_header_map_truncate_header_values_middle() {
+        let input = "Content-Encoding: gzip, deflate, br\r\n\r\n";
+        let mut header_map = HeaderMap::from(BytesMut::from(input));
         header_map.truncate_header_values_on_key(CONTENT_ENCODING, ContentEncoding::Deflate);
         let result = header_map.into_bytes();
         assert_eq!(result, "Content-Encoding: gzip\r\n\r\n");
+    }
+
+    #[test]
+    fn test_header_map_truncate_header_values_all() {
+        let input = "Content-Encoding: gzip, deflate, br\r\n\r\n";
+        let mut header_map = HeaderMap::from(BytesMut::from(input));
+        header_map.truncate_header_values_on_key(CONTENT_ENCODING, ContentEncoding::Gzip);
+        let result = header_map.into_bytes();
+        assert_eq!(result, "Content-Encoding: \r\n\r\n");
     }
 }
