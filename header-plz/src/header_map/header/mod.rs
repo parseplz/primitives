@@ -1,8 +1,8 @@
 use std::str::{self};
 
-use bytes::BytesMut;
+use bytes::{BufMut, BytesMut};
 
-use crate::abnf::{COLON, CRLF, HEADER_FS};
+use crate::abnf::{COLON, CRLF, HEADER_FS, SP};
 mod from_bytes;
 mod from_str;
 
@@ -24,8 +24,13 @@ impl Header {
     }
 
     pub fn change_key(&mut self, key: &str) {
-        reuse_or_swap(key.len() + 2, &mut self.key, key);
-        self.key.extend_from_slice(HEADER_FS.as_bytes());
+        let ows = self.key.last().map(|b| *b == SP as u8).unwrap_or(false);
+        reuse_or_swap(key.len() + ows as usize + 1, &mut self.key, key);
+        if ows {
+            self.key.extend_from_slice(HEADER_FS.as_bytes());
+        } else {
+            self.key.put_u8(COLON as u8);
+        }
     }
 
     pub fn change_value(&mut self, value: &str) {
@@ -134,6 +139,18 @@ mod tests {
         let result_range = result.as_ptr_range();
         assert_eq!(result, "VeryLargeHeader: 10");
         assert_ne!(input_range, result_range);
+    }
+
+    #[test]
+    fn test_change_header_key_same_len_no_ows() {
+        let input = BytesMut::from("Content-Length:10");
+        let input_range = input.as_ptr_range();
+        let mut header = Header::from(input);
+        header.change_key("content-length");
+        let result = header.into_bytes();
+        let result_range = result.as_ptr_range();
+        assert_eq!(result, "content-length:10");
+        assert_eq!(input_range, result_range);
     }
 
     // value change

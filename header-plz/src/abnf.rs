@@ -1,4 +1,4 @@
-pub const COLON: &str = ":";
+pub const COLON: char = ':';
 pub const COMMA: char = ',';
 pub const CRLF: &str = "\r\n";
 pub const FORWARD_SLASH: &[u8] = b"/";

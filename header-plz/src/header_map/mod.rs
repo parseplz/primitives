@@ -4,7 +4,7 @@ use std::str::{self};
 use bytes::BytesMut;
 use header::*;
 
-use crate::abnf::{COLON, COMMA, CRLF, SP};
+use crate::abnf::{COMMA, CRLF, SP};
 
 mod from_bytes;
 
@@ -60,23 +60,27 @@ impl HeaderMap {
         Some(pos).filter(|v| !v.is_empty())
     }
 
-    pub fn find_pos<F>(&self, mut f: F) -> Option<usize>
+    pub fn find_pos<F>(&self, f: F) -> Option<usize>
     where
         F: FnMut(&Header) -> bool,
     {
-        self.headers.iter().position(|h| f(h))
+        self.headers.iter().position(f)
     }
 
     // ---------- Entire header
     // ----- find
     pub fn header_position_all(&self, to_find_hdr: &str) -> Option<Vec<usize>> {
         let (key, val) = Header::split_header(to_find_hdr);
-        self.find_pos_all(|h| h.key_as_str() == key && h.value_as_str() == val)
+        self.find_pos_all(|h| {
+            h.key_as_str().eq_ignore_ascii_case(key) && h.value_as_str().eq_ignore_ascii_case(val)
+        })
     }
 
     pub fn header_position(&self, to_find_hdr: &str) -> Option<usize> {
         let (key, val) = Header::split_header(to_find_hdr);
-        self.find_pos(|h| h.key_as_str() == key && h.value_as_str() == val)
+        self.find_pos(|h| {
+            h.key_as_str().eq_ignore_ascii_case(key) && h.value_as_str().eq_ignore_ascii_case(val)
+        })
     }
 
     // ----- update
@@ -111,6 +115,7 @@ impl HeaderMap {
     pub fn remove_header_all(&mut self, to_remove: &str) -> bool {
         let mut result = false;
         if let Some(positions) = self.header_position_all(to_remove) {
+            dbg!(&positions);
             result = true;
             for index in positions.into_iter().rev() {
                 self.headers.remove(index);
@@ -188,6 +193,32 @@ impl HeaderMap {
         result
     }
 
+    pub fn truncate_header_values_on_key<T>(&mut self, key: &str, remove: T)
+    where
+        T: AsRef<str>,
+    {
+        let Some(pos) = self.header_key_position(key) else {
+            return;
+        };
+        let value = self.headers[pos].value_as_str();
+        let Some(mut index) = value.find(remove.as_ref()) else {
+            return;
+        };
+
+        for (i, c) in value[..index].char_indices().rev() {
+            if c == SP || c == COMMA {
+                index = i;
+            } else {
+                break;
+            }
+        }
+
+        self.headers[pos].value_as_mut().truncate(index);
+        self.headers[pos]
+            .value_as_mut()
+            .extend_from_slice(CRLF.as_bytes());
+    }
+
     // ----- remove
     pub fn remove_header_on_key_all(&mut self, key: &str) -> bool {
         let mut result = false;
@@ -215,42 +246,6 @@ impl HeaderMap {
         self.headers[pos].change_value(value);
     }
 
-    pub fn truncate_header_values<T, E>(&mut self, key: &str, remove: E)
-    where
-        T: AsRef<str>,
-        E: IntoIterator<Item = T>,
-    {
-        let Some(pos) = self.header_key_position(key) else {
-            return;
-        };
-
-        let value = self.headers[pos].value_as_str();
-        let mut index = value.len();
-
-        for e in remove.into_iter() {
-            if let Some(curr) = value.find(e.as_ref()) {
-                index = index.min(curr);
-            }
-        }
-
-        if index == 0 {
-            return;
-        }
-
-        loop {
-            let mut chars = value.chars();
-            match chars.nth(index.saturating_sub(1)).unwrap() {
-                SP | COMMA => index = index.saturating_sub(1),
-                _ => break,
-            };
-        }
-
-        self.headers[pos].value_as_mut().truncate(index);
-        self.headers[pos]
-            .value_as_mut()
-            .extend_from_slice(CRLF.as_bytes());
-    }
-
     // common
     pub fn has_key_and_value(&self, key: &str, value: &str) -> Option<usize> {
         self.headers.iter().position(|header| {
@@ -270,10 +265,7 @@ impl HeaderMap {
 #[cfg(test)]
 mod tests {
 
-    use crate::{
-        body_headers::content_encoding::ContentEncoding,
-        const_headers::{CONTENT_ENCODING, TRANSFER_ENCODING},
-    };
+    use crate::{body_headers::content_encoding::ContentEncoding, const_headers::CONTENT_ENCODING};
 
     use super::*;
 
@@ -324,12 +316,20 @@ mod tests {
         let new = "Content-Length: 10";
         let result = map.update_header_all(old, new);
         assert!(result);
-        let val = map.into_bytes();
-        let verify = "Content-Length: 10\r\n\
-                      Content-Type: application/json\r\n\
-                      Content-Length: 10\r\n\
-                      Content-Type:application/json\r\n\r\n";
-        assert_eq!(val, verify);
+        let result = map.into_bytes();
+        let verify = "Host: localhost\r\n\
+                     Content-Length: 10\r\n\
+                     Content-type: application/json\r\n\
+                     Transfer-encoding: chunked\r\n\
+                     Content-Length:10\r\n\
+                     Content-Type:application/json\r\n\
+                     Content-encoding: gzip\r\n\
+                     Content-Length:10\r\n\
+                     Content-Type:application/json\r\n\
+                     Trailer: Some\r\n\
+                     Connection: keep-alive\r\n\
+                     X-custom-header: somevalue\r\n\r\n";
+        assert_eq!(result, verify);
     }
 
     #[test]
@@ -341,13 +341,21 @@ mod tests {
         let new = "Content-Length: 10";
         let result = map.update_header(old, new);
         assert!(result);
-        let val = map.into_bytes();
-        let verify = "Content-Length: 10\r\n\
-                      Content-Type: application/json\r\n\
-                      Content-Length:20\r\n\
-                      Content-Type:application/json\r\n\r\n";
-        assert_eq!(val, verify);
-        let result_range = val.as_ptr_range();
+        let result = map.into_bytes();
+        let verify = "Host: localhost\r\n\
+                     Content-Length: 10\r\n\
+                     Content-type: application/json\r\n\
+                     Transfer-encoding: chunked\r\n\
+                     Content-Length:20\r\n\
+                     Content-Type:application/json\r\n\
+                     Content-encoding: gzip\r\n\
+                     Content-Length:20\r\n\
+                     Content-Type:application/json\r\n\
+                     Trailer: Some\r\n\
+                     Connection: keep-alive\r\n\
+                     X-custom-header: somevalue\r\n\r\n";
+        assert_eq!(result, verify);
+        let result_range = result.as_ptr_range();
         assert_eq!(input_range, result_range);
     }
 
@@ -358,10 +366,17 @@ mod tests {
         let to_remove = "Content-Type: application/json";
         let result = map.remove_header_all(to_remove);
         assert!(result);
-        let val = map.into_bytes();
-        let verify = "Content-Length: 20\r\n\
-                      Content-Length:20\r\n\r\n";
-        assert_eq!(val, verify);
+        let result = map.into_bytes();
+        let verify = "Host: localhost\r\n\
+                      Content-Length: 20\r\n\
+                      Transfer-encoding: chunked\r\n\
+                      Content-Length:20\r\n\
+                      Content-encoding: gzip\r\n\
+                      Content-Length:20\r\n\
+                      Trailer: Some\r\n\
+                      Connection: keep-alive\r\n\
+                      X-custom-header: somevalue\r\n\r\n";
+        assert_eq!(result, verify);
     }
 
     #[test]
@@ -370,11 +385,19 @@ mod tests {
         let to_remove = "Content-Length: 20";
         let result = map.remove_header(to_remove);
         assert!(result);
-        let val = map.into_bytes();
-        let verify = "Content-Type: application/json\r\n\
-                      Content-Length:20\r\n\
-                      Content-Type:application/json\r\n\r\n";
-        assert_eq!(val, verify);
+        let result = map.into_bytes();
+        let verify = "Host: localhost\r\n\
+                     Content-type: application/json\r\n\
+                     Transfer-encoding: chunked\r\n\
+                     Content-Length:20\r\n\
+                     Content-Type:application/json\r\n\
+                     Content-encoding: gzip\r\n\
+                     Content-Length:20\r\n\
+                     Content-Type:application/json\r\n\
+                     Trailer: Some\r\n\
+                     Connection: keep-alive\r\n\
+                     X-custom-header: somevalue\r\n\r\n";
+        assert_eq!(result, verify);
     }
 
     // ---------- Key
@@ -384,7 +407,7 @@ mod tests {
         let map = build_header_map();
         let key = "Content-Length";
         let result = map.header_key_position_all(key);
-        assert_eq!(result, Some(vec![0, 2]));
+        assert_eq!(result, Some(vec![1, 4, 7]));
     }
 
     #[test]
@@ -392,7 +415,7 @@ mod tests {
         let map = build_header_map();
         let key = "Content-Type";
         let result = map.header_key_position(key);
-        assert_eq!(result, Some(1));
+        assert_eq!(result, Some(2));
     }
 
     #[test]
@@ -408,30 +431,46 @@ mod tests {
     fn test_header_map_update_header_key_all() {
         let mut map = build_header_map();
         let old = "Content-Length";
-        let new = "Update-Content-Length";
+        let new = "Updated-Content-Length";
         let result = map.update_header_key_all(old, new);
         assert!(result);
-        let val = map.into_bytes();
-        let verify = "Update-Content-Length: 20\r\n\
-                      Content-Type: application/json\r\n\
-                      Update-Content-Length: 20\r\n\
-                      Content-Type:application/json\r\n\r\n";
-        assert_eq!(val, verify);
+        let result = map.into_bytes();
+        let verify = "Host: localhost\r\n\
+                      Updated-Content-Length: 20\r\n\
+                      Content-type: application/json\r\n\
+                      Transfer-encoding: chunked\r\n\
+                      Updated-Content-Length:20\r\n\
+                      Content-Type:application/json\r\n\
+                      Content-encoding: gzip\r\n\
+                      Updated-Content-Length:20\r\n\
+                      Content-Type:application/json\r\n\
+                      Trailer: Some\r\n\
+                      Connection: keep-alive\r\n\
+                      X-custom-header: somevalue\r\n\r\n";
+        assert_eq!(result, verify);
     }
 
     #[test]
     fn test_header_map_update_header_key() {
         let mut map = build_header_map();
         let old = "Content-Length";
-        let new = "Updated-Content-Type";
+        let new = "Updated-Content-Length";
         let result = map.update_header_key(old, new);
         assert!(result);
-        let val = map.into_bytes();
-        let verify = "Updated-Content-Type: 20\r\n\
-                      Content-Type: application/json\r\n\
+        let result = map.into_bytes();
+        let verify = "Host: localhost\r\n\
+                      Updated-Content-Length: 20\r\n\
+                      Content-type: application/json\r\n\
+                      Transfer-encoding: chunked\r\n\
                       Content-Length:20\r\n\
-                      Content-Type:application/json\r\n\r\n";
-        assert_eq!(val, verify);
+                      Content-Type:application/json\r\n\
+                      Content-encoding: gzip\r\n\
+                      Content-Length:20\r\n\
+                      Content-Type:application/json\r\n\
+                      Trailer: Some\r\n\
+                      Connection: keep-alive\r\n\
+                      X-custom-header: somevalue\r\n\r\n";
+        assert_eq!(result, verify);
     }
 
     #[test]
@@ -441,12 +480,20 @@ mod tests {
         let new_val = "30";
         let result = map.update_header_value_on_key_all(key, new_val);
         assert!(result);
-        let val = map.into_bytes();
-        let verify = "Content-Length: 30\r\n\
-                      Content-Type: application/json\r\n\
-                      Content-Length:30\r\n\
-                      Content-Type:application/json\r\n\r\n";
-        assert_eq!(val, verify);
+        let result = map.into_bytes();
+        let verify = "Host: localhost\r\n\
+                     Content-Length: 30\r\n\
+                     Content-type: application/json\r\n\
+                     Transfer-encoding: chunked\r\n\
+                     Content-Length:30\r\n\
+                     Content-Type:application/json\r\n\
+                     Content-encoding: gzip\r\n\
+                     Content-Length:30\r\n\
+                     Content-Type:application/json\r\n\
+                     Trailer: Some\r\n\
+                     Connection: keep-alive\r\n\
+                     X-custom-header: somevalue\r\n\r\n";
+        assert_eq!(result, verify);
     }
 
     #[test]
@@ -456,52 +503,85 @@ mod tests {
         let new_val = "30";
         let result = map.update_header_value_on_key(key, new_val);
         assert!(result);
-        let val = map.into_bytes();
-        let verify = "Content-Length: 30\r\n\
-                      Content-Type: application/json\r\n\
-                      Content-Length:20\r\n\
-                      Content-Type:application/json\r\n\r\n";
-        assert_eq!(val, verify);
+        let result = map.into_bytes();
+        let verify = "Host: localhost\r\n\
+                     Content-Length: 30\r\n\
+                     Content-type: application/json\r\n\
+                     Transfer-encoding: chunked\r\n\
+                     Content-Length:20\r\n\
+                     Content-Type:application/json\r\n\
+                     Content-encoding: gzip\r\n\
+                     Content-Length:20\r\n\
+                     Content-Type:application/json\r\n\
+                     Trailer: Some\r\n\
+                     Connection: keep-alive\r\n\
+                     X-custom-header: somevalue\r\n\r\n";
+        assert_eq!(result, verify);
     }
 
     // ----- remove
     #[test]
-    fn test_header_map_change_header_value() {
-        let raw_header: BytesMut = "Content-Length: 20\r\n\r\n".into();
-        let mut map = HeaderMap::from(raw_header);
+    fn test_header_map_remove_header_on_key_all() {
+        let mut map = build_header_map();
         let key = "Content-Length";
-        let new_val = "30";
-        let result = map.update_header_value_on_key(key, new_val);
+        let result = map.remove_header_on_key_all(key);
         assert!(result);
-        let val = map.into_bytes();
-        let verify = "Content-Length: 30\r\n\r\n";
-        assert_eq!(val, verify);
+        let result = map.into_bytes();
+        let verify = "Host: localhost\r\n\
+                      Content-type: application/json\r\n\
+                      Transfer-encoding: chunked\r\n\
+                      Content-Type:application/json\r\n\
+                      Content-encoding: gzip\r\n\
+                      Content-Type:application/json\r\n\
+                      Trailer: Some\r\n\
+                      Connection: keep-alive\r\n\
+                      X-custom-header: somevalue\r\n\r\n";
+        assert_eq!(result, verify);
     }
 
     #[test]
     fn test_header_map_remove_header_on_key() {
-        let raw_header: BytesMut = "Content-Length: 20\r\n\r\n".into();
-        let mut map = HeaderMap::from(raw_header);
+        let mut map = build_header_map();
         let key = "Content-Length";
         let result = map.remove_header_on_key(key);
         assert!(result);
-        let val = map.into_bytes();
-        let verify = "\r\n";
-        assert_eq!(val, verify);
+        let result = map.into_bytes();
+        let verify = "Host: localhost\r\n\
+                      Content-type: application/json\r\n\
+                      Transfer-encoding: chunked\r\n\
+                      Content-Length:20\r\n\
+                      Content-Type:application/json\r\n\
+                      Content-encoding: gzip\r\n\
+                      Content-Length:20\r\n\
+                      Content-Type:application/json\r\n\
+                      Trailer: Some\r\n\
+                      Connection: keep-alive\r\n\
+                      X-custom-header: somevalue\r\n\r\n";
+        assert_eq!(result, verify);
     }
 
     // ---------- value
     // ----- update
     #[test]
     fn test_update_header_value_on_pos() {
-        let raw_header: BytesMut = "Content-Length: 20\r\n\r\n".into();
-        let mut map = HeaderMap::from(raw_header);
-        let pos = 0;
-        let new_val = "30";
-        map.update_header_value_on_pos(pos, new_val);
-        let val = map.into_bytes();
-        let verify = "Content-Length: 30\r\n\r\n";
-        assert_eq!(val, verify);
+        let mut map = build_header_map();
+        let pos = 1;
+        let val = "30";
+        map.update_header_value_on_pos(pos, val);
+        let result = map.into_bytes();
+        let verify = "Host: localhost\r\n\
+                      Content-Length: 30\r\n\
+                      Content-type: application/json\r\n\
+                      Transfer-encoding: chunked\r\n\
+                      Content-Length:20\r\n\
+                      Content-Type:application/json\r\n\
+                      Content-encoding: gzip\r\n\
+                      Content-Length:20\r\n\
+                      Content-Type:application/json\r\n\
+                      Trailer: Some\r\n\
+                      Connection: keep-alive\r\n\
+                      X-custom-header: somevalue\r\n\r\n";
+        assert_eq!(result, verify);
     }
 
     // ------ len
@@ -515,15 +595,8 @@ mod tests {
 
     #[test]
     fn test_header_map_len_large() {
-        let data = "content-type: application/json\r\n\
-                    transfer-encoding: chunked\r\n\
-                    content-encoding: gzip\r\n\
-                    trailer: Some\r\n\
-                    x-custom-header: somevalue\r\n\r\n";
-        let buf = BytesMut::from(data);
-        let header_map = HeaderMap::from(buf);
-        // 32 + 28 + 24 + 15 + 28 + 2
-        assert_eq!(header_map.len(), 129);
+        let map = build_header_map();
+        assert_eq!(map.len(), 290);
     }
 
     #[test]
@@ -531,14 +604,12 @@ mod tests {
         let data = "Header: a,  b,c\r\n\r\n";
         let buf = BytesMut::from(data);
         let mut header_map = HeaderMap::from(buf);
-        let to_remove = "c";
-        header_map.truncate_header_values("Header", [to_remove].iter());
+        header_map.truncate_header_values_on_key("Header", "c");
         let result = header_map.into_bytes();
         assert_eq!(result, "Header: a,  b\r\n\r\n");
 
         let mut header_map = HeaderMap::from(result);
-        let to_remove = "b";
-        header_map.truncate_header_values("Header", [to_remove].iter());
+        header_map.truncate_header_values_on_key("Header", "b");
         let result = header_map.into_bytes();
         assert_eq!(result, "Header: a\r\n\r\n");
     }
@@ -548,20 +619,8 @@ mod tests {
         let data = "Content-Encoding: gzip, deflate, br\r\n\r\n";
         let buf = BytesMut::from(data);
         let mut header_map = HeaderMap::from(buf);
-        let applied_ce = [ContentEncoding::Deflate, ContentEncoding::Brotli];
-        header_map.truncate_header_values(CONTENT_ENCODING, applied_ce.iter().rev());
+        header_map.truncate_header_values_on_key(CONTENT_ENCODING, ContentEncoding::Deflate);
         let result = header_map.into_bytes();
         assert_eq!(result, "Content-Encoding: gzip\r\n\r\n");
-    }
-
-    #[test]
-    fn test_header_map_truncate_header_values_te() {
-        let data = "Transfer-Encoding: gzip, deflate, br\r\n\r\n";
-        let buf = BytesMut::from(data);
-        let mut header_map = HeaderMap::from(buf);
-        let applied_ce = [ContentEncoding::Deflate, ContentEncoding::Brotli];
-        header_map.truncate_header_values(TRANSFER_ENCODING, applied_ce.iter().rev());
-        let result = header_map.into_bytes();
-        assert_eq!(result, "Transfer-Encoding: gzip\r\n\r\n");
     }
 }
