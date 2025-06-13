@@ -70,6 +70,13 @@ impl Header {
     pub fn value_as_mut(&mut self) -> &mut BytesMut {
         &mut self.value
     }
+
+    pub fn split_header(header: &str) -> (&str, &str) {
+        header
+            .split_once(COLON)
+            .map(|(k, v)| (k, v.trim()))
+            .unwrap_or_default()
+    }
 }
 
 fn reuse_or_swap(len: usize, target: &mut BytesMut, incoming: &str) {
