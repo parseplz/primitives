@@ -5,7 +5,10 @@ use super::{
     content_encoding::ContentEncoding,
     transfer_types::{TransferType, cl_to_transfer_type, parse_and_remove_chunked},
 };
-use crate::{const_headers::*, header_map::HeaderMap};
+use crate::{
+    const_headers::*,
+    header_map::{HeaderMap, header::Header},
+};
 
 /* Steps:
  *      3. If header.key "Content-Length", and if body_headers.transfer_type is
@@ -37,22 +40,10 @@ use crate::{const_headers::*, header_map::HeaderMap};
 impl From<&HeaderMap> for Option<BodyHeader> {
     fn from(header_map: &HeaderMap) -> Option<BodyHeader> {
         let mut bh = BodyHeader::default();
-        for header in header_map.headers().iter() {
-            let key = header.key_as_str();
-            if (key.eq_ignore_ascii_case(CONTENT_LENGTH)) && bh.transfer_type.is_none() {
-                let transfer_type = cl_to_transfer_type(header.value_as_str());
-                bh.transfer_type = Some(transfer_type);
-            } else if key.eq_ignore_ascii_case(TRANSFER_ENCODING) {
-                bh.transfer_encoding = match_compression(header.value_as_str());
-                bh.transfer_type = parse_and_remove_chunked(&mut bh.transfer_encoding);
-            } else if key.eq_ignore_ascii_case(CONTENT_ENCODING) {
-                bh.content_encoding = match_compression(header.value_as_str());
-            } else if key.eq_ignore_ascii_case(CONTENT_TYPE) {
-                if let Some((main_type, _)) = header.value_as_str().split_once('/') {
-                    bh.content_type = Some(ContentType::from(main_type));
-                }
-            }
-        }
+        header_map
+            .headers()
+            .iter()
+            .for_each(|header| parse_body_headers(&mut bh, header));
 
         // if TransferType is Unknown, and if content_encoding or transfer_encoding
         // or content_type is present, then set TransferType to Close
@@ -64,6 +55,23 @@ impl From<&HeaderMap> for Option<BodyHeader> {
             bh.transfer_type = Some(TransferType::Close);
         }
         bh.sanitize()
+    }
+}
+
+pub fn parse_body_headers(bh: &mut BodyHeader, header: &Header) {
+    let key = header.key_as_str();
+    if (key.eq_ignore_ascii_case(CONTENT_LENGTH)) && bh.transfer_type.is_none() {
+        let transfer_type = cl_to_transfer_type(header.value_as_str());
+        bh.transfer_type = Some(transfer_type);
+    } else if key.eq_ignore_ascii_case(TRANSFER_ENCODING) {
+        bh.transfer_encoding = match_compression(header.value_as_str());
+        bh.transfer_type = parse_and_remove_chunked(&mut bh.transfer_encoding);
+    } else if key.eq_ignore_ascii_case(CONTENT_ENCODING) {
+        bh.content_encoding = match_compression(header.value_as_str());
+    } else if key.eq_ignore_ascii_case(CONTENT_TYPE) {
+        if let Some((main_type, _)) = header.value_as_str().split_once('/') {
+            bh.content_type = Some(ContentType::from(main_type));
+        }
     }
 }
 
