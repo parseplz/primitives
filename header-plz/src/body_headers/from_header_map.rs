@@ -1,11 +1,8 @@
 use mime_plz::ContentType;
 
-use super::{
-    BodyHeader,
-    content_encoding::ContentEncoding,
-    transfer_types::{TransferType, cl_to_transfer_type, parse_and_remove_chunked},
-};
+use super::{BodyHeader, content_encoding::ContentEncoding, transfer_types::TransferType};
 use crate::{
+    body_headers::encoding_info::EncodingInfo,
     const_headers::*,
     header_map::{HeaderMap, header::Header},
 };
@@ -38,12 +35,21 @@ use crate::{
  */
 
 impl From<&HeaderMap> for Option<BodyHeader> {
-    fn from(header_map: &HeaderMap) -> Option<BodyHeader> {
+    fn from(header_map: &HeaderMap) -> Self {
+        let bh = BodyHeader::from(header_map);
+        bh.sanitize()
+    }
+}
+
+impl From<&HeaderMap> for BodyHeader {
+    #[inline(always)]
+    fn from(header_map: &HeaderMap) -> BodyHeader {
         let mut bh = BodyHeader::default();
         header_map
             .headers()
             .iter()
-            .for_each(|header| parse_body_headers(&mut bh, header));
+            .enumerate()
+            .for_each(|(index, header)| parse_body_headers(&mut bh, index, header));
 
         // if TransferType is Unknown, and if content_encoding or transfer_encoding
         // or content_type is present, then set TransferType to Close
@@ -54,20 +60,28 @@ impl From<&HeaderMap> for Option<BodyHeader> {
         {
             bh.transfer_type = Some(TransferType::Close);
         }
-        bh.sanitize()
+        bh
     }
 }
 
-pub fn parse_body_headers(bh: &mut BodyHeader, header: &Header) {
+pub fn parse_body_headers(bh: &mut BodyHeader, index: usize, header: &Header) {
     let key = header.key_as_str();
     if (key.eq_ignore_ascii_case(CONTENT_LENGTH)) && bh.transfer_type.is_none() {
-        let transfer_type = cl_to_transfer_type(header.value_as_str());
-        bh.transfer_type = Some(transfer_type);
+        let transfer_type = TransferType::from_cl(header.value_as_str());
+        let _ = bh.transfer_type.get_or_insert(transfer_type);
     } else if key.eq_ignore_ascii_case(TRANSFER_ENCODING) {
-        bh.transfer_encoding = match_compression(header.value_as_str());
-        bh.transfer_type = parse_and_remove_chunked(&mut bh.transfer_encoding);
+        let mut einfo_iter = EncodingInfo::iter_from_str(index, header.value_as_str());
+        bh.transfer_encoding
+            .get_or_insert_with(Vec::new)
+            .extend(einfo_iter);
+        if bh.is_chunked_te() {
+            bh.transfer_type = Some(TransferType::Chunked)
+        }
     } else if key.eq_ignore_ascii_case(CONTENT_ENCODING) {
-        bh.content_encoding = match_compression(header.value_as_str());
+        let einfo_iter = EncodingInfo::iter_from_str(index, header.value_as_str());
+        bh.content_encoding
+            .get_or_insert_with(Vec::new)
+            .extend(einfo_iter);
     } else if key.eq_ignore_ascii_case(CONTENT_TYPE) {
         if let Some((main_type, _)) = header.value_as_str().split_once('/') {
             bh.content_type = Some(ContentType::from(main_type));
@@ -75,47 +89,21 @@ pub fn parse_body_headers(bh: &mut BodyHeader, header: &Header) {
     }
 }
 
-//  Convert compression header values to Vec<ContentEncoding>.
-pub fn match_compression(value: &str) -> Option<Vec<ContentEncoding>> {
-    let encoding: Vec<ContentEncoding> = value
-        .split(',')
-        .map(|x| x.trim())
-        .filter_map(|x| {
-            if x.is_empty() {
-                None
-            } else {
-                Some(ContentEncoding::from(x))
-            }
-        })
-        .collect();
-    Some(encoding)
-}
-
 #[cfg(test)]
 mod tests {
+    use super::*;
     use bytes::BytesMut;
 
-    use super::*;
-
-    #[test]
-    fn test_match_compression() {
-        let data = "gzip, deflate, br, compress,";
-        let result = match_compression(data);
-        let verify = vec![
-            ContentEncoding::Gzip,
-            ContentEncoding::Deflate,
-            ContentEncoding::Brotli,
-            ContentEncoding::Compress,
-        ];
-        assert_eq!(result, Some(verify));
+    fn build_body_header(input: &str) -> BodyHeader {
+        let header_map = HeaderMap::from(BytesMut::from(input));
+        BodyHeader::from(&header_map)
     }
 
+    // ---- Content Length
     #[test]
-    fn test_header_map_to_body_headers_cl_only() {
-        let data = "Content-Length: 10\r\n\r\n";
-        let buf = BytesMut::from(data);
-        let header_map = HeaderMap::from(buf);
-        let result = Option::<BodyHeader>::from(&header_map).unwrap();
+    fn test_body_header_from_header_map_cl() {
+        let input = "Content-Length: 10\r\n\r\n";
+        let result = build_body_header(input);
         let verify = BodyHeader {
             transfer_type: Some(TransferType::ContentLength(10)),
             ..Default::default()
@@ -124,69 +112,68 @@ mod tests {
     }
 
     #[test]
-    fn test_header_map_to_body_headers_cl_invalid() {
-        let data = "Content-Length: invalid\r\n\r\n";
-        let buf = BytesMut::from(data);
-        let header_map = HeaderMap::from(buf);
+    fn test_body_header_from_header_map_cl_invalid() {
+        let input = "Content-Length: invalid\r\n\r\n";
+        let result = build_body_header(input);
         let verify = BodyHeader {
             transfer_type: Some(TransferType::Close),
             ..Default::default()
         };
-        let result = Option::<BodyHeader>::from(&header_map).unwrap();
         assert_eq!(result, verify);
     }
 
+    // ----- chunked
     #[test]
-    fn test_header_map_to_body_headers_te_chunked() {
-        let data = "Transfer-Encoding: chunked\r\n\r\n";
-        let buf = BytesMut::from(data);
-        let header_map = HeaderMap::from(buf);
+    fn test_body_header_from_header_map_chunked() {
+        let input = "Transfer-Encoding: chunked\r\n\r\n";
+        let result = build_body_header(input);
+        let einfo = EncodingInfo::new(0, ContentEncoding::Chunked);
         let verify = BodyHeader {
+            transfer_encoding: Some(vec![einfo]),
             transfer_type: Some(TransferType::Chunked),
             ..Default::default()
         };
-        let result = Option::<BodyHeader>::from(&header_map).unwrap();
         assert_eq!(result, verify);
     }
 
+    // ----- chunked + cl
     #[test]
-    fn test_header_map_to_body_headers_content_length_and_chunked() {
-        let data = "Content-Length: 20\r\nTransfer-Encoding: chunked\r\n\r\n";
-        let buf = BytesMut::from(data);
-        let header_map = HeaderMap::from(buf);
+    fn test_body_header_from_header_map_cl_and_chunked() {
+        let input = "Content-Length: 20\r\nTransfer-Encoding: chunked\r\n\r\n";
+        let result = build_body_header(input);
+        let einfo = EncodingInfo::new(1, ContentEncoding::Chunked);
         let verify = BodyHeader {
             transfer_type: Some(TransferType::Chunked),
+            transfer_encoding: Some(vec![einfo]),
             ..Default::default()
         };
-        let result = Option::<BodyHeader>::from(&header_map).unwrap();
         assert_eq!(result, verify);
     }
 
+    // ----- Content type
     #[test]
-    fn test_header_map_to_body_headers_ct_only() {
-        let data = "Content-Type: application/json\r\n\r\n";
-        let buf = BytesMut::from(data);
-        let header_map = HeaderMap::from(buf);
+    fn test_body_header_from_header_map_ct_only() {
+        let input = "Content-Type: application/json\r\n\r\n";
+        let result = build_body_header(input);
         let verify = BodyHeader {
             content_type: Some(ContentType::Application),
             transfer_type: Some(TransferType::Close),
             ..Default::default()
         };
-        let result = Option::<BodyHeader>::from(&header_map).unwrap();
         assert_eq!(result, verify);
     }
 
+    // ----- Content Encoding
     #[test]
-    fn test_header_map_to_body_headers_ce_only() {
-        let data = "Content-Encoding: gzip\r\n\r\n";
-        let buf = BytesMut::from(data);
-        let header_map = HeaderMap::from(buf);
+    fn test_body_headers_from_header_map_ce_only() {
+        let input = "Content-Encoding: gzip\r\n\r\n";
+        let result = build_body_header(input);
+        let einfo = EncodingInfo::new(0, ContentEncoding::Gzip);
         let verify = BodyHeader {
-            content_encoding: Some(vec![ContentEncoding::Gzip]),
+            content_encoding: Some(vec![einfo]),
             transfer_type: Some(TransferType::Close),
             ..Default::default()
         };
-        let result = Option::<BodyHeader>::from(&header_map).unwrap();
         assert_eq!(result, verify);
     }
 }

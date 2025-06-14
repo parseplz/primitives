@@ -1,5 +1,5 @@
-pub const CHUNKED: &str = "chunked";
 pub const BROTLI: &str = "br";
+pub const CHUNKED: &str = "chunked";
 pub const COMPRESS: &str = "compress";
 pub const DEFLATE: &str = "deflate";
 pub const GZIP: &str = "gzip";

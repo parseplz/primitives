@@ -1,8 +1,10 @@
 use content_encoding::ContentEncoding;
 use mime_plz::ContentType;
 use transfer_types::TransferType;
+
+use crate::body_headers::encoding_info::EncodingInfo;
 pub mod content_encoding;
-mod encoding_struct;
+mod encoding_info;
 pub mod transfer_types;
 
 mod from_header_map;
@@ -11,9 +13,9 @@ pub mod parse;
 #[derive(Default)]
 #[cfg_attr(any(test, debug_assertions), derive(Debug, PartialEq, Eq, Clone))]
 pub struct BodyHeader {
-    pub content_encoding: Option<Vec<ContentEncoding>>,
+    pub content_encoding: Option<Vec<EncodingInfo>>,
     pub content_type: Option<ContentType>,
-    pub transfer_encoding: Option<Vec<ContentEncoding>>,
+    pub transfer_encoding: Option<Vec<EncodingInfo>>,
     pub transfer_type: Option<TransferType>,
 }
 
@@ -33,6 +35,16 @@ impl BodyHeader {
     pub fn content_type(&self) -> ContentType {
         self.content_type.map_or(ContentType::Unknown, |ct| ct)
     }
+
+    pub fn is_chunked_te(&self) -> bool {
+        self.transfer_encoding
+            .as_ref()
+            .map(|list| {
+                list.iter()
+                    .any(|ei| ei.encoding == ContentEncoding::Chunked)
+            })
+            .unwrap_or(false)
+    }
 }
 
 #[cfg(test)]
@@ -43,9 +55,9 @@ mod tests {
     #[test]
     fn test_bodyheader_sanitize_all() {
         let body = BodyHeader {
-            content_encoding: Some(vec![ContentEncoding::Gzip]),
+            content_encoding: Some(vec![EncodingInfo::from((0, ContentEncoding::Gzip))]),
             content_type: Some(ContentType::Application),
-            transfer_encoding: Some(vec![ContentEncoding::Gzip]),
+            transfer_encoding: Some(vec![EncodingInfo::from((0, ContentEncoding::Gzip))]),
             transfer_type: Some(TransferType::Close),
         };
         let sbody = body.clone().sanitize();
