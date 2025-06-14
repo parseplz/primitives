@@ -1,14 +1,8 @@
-use crate::body_headers::encoding_info::EncodingInfo;
-
-use super::content_encoding::ContentEncoding;
-
-#[derive(Debug, PartialEq, Copy, Clone, Default, Eq)]
+#[derive(Debug, PartialEq, Copy, Clone, Eq, PartialOrd, Ord)]
 pub enum TransferType {
-    Chunked,
-    ContentLength(usize),
     Close,
-    #[default]
-    Unknown,
+    ContentLength(usize),
+    Chunked,
 }
 
 impl TransferType {

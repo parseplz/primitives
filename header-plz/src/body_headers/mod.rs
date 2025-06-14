@@ -45,6 +45,12 @@ impl BodyHeader {
             })
             .unwrap_or(false)
     }
+
+    pub fn update_transfer_type(&mut self, transfer_type: TransferType) {
+        if self.transfer_type.is_none_or(|tt| transfer_type >= tt) {
+            self.transfer_type = Some(transfer_type);
+        }
+    }
 }
 
 #[cfg(test)]
