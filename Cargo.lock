@@ -35,7 +35,7 @@ version = "0.0.14"
 dependencies = [
  "buffer-plz 0.0.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "bytes",
- "header-plz 0.0.10 (registry+https://github.com/rust-lang/crates.io-index)",
+ "header-plz 0.0.11 (registry+https://github.com/rust-lang/crates.io-index)",
  "thiserror",
  "tracing",
 ]
@@ -223,7 +223,7 @@ dependencies = [
 
 [[package]]
 name = "header-plz"
-version = "0.0.10"
+version = "0.0.11"
 dependencies = [
  "buffer-plz 0.0.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "bytes",
@@ -235,9 +235,9 @@ dependencies = [
 
 [[package]]
 name = "header-plz"
-version = "0.0.10"
+version = "0.0.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e7b93da9f927e2259ea66e8d5d16ea4d143b59543c533a24c8b214b74c93b06b"
+checksum = "0188a930ae187752912fbee0063ef6ebd828e4746c991c3d63c265f7b65512c0"
 dependencies = [
  "buffer-plz 0.0.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "bytes",

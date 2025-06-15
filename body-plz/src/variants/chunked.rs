@@ -1,5 +1,5 @@
 use bytes::BytesMut;
-use header_plz::header_map::HeaderMap;
+use header_plz::HeaderMap;
 
 // Enum to represent different types of Chunked Body
 #[cfg_attr(any(test, debug_assertions), derive(Debug, PartialEq, Eq))]

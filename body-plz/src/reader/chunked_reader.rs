@@ -7,9 +7,7 @@ use thiserror::Error;
 use crate::variants::chunked::ChunkType;
 
 use super::content_length_reader::read_content_length;
-use header_plz::abnf::CRLF;
-use header_plz::header_map::HeaderMap;
-use header_plz::reader::find_message_head_end;
+use header_plz::{HeaderMap, abnf::CRLF, message_head::MessageHead};
 
 // Enum to represent chunked reader errors
 #[cfg_attr(any(debug_assertions, test), derive(Eq, PartialEq))]
@@ -124,7 +122,7 @@ impl ChunkReaderState {
                     return Some(ChunkType::EndCRLF(buf.split_at_current_pos()));
                 }
                 // 4.b. Actual Headers
-                if find_message_head_end(buf) {
+                if MessageHead::is_ended(buf) {
                     *self = Self::End;
                     let header_map = HeaderMap::from(buf.split_at_current_pos());
                     Some(ChunkType::Trailers(header_map))
