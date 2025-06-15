@@ -18,12 +18,6 @@ pub fn find_header_fs(input: &str) -> usize {
 
 /* Description:
  *      Contains atleast CRLF.
- *
- * Steps:
- *      1. Find ": " index.
- *      2. If no ": " found, split at index 1 as atleast CRLF if
- *         present.
- *      2. Split to key and value.
  */
 impl From<BytesMut> for Header {
     fn from(mut input: BytesMut) -> Self {

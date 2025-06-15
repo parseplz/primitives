@@ -1,7 +1,7 @@
 use tracing::error;
 
 use crate::{
-    info_line::{request::Request, response::Response},
+    Request, Response,
     message_head::MessageHead,
     methods::{METHODS_WITH_BODY, Method},
 };

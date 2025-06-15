@@ -150,9 +150,14 @@ impl HeaderMap {
         self.find_pos(|h| h.key_as_str().eq_ignore_ascii_case(key))
     }
 
+    // ----- key -> value
     pub fn value_of_key(&self, key: &str) -> Option<&str> {
         self.find_pos(|h| h.key_as_str().eq_ignore_ascii_case(key))
             .map(|pos| self.headers[pos].value_as_str())
+    }
+
+    pub fn is_empty_value(&self, index: usize) -> bool {
+        self.headers[index].value_as_str().is_empty()
     }
 
     // ----- update

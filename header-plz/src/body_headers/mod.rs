@@ -41,7 +41,7 @@ impl BodyHeader {
             .as_ref()
             .map(|list| {
                 list.iter()
-                    .any(|ei| ei.encoding == ContentEncoding::Chunked)
+                    .any(|ei| *ei.encoding() == ContentEncoding::Chunked)
             })
             .unwrap_or(false)
     }

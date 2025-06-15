@@ -3,7 +3,7 @@ use crate::body_headers::content_encoding::ContentEncoding;
 #[cfg_attr(any(test, debug_assertions), derive(Debug, PartialEq, Eq, Clone))]
 pub struct EncodingInfo {
     header_index: usize,
-    pub encoding: ContentEncoding,
+    encoding: ContentEncoding,
 }
 
 impl From<(usize, ContentEncoding)> for EncodingInfo {
@@ -21,6 +21,10 @@ impl EncodingInfo {
             header_index,
             encoding,
         }
+    }
+
+    pub fn encoding(&self) -> &ContentEncoding {
+        &self.encoding
     }
 
     pub fn iter_from_str(index: usize, val: &str) -> impl Iterator<Item = EncodingInfo> {

@@ -4,8 +4,9 @@ pub mod abnf;
 pub mod body_headers;
 pub mod const_headers;
 pub mod error;
-pub mod header_map;
-pub mod info_line;
 pub mod message_head;
 pub mod methods;
-pub mod reader;
+
+pub use message_head::header_map::HeaderMap;
+pub use message_head::header_map::header::Header;
+pub use message_head::info_line::{request::Request, response::Response};

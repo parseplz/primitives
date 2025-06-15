@@ -1,38 +1,7 @@
 use mime_plz::ContentType;
 
 use super::{BodyHeader, transfer_types::TransferType};
-use crate::{
-    body_headers::encoding_info::EncodingInfo,
-    const_headers::*,
-    header_map::{HeaderMap, header::Header},
-};
-
-/* Steps:
- *      3. If header.key "Content-Length", and if body_headers.transfer_type is
- *         not set then convert content length to TransferType by calling
- *         cl_to_transfer_type()
- *
- *      4. If header.key is "te" or "Transfer-Encoding",
- *          a. build Vec<TransferEncoding> by calling match_compression() with
- *          header.value_as_str().
- *
- *          b. If chunked value is present, remove it and set transfer_type to
- *          TansferType of chunked
- *
- *      5. If header.key is "ce" or "Content-Encoding", set
- *         body_header.content_encoding to vec built by calling
- *         match_compression() with header.value_as_str().
- *
- *      6. If header.key is "ct" or "Content-Type", split at "/" to get
- *         main content type. Use From<&str> for ContentType to create
- *         ContentType from string. Assign to body_header.content_type.
- *
- *      7. If TransferType is Unknown, and if content_encoding or
- *         transfer_encoding or content_type is present, then set TransferType
- *         to Close
- *
- *      8. Call sanitize() on BodyHeader to remove empty values.
- */
+use crate::{Header, HeaderMap, body_headers::encoding_info::EncodingInfo, const_headers::*};
 
 impl From<&HeaderMap> for Option<BodyHeader> {
     fn from(header_map: &HeaderMap) -> Self {

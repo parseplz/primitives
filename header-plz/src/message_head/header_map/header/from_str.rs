@@ -1,15 +1,8 @@
 use super::*;
 use crate::{
     abnf::{CRLF, HEADER_FS},
-    header_map::header::from_bytes::find_header_fs,
+    message_head::header_map::header::from_bytes::find_header_fs,
 };
-
-/* Steps:
- *      1. Convert str to BytesMut
- *      2. Extend key with ": "
- *      3. Extend value with CRLF
- *      4. Return Header
- */
 
 // (Content-Type, application/json)
 impl From<(&str, &str)> for Header {

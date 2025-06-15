@@ -1,6 +1,7 @@
-use crate::info_line::error::InfoLineError;
 use std::fmt::Debug;
 use thiserror::Error;
+
+use crate::message_head::info_line::error::InfoLineError;
 
 #[derive(Debug, Error)]
 pub enum HeaderReadError {

@@ -180,38 +180,38 @@ mod tests {
     }
 
     /*
-        #[test]
-        fn it_should_return_first_line_query_params() {
-            let raw = HttpRaw::new(b"GET /users?param=value&param2=value2 HTTP/1.1\r\n\r\n".to_vec());
-            let mut params = raw.first_line().unwrap().query().unwrap().params();
-            assert_eq!(2, params.len());
+    #[test]
+    fn it_should_return_first_line_query_params() {
+        let raw = HttpRaw::new(b"GET /users?param=value&param2=value2 HTTP/1.1\r\n\r\n".to_vec());
+        let mut params = raw.first_line().unwrap().query().unwrap().params();
+        assert_eq!(2, params.len());
 
-            let param2 = params.pop().unwrap();
-            let param2_raw = param2.raw();
-            assert_eq!(b"param2=value2", param2_raw.data);
-            assert_eq!(Bound::Included(&23), param2_raw.range.start_bound());
-            assert_eq!(Bound::Excluded(&36), param2_raw.range.end_bound());
-            let param2_parts = param2.parts().unwrap();
-            assert_eq!(b"param2", param2_parts.0.data);
-            assert_eq!(Bound::Included(&23), param2_parts.0.range.start_bound());
-            assert_eq!(Bound::Excluded(&29), param2_parts.0.range.end_bound());
-            assert_eq!(b"value2", param2_parts.1.data);
-            assert_eq!(Bound::Included(&30), param2_parts.1.range.start_bound());
-            assert_eq!(Bound::Excluded(&36), param2_parts.1.range.end_bound());
+        let param2 = params.pop().unwrap();
+        let param2_raw = param2.raw();
+        assert_eq!(b"param2=value2", param2_raw.data);
+        assert_eq!(Bound::Included(&23), param2_raw.range.start_bound());
+        assert_eq!(Bound::Excluded(&36), param2_raw.range.end_bound());
+        let param2_parts = param2.parts().unwrap();
+        assert_eq!(b"param2", param2_parts.0.data);
+        assert_eq!(Bound::Included(&23), param2_parts.0.range.start_bound());
+        assert_eq!(Bound::Excluded(&29), param2_parts.0.range.end_bound());
+        assert_eq!(b"value2", param2_parts.1.data);
+        assert_eq!(Bound::Included(&30), param2_parts.1.range.start_bound());
+        assert_eq!(Bound::Excluded(&36), param2_parts.1.range.end_bound());
 
-            let param1 = params.pop().unwrap();
-            let param1_raw = param1.raw();
-            assert_eq!(b"param=value", param1_raw.data);
-            assert_eq!(Bound::Included(&11), param1_raw.range.start_bound());
-            assert_eq!(Bound::Excluded(&22), param1_raw.range.end_bound());
-            let param1_parts = param1.parts().unwrap();
-            assert_eq!(b"param", param1_parts.0.data);
-            assert_eq!(Bound::Included(&11), param1_parts.0.range.start_bound());
-            assert_eq!(Bound::Excluded(&16), param1_parts.0.range.end_bound());
-            assert_eq!(b"value", param1_parts.1.data);
-            assert_eq!(Bound::Included(&17), param1_parts.1.range.start_bound());
-            assert_eq!(Bound::Excluded(&22), param1_parts.1.range.end_bound());
-        }
+        let param1 = params.pop().unwrap();
+        let param1_raw = param1.raw();
+        assert_eq!(b"param=value", param1_raw.data);
+        assert_eq!(Bound::Included(&11), param1_raw.range.start_bound());
+        assert_eq!(Bound::Excluded(&22), param1_raw.range.end_bound());
+        let param1_parts = param1.parts().unwrap();
+        assert_eq!(b"param", param1_parts.0.data);
+        assert_eq!(Bound::Included(&11), param1_parts.0.range.start_bound());
+        assert_eq!(Bound::Excluded(&16), param1_parts.0.range.end_bound());
+        assert_eq!(b"value", param1_parts.1.data);
+        assert_eq!(Bound::Included(&17), param1_parts.1.range.start_bound());
+        assert_eq!(Bound::Excluded(&22), param1_parts.1.range.end_bound());
+    }
 
 
 
