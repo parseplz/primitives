@@ -60,7 +60,7 @@ where
  *         false.
  */
 impl MessageHead<()> {
-    pub fn is_ended(buf: &mut Cursor) -> bool {
+    pub fn is_complete(buf: &mut Cursor) -> bool {
         if let Some(index) = buf
             .as_ref()
             .windows(4)
@@ -91,7 +91,7 @@ mod tests {
         let mut buf = BytesMut::from(req);
         let mut cur = Cursor::new(&mut buf);
         let verify = BytesMut::from(req);
-        let status: bool = MessageHead::is_ended(&mut cur);
+        let status: bool = MessageHead::is_complete(&mut cur);
         assert!(status);
         assert_eq!(cur.position(), verify.len());
     }
@@ -102,7 +102,7 @@ mod tests {
                     Host: reqbin.com\r\n";
         let mut buf = BytesMut::from(req);
         let mut cur = Cursor::new(&mut buf);
-        let status: bool = MessageHead::is_ended(&mut cur);
+        let status: bool = MessageHead::is_complete(&mut cur);
         assert!(!status);
         assert_eq!(cur.position(), req.len() - 3);
     }
@@ -112,17 +112,17 @@ mod tests {
         let req = "GET /echo HTTP/1.1\r\n";
         let mut buf = BytesMut::from(req);
         let mut cur = Cursor::new(&mut buf);
-        let mut status = MessageHead::is_ended(&mut cur);
+        let mut status = MessageHead::is_complete(&mut cur);
         assert!(!status);
         assert_eq!(cur.position(), req.len() - 3);
         let toadd = b"Host: reqbin.com\r";
         cur.as_mut().extend_from_slice(toadd);
-        status = MessageHead::is_ended(&mut cur);
+        status = MessageHead::is_complete(&mut cur);
         assert!(!status);
         assert_eq!(cur.position(), cur.as_ref().len() - 3);
         let toadd = b"\n\r\n";
         cur.as_mut().extend_from_slice(toadd);
-        status = MessageHead::is_ended(&mut cur);
+        status = MessageHead::is_complete(&mut cur);
         assert!(status);
         assert_eq!(cur.position(), cur.as_ref().len());
     }
