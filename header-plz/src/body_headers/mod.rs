@@ -4,7 +4,7 @@ use transfer_types::TransferType;
 
 use crate::body_headers::encoding_info::EncodingInfo;
 pub mod content_encoding;
-mod encoding_info;
+pub mod encoding_info;
 pub mod transfer_types;
 
 mod from_header_map;
