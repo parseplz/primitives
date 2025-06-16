@@ -122,7 +122,7 @@ impl ChunkReaderState {
                     return Some(ChunkType::EndCRLF(buf.split_at_current_pos()));
                 }
                 // 4.b. Actual Headers
-                if MessageHead::is_ended(buf) {
+                if MessageHead::is_complete(buf) {
                     *self = Self::End;
                     let header_map = HeaderMap::from(buf.split_at_current_pos());
                     Some(ChunkType::Trailers(header_map))
