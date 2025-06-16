@@ -1,6 +1,6 @@
 [package]
 name = "body-plz"
-version = "0.0.16"
+version = "0.0.17"
 authors = ["darkseid", "sytten <emile@caido.io>"]
 description = "Body for the ParsePlz ecosystem"
 repository = "https://github.com/parseplz/primitives"
