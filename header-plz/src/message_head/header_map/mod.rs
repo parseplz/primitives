@@ -47,7 +47,7 @@ impl HeaderMap {
     }
 
     // Finders
-    pub fn find_pos_all<F>(&self, mut f: F) -> Option<Vec<usize>>
+    pub fn find_position_all<F>(&self, mut f: F) -> Option<Vec<usize>>
     where
         F: FnMut(&Header) -> bool,
     {
@@ -60,7 +60,7 @@ impl HeaderMap {
         Some(pos).filter(|v| !v.is_empty())
     }
 
-    pub fn find_pos<F>(&self, f: F) -> Option<usize>
+    pub fn find_position<F>(&self, f: F) -> Option<usize>
     where
         F: FnMut(&Header) -> bool,
     {
@@ -71,14 +71,14 @@ impl HeaderMap {
     // ----- find
     pub fn header_position_all(&self, to_find_hdr: &str) -> Option<Vec<usize>> {
         let (key, val) = Header::split_header(to_find_hdr);
-        self.find_pos_all(|h| {
+        self.find_position_all(|h| {
             h.key_as_str().eq_ignore_ascii_case(key) && h.value_as_str().eq_ignore_ascii_case(val)
         })
     }
 
     pub fn header_position(&self, to_find_hdr: &str) -> Option<usize> {
         let (key, val) = Header::split_header(to_find_hdr);
-        self.find_pos(|h| {
+        self.find_position(|h| {
             h.key_as_str().eq_ignore_ascii_case(key) && h.value_as_str().eq_ignore_ascii_case(val)
         })
     }
@@ -111,7 +111,7 @@ impl HeaderMap {
     }
 
     // ----- remove
-    pub fn remove_header_all_pos(&mut self, positions: Vec<usize>) {
+    pub fn remove_header_all_positions(&mut self, positions: Vec<usize>) {
         for index in positions.into_iter().rev() {
             self.headers.remove(index);
         }
@@ -122,7 +122,7 @@ impl HeaderMap {
         let mut result = false;
         if let Some(positions) = self.header_position_all(to_remove) {
             result = true;
-            self.remove_header_all_pos(positions);
+            self.remove_header_all_positions(positions);
         }
         result
     }
@@ -143,16 +143,16 @@ impl HeaderMap {
     // ---------- Key
     // ----- find
     pub fn header_key_position_all(&self, key: &str) -> Option<Vec<usize>> {
-        self.find_pos_all(|h| h.key_as_str().eq_ignore_ascii_case(key))
+        self.find_position_all(|h| h.key_as_str().eq_ignore_ascii_case(key))
     }
 
     pub fn header_key_position(&self, key: &str) -> Option<usize> {
-        self.find_pos(|h| h.key_as_str().eq_ignore_ascii_case(key))
+        self.find_position(|h| h.key_as_str().eq_ignore_ascii_case(key))
     }
 
     // ----- key -> value
     pub fn value_of_key(&self, key: &str) -> Option<&str> {
-        self.find_pos(|h| h.key_as_str().eq_ignore_ascii_case(key))
+        self.find_position(|h| h.key_as_str().eq_ignore_ascii_case(key))
             .map(|pos| self.headers[pos].value_as_str())
     }
 
@@ -232,7 +232,7 @@ impl HeaderMap {
         let mut result = false;
         if let Some(positions) = self.header_key_position_all(key) {
             result = true;
-            self.remove_header_all_pos(positions);
+            self.remove_header_all_positions(positions);
         }
         result
     }
@@ -248,7 +248,7 @@ impl HeaderMap {
 
     // ---------- value
     // ------ update
-    pub fn update_header_value_on_pos(&mut self, pos: usize, value: &str) {
+    pub fn update_header_value_on_position(&mut self, pos: usize, value: &str) {
         self.headers[pos].change_value(value);
     }
 
@@ -573,7 +573,7 @@ mod tests {
         let mut map = build_header_map();
         let pos = 1;
         let val = "30";
-        map.update_header_value_on_pos(pos, val);
+        map.update_header_value_on_position(pos, val);
         let result = map.into_bytes();
         let verify = "Host: localhost\r\n\
                       Content-Length: 30\r\n\
