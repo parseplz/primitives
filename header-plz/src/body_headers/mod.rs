@@ -37,13 +37,13 @@ impl BodyHeader {
     }
 
     pub fn is_chunked_te(&self) -> bool {
-        self.transfer_encoding
-            .as_ref()
-            .map(|list| {
-                list.iter()
-                    .any(|ei| *ei.encoding() == ContentEncoding::Chunked)
+        self.transfer_encoding.as_ref().map_or(false, |einfo_vec| {
+            einfo_vec.iter().any(|ei| {
+                ei.encodings()
+                    .iter()
+                    .any(|enc| *enc == ContentEncoding::Chunked)
             })
-            .unwrap_or(false)
+        })
     }
 
     pub fn update_transfer_type(&mut self, transfer_type: TransferType) {
@@ -61,9 +61,9 @@ mod tests {
     #[test]
     fn test_bodyheader_sanitize_all() {
         let body = BodyHeader {
-            content_encoding: Some(vec![EncodingInfo::from((0, ContentEncoding::Gzip))]),
+            content_encoding: Some(vec![EncodingInfo::new(0, vec![ContentEncoding::Gzip])]),
             content_type: Some(ContentType::Application),
-            transfer_encoding: Some(vec![EncodingInfo::from((0, ContentEncoding::Gzip))]),
+            transfer_encoding: Some(vec![EncodingInfo::new(0, vec![ContentEncoding::Gzip])]),
             transfer_type: Some(TransferType::Close),
         };
         let sbody = body.clone().sanitize();
