@@ -36,6 +36,29 @@ impl EncodingInfo {
     }
 }
 
+pub fn encodings_in_single_header(encoding_info: &[EncodingInfo]) -> Option<usize> {
+    let mut iter = encoding_info.iter();
+    let first = iter.next().unwrap().header_index;
+    iter.all(|elem| elem.header_index == first)
+        .then(|| encoding_info[0].header_index)
+}
+
+pub fn encoding_header_positions(encoding_info: &[EncodingInfo]) -> impl Iterator<Item = usize> {
+    encoding_info
+        .iter()
+        .map(|einfo| einfo.header_index)
+        .scan(None, |state, idx| {
+            let out = if Some(idx) != *state {
+                *state = Some(idx);
+                Some(idx)
+            } else {
+                None
+            };
+            Some(out)
+        })
+        .flatten()
+}
+
 #[cfg(test)]
 mod test {
     use super::*;
@@ -51,5 +74,55 @@ mod test {
             EncodingInfo::from((0, ContentEncoding::Compress)),
         ];
         assert_eq!(result, verify);
+    }
+
+    #[test]
+    fn test_are_encodings_in_same_header_same() {
+        let input = vec![
+            EncodingInfo::from((9, ContentEncoding::Gzip)),
+            EncodingInfo::from((9, ContentEncoding::Deflate)),
+            EncodingInfo::from((9, ContentEncoding::Brotli)),
+            EncodingInfo::from((9, ContentEncoding::Compress)),
+        ];
+
+        assert_eq!(encodings_in_single_header(&input), Some(9));
+    }
+
+    #[test]
+    fn test_are_encodings_in_same_header_diff() {
+        let input = vec![
+            EncodingInfo::from((0, ContentEncoding::Gzip)),
+            EncodingInfo::from((1, ContentEncoding::Deflate)),
+            EncodingInfo::from((2, ContentEncoding::Brotli)),
+            EncodingInfo::from((3, ContentEncoding::Compress)),
+        ];
+
+        assert!(encodings_in_single_header(&input).is_none());
+    }
+
+    #[test]
+    fn test_header_positions() {
+        let input = vec![
+            EncodingInfo::from((0, ContentEncoding::Gzip)),
+            EncodingInfo::from((1, ContentEncoding::Deflate)),
+            EncodingInfo::from((2, ContentEncoding::Brotli)),
+            EncodingInfo::from((3, ContentEncoding::Compress)),
+        ];
+        let pos: Vec<usize> = encoding_header_positions(&input).collect();
+
+        assert_eq!(pos, vec![0, 1, 2, 3]);
+    }
+
+    #[test]
+    fn test_header_positions_duplicate() {
+        let input = vec![
+            EncodingInfo::from((0, ContentEncoding::Gzip)),
+            EncodingInfo::from((0, ContentEncoding::Deflate)),
+            EncodingInfo::from((1, ContentEncoding::Brotli)),
+            EncodingInfo::from((1, ContentEncoding::Compress)),
+        ];
+        let pos: Vec<usize> = encoding_header_positions(&input).collect();
+
+        assert_eq!(pos, vec![0, 1]);
     }
 }
