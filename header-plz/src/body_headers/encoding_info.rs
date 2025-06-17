@@ -43,20 +43,20 @@ pub fn encodings_in_single_header(encoding_info: &[EncodingInfo]) -> Option<usiz
         .then(|| encoding_info[0].header_index)
 }
 
-pub fn encoding_header_positions(encoding_info: &[EncodingInfo]) -> impl Iterator<Item = usize> {
+pub fn iter_encoding_header_positions(
+    encoding_info: &[EncodingInfo],
+) -> impl DoubleEndedIterator<Item = usize> {
+    let mut last = None;
     encoding_info
         .iter()
-        .map(|einfo| einfo.header_index)
-        .scan(None, |state, idx| {
-            let out = if Some(idx) != *state {
-                *state = Some(idx);
-                Some(idx)
-            } else {
-                None
-            };
-            Some(out)
+        .map(|e| e.header_index)
+        .filter(move |&index| match last {
+            Some(prev) if prev == index => false,
+            _ => {
+                last = Some(index);
+                true
+            }
         })
-        .flatten()
 }
 
 #[cfg(test)]
@@ -108,7 +108,7 @@ mod test {
             EncodingInfo::from((2, ContentEncoding::Brotli)),
             EncodingInfo::from((3, ContentEncoding::Compress)),
         ];
-        let pos: Vec<usize> = encoding_header_positions(&input).collect();
+        let pos: Vec<usize> = iter_encoding_header_positions(&input).collect();
 
         assert_eq!(pos, vec![0, 1, 2, 3]);
     }
@@ -121,8 +121,7 @@ mod test {
             EncodingInfo::from((1, ContentEncoding::Brotli)),
             EncodingInfo::from((1, ContentEncoding::Compress)),
         ];
-        let pos: Vec<usize> = encoding_header_positions(&input).collect();
-
+        let pos: Vec<usize> = iter_encoding_header_positions(&input).collect();
         assert_eq!(pos, vec![0, 1]);
     }
 }
