@@ -91,18 +91,19 @@ mod tests {
     use std::error::Error;
 
     #[test]
-    fn test_infoline_request_basic() {
+    fn test_infoline_request_basic() -> Result<(), Box<dyn Error>> {
         let req = "GET /echo HTTP/1.1\r\n";
         let buf = BytesMut::from(req);
         let verify = buf[0..20].to_owned();
         let verify_ptr = buf[0..20].as_ptr_range();
-        let request = Request::try_build_infoline(buf).unwrap();
+        let request = Request::try_build_infoline(buf)?;
         assert_eq!(request.method(), b"GET");
         assert_eq!(request.uri_as_string(), "/echo");
         assert_eq!(request.version, " HTTP/1.1\r\n");
         let toverify = request.into_bytes();
         assert_eq!(verify_ptr, toverify.as_ptr_range());
         assert_eq!(toverify, verify);
+        Ok(())
     }
 
     #[test]
@@ -212,7 +213,6 @@ mod tests {
         assert_eq!(Bound::Included(&17), param1_parts.1.range.start_bound());
         assert_eq!(Bound::Excluded(&22), param1_parts.1.range.end_bound());
     }
-
 
 
     #[test]

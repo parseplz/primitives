@@ -201,32 +201,6 @@ impl HeaderMap {
         result
     }
 
-    pub fn truncate_header_values_on_key<T>(&mut self, key: &str, remove: T)
-    where
-        T: AsRef<str>,
-    {
-        let Some(pos) = self.header_key_position(key) else {
-            return;
-        };
-        let value = self.headers[pos].value_as_str();
-        let Some(mut index) = value.find(remove.as_ref()) else {
-            return;
-        };
-
-        for (i, c) in value[..index].char_indices().rev() {
-            if c == SP || c == COMMA {
-                index = i;
-            } else {
-                break;
-            }
-        }
-
-        self.headers[pos].value_as_mut().truncate(index);
-        self.headers[pos]
-            .value_as_mut()
-            .extend_from_slice(CRLF.as_bytes());
-    }
-
     // ----- remove
     pub fn remove_header_on_key_all(&mut self, key: &str) -> bool {
         let mut result = false;
@@ -244,6 +218,30 @@ impl HeaderMap {
             self.headers.remove(position);
         }
         result
+    }
+
+    // truncate
+    pub fn truncate_header_value_on_position<T>(&mut self, pos: usize, truncate_at: T)
+    where
+        T: AsRef<str>,
+    {
+        let value = self.headers[pos].value_as_str();
+        let Some(mut index) = value.find(truncate_at.as_ref()) else {
+            return;
+        };
+
+        for (i, c) in value[..index].char_indices().rev() {
+            if c == SP || c == COMMA {
+                index = i;
+            } else {
+                break;
+            }
+        }
+
+        self.headers[pos].value_as_mut().truncate(index);
+        self.headers[pos]
+            .value_as_mut()
+            .extend_from_slice(CRLF.as_bytes());
     }
 
     // ---------- value
@@ -271,7 +269,7 @@ impl HeaderMap {
 #[cfg(test)]
 mod tests {
 
-    use crate::{body_headers::content_encoding::ContentEncoding, const_headers::CONTENT_ENCODING};
+    use crate::body_headers::content_encoding::ContentEncoding;
 
     use super::*;
 
@@ -610,12 +608,12 @@ mod tests {
         let data = "Header: a,  b,c\r\n\r\n";
         let buf = BytesMut::from(data);
         let mut header_map = HeaderMap::from(buf);
-        header_map.truncate_header_values_on_key("Header", "c");
+        header_map.truncate_header_value_on_position(0, "c");
         let result = header_map.into_bytes();
         assert_eq!(result, "Header: a,  b\r\n\r\n");
 
         let mut header_map = HeaderMap::from(result);
-        header_map.truncate_header_values_on_key("Header", "b");
+        header_map.truncate_header_value_on_position(0, "b");
         let result = header_map.into_bytes();
         assert_eq!(result, "Header: a\r\n\r\n");
     }
@@ -624,7 +622,7 @@ mod tests {
     fn test_header_map_truncate_header_values_middle() {
         let input = "Content-Encoding: gzip, deflate, br\r\n\r\n";
         let mut header_map = HeaderMap::from(BytesMut::from(input));
-        header_map.truncate_header_values_on_key(CONTENT_ENCODING, ContentEncoding::Deflate);
+        header_map.truncate_header_value_on_position(0, ContentEncoding::Deflate);
         let result = header_map.into_bytes();
         assert_eq!(result, "Content-Encoding: gzip\r\n\r\n");
     }
@@ -633,7 +631,7 @@ mod tests {
     fn test_header_map_truncate_header_values_all() {
         let input = "Content-Encoding: gzip, deflate, br\r\n\r\n";
         let mut header_map = HeaderMap::from(BytesMut::from(input));
-        header_map.truncate_header_values_on_key(CONTENT_ENCODING, ContentEncoding::Gzip);
+        header_map.truncate_header_value_on_position(0, ContentEncoding::Gzip);
         let result = header_map.into_bytes();
         assert_eq!(result, "Content-Encoding: \r\n\r\n");
     }
