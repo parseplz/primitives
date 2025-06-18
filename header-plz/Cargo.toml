@@ -1,6 +1,6 @@
 [package]
 name = "header-plz"
-version = "0.0.19"
+version = "0.0.20"
 authors = ["darkseid", "sytten <emile@caido.io>"]
 description = "Header for the ParsePlz ecosystem"
 repository = "https://github.com/parseplz/primitives"
