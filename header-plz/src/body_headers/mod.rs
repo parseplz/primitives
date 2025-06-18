@@ -36,12 +36,13 @@ impl BodyHeader {
         self.content_type.map_or(ContentType::Unknown, |ct| ct)
     }
 
-    pub fn is_chunked_te(&self) -> bool {
-        self.transfer_encoding.as_ref().map_or(false, |einfo_vec| {
-            einfo_vec.iter().any(|ei| {
+    pub fn chunked_te_postion(&self) -> Option<(usize, usize)> {
+        self.transfer_encoding.as_ref().and_then(|einfo_vec| {
+            einfo_vec.iter().enumerate().find_map(|(outer_idx, ei)| {
                 ei.encodings()
                     .iter()
-                    .any(|enc| *enc == ContentEncoding::Chunked)
+                    .position(|enc| *enc == ContentEncoding::Chunked)
+                    .map(|inner_idx| (outer_idx, inner_idx))
             })
         })
     }
