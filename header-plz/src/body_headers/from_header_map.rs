@@ -43,7 +43,7 @@ pub fn parse_body_headers(bh: &mut BodyHeader, index: usize, header: &Header) {
         bh.transfer_encoding
             .get_or_insert_with(Vec::new)
             .push(einfo);
-        if bh.chunked_te_postion().is_some() {
+        if bh.chunked_te_position().is_some() {
             bh.transfer_type = Some(TransferType::Chunked)
         }
     } else if key.eq_ignore_ascii_case(CONTENT_ENCODING) {

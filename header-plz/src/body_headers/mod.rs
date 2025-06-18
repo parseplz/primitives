@@ -36,7 +36,7 @@ impl BodyHeader {
         self.content_type.map_or(ContentType::Unknown, |ct| ct)
     }
 
-    pub fn chunked_te_postion(&self) -> Option<(usize, usize)> {
+    pub fn chunked_te_position(&self) -> Option<(usize, usize)> {
         self.transfer_encoding.as_ref().and_then(|einfo_vec| {
             einfo_vec.iter().enumerate().find_map(|(outer_idx, ei)| {
                 ei.encodings()
