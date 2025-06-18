@@ -82,6 +82,11 @@ impl Header {
             .map(|(k, v)| (k, v.trim()))
             .unwrap_or_default()
     }
+
+    pub fn clear(&mut self) {
+        self.key.clear();
+        self.value.clear();
+    }
 }
 
 fn reuse_or_swap(len: usize, target: &mut BytesMut, incoming: &str) {
