@@ -83,9 +83,7 @@ jobs:
           cache-provider: "github"
 
       - name: Install latest nextest release
-        uses: taiki-e/install-action@v2
-        with:
-          tool: nextest@0.9.98
+        uses: taiki-e/install-action@nextest
 
       - name: Test with latest nextest release
         uses: actions-rs/cargo@v1
