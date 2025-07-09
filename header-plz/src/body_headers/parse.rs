@@ -160,4 +160,16 @@ mod tests {
         let body_headers = result.parse_body_headers();
         assert!(body_headers.is_none());
     }
+
+    #[test]
+    fn test_parse_body_headers_status_code_error() {
+        let response = "HTTP/1.1 aaa OK\r\n\
+                        Host: localhost\r\n\
+                        Content-Length: 0\r\n\
+                        Content-Type: text/plain\r\n\r\n";
+        let buf = BytesMut::from(response);
+        let result = MessageHead::<Response>::try_from(buf).unwrap();
+        let body_headers = result.parse_body_headers();
+        assert!(body_headers.is_none());
+    }
 }
