@@ -3,6 +3,7 @@ use thiserror::Error;
 
 use crate::message_head::info_line::error::InfoLineError;
 
+#[cfg_attr(any(test, debug_assertions), derive(PartialEq))]
 #[derive(Debug, Error)]
 pub enum HeaderReadError {
     #[error("infoline| {0}")]

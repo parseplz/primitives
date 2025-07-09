@@ -73,4 +73,17 @@ mod tests {
         assert_eq!(verify, input);
         assert_eq!(verify.as_ptr_range(), org);
     }
+
+    #[test]
+    fn test_message_header_error() {
+        let input = "This is not a valid message";
+        let buf = BytesMut::from(input);
+        let result = MessageHead::<Request>::try_from(buf);
+        if let Err(e) = result {
+            let err = HeaderReadError::HeaderStruct(input.to_string());
+            assert_eq!(e, err);
+        } else {
+            panic!("Expected error");
+        }
+    }
 }
