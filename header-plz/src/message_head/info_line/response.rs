@@ -61,6 +61,10 @@ impl Response {
     pub fn status_as_u8(&self) -> Result<u16, StatusCodeError> {
         Ok(std::str::from_utf8(&self.status)?.parse::<u16>()?)
     }
+
+    pub fn is_ws_handshake(&self) -> Result<bool, StatusCodeError> {
+        self.status_as_u8().map(|x| x == 101)
+    }
 }
 
 #[cfg(test)]
@@ -95,5 +99,21 @@ mod tests {
         let toverify = response.into_bytes();
         assert_eq!(toverify.as_ptr_range(), initial_ptr);
         assert_eq!(toverify, verify);
+    }
+
+    #[test]
+    fn test_infoline_response_is_ws_handshake_true() {
+        let response = "HTTP/1.1 101 Switching Protocols\r\n";
+        let buf = BytesMut::from(response);
+        let response = Response::try_build_infoline(buf).unwrap();
+        assert!(response.is_ws_handshake().unwrap());
+    }
+
+    #[test]
+    fn test_infoline_response_is_ws_handshake_false() {
+        let response = "HTTP/1.1 200 OK\r\n";
+        let buf = BytesMut::from(response);
+        let response = Response::try_build_infoline(buf).unwrap();
+        assert!(!response.is_ws_handshake().unwrap());
     }
 }
