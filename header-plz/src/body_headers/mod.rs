@@ -76,4 +76,19 @@ mod tests {
         let body = BodyHeader::default();
         assert!(body.sanitize().is_none());
     }
+
+    #[test]
+    fn test_bodyheader_contenttype() {
+        let body = BodyHeader {
+            content_type: Some(ContentType::Application),
+            ..Default::default()
+        };
+        assert_eq!(body.content_type(), ContentType::Application);
+    }
+
+    #[test]
+    fn test_bodyheader_contenttype_default() {
+        let body = BodyHeader::default();
+        assert_eq!(body.content_type(), ContentType::Unknown);
+    }
 }
