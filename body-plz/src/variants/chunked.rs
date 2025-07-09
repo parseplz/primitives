@@ -85,7 +85,8 @@ mod tests {
     fn test_chunk_type_len() {
         let buf = BytesMut::from("data\r\n");
         let size_chunk = ChunkType::Size(buf.clone());
-        assert_eq!(size_chunk.len(), 6);
+        let len = size_chunk.len();
+        assert_eq!(len, 6);
 
         let chunk = ChunkType::Chunk(buf.clone());
         assert_eq!(chunk.len(), 6);
