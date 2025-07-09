@@ -148,4 +148,40 @@ mod tests {
         let result = ContentType::from_accept_header(header_value);
         assert_eq!(result, None);
     }
+
+    #[test]
+    fn test_content_type_display() {
+        let content_type = ContentType::from("application");
+        assert_eq!(content_type.to_string(), "Application");
+
+        let content_type = ContentType::from("audio");
+        assert_eq!(content_type.to_string(), "Audio");
+
+        let content_type = ContentType::from("font");
+        assert_eq!(content_type.to_string(), "Font");
+
+        let content_type = ContentType::from("image");
+        assert_eq!(content_type.to_string(), "Image");
+
+        let content_type = ContentType::from("message");
+        assert_eq!(content_type.to_string(), "Message");
+
+        let content_type = ContentType::from("model");
+        assert_eq!(content_type.to_string(), "Model");
+
+        let content_type = ContentType::from("multipart");
+        assert_eq!(content_type.to_string(), "Multipart");
+
+        let content_type = ContentType::from("text");
+        assert_eq!(content_type.to_string(), "Text");
+
+        let content_type = ContentType::from("video");
+        assert_eq!(content_type.to_string(), "Video");
+
+        let content_type = ContentType::from("unknown");
+        assert_eq!(content_type.to_string(), "Unknown");
+
+        let content_type = ContentType::from("");
+        assert_eq!(content_type.to_string(), "Unknown");
+    }
 }
