@@ -488,14 +488,36 @@ pub(crate) mod tests {
     }
 
     #[test]
-    fn test_get_size() {
+    fn test_mark_size_chunk_true() {
         let data = "7\r\n";
         let mut buf = BytesMut::from(data);
         let mut cbuf = Cursor::new(&mut buf);
         let result = ChunkReaderState::mark_size_chunk(&mut cbuf);
         assert!(result);
+        assert_eq!(cbuf.position(), 1);
         let size = ChunkReaderState::try_get_size(&mut cbuf).unwrap();
         assert_eq!(size, 7);
+    }
+
+    #[test]
+    fn test_mark_size_chunk_true_with_extension() {
+        let data = "7; hola amigo\r\n";
+        let mut buf = BytesMut::from(data);
+        let mut cbuf = Cursor::new(&mut buf);
+        let result = ChunkReaderState::mark_size_chunk(&mut cbuf);
+        assert!(result);
+        assert_eq!(cbuf.position(), data.len() - 2);
+        let size = ChunkReaderState::try_get_size(&mut cbuf).unwrap();
+        assert_eq!(size, 7);
+    }
+
+    #[test]
+    fn test_mark_size_chunk_false() {
+        let data = "7\r";
+        let mut buf = BytesMut::from(data);
+        let mut cbuf = Cursor::new(&mut buf);
+        let result = ChunkReaderState::mark_size_chunk(&mut cbuf);
+        assert!(!result);
     }
 
     #[test]

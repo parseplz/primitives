@@ -82,6 +82,32 @@ mod tests {
     }
 
     #[test]
+    fn test_chunk_type_len() {
+        let buf = BytesMut::from("data\r\n");
+        let size_chunk = ChunkType::Size(buf.clone());
+        assert_eq!(size_chunk.len(), 6);
+
+        let chunk = ChunkType::Chunk(buf.clone());
+        assert_eq!(chunk.len(), 6);
+
+        let extra = ChunkType::Extra(buf.clone());
+        assert_eq!(extra.len(), 6);
+
+        let last_chunk = ChunkType::LastChunk(buf.clone());
+        assert_eq!(last_chunk.len(), 3);
+
+        let end_crlf = ChunkType::EndCRLF(buf.clone());
+        assert_eq!(end_crlf.len(), 2);
+
+        let raw_headers = "content-type: application/json\r\n\
+                           content-encoding: gzip\r\n\r\n";
+
+        let header_map = HeaderMap::from(BytesMut::from(raw_headers));
+        let trailers = ChunkType::Trailers(header_map);
+        assert_eq!(trailers.len(), 58);
+    }
+
+    #[test]
     fn test_total_chunk_size() {
         let buf = BytesMut::from("data\r\n");
         let mut vec_body = Vec::with_capacity(20);
