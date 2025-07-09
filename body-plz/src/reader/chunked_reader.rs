@@ -217,6 +217,31 @@ pub(crate) mod tests {
     }
 
     #[test]
+    fn test_chunked_reader_chunksize_partial() {
+        let data = "4\r";
+        let mut buf = BytesMut::from(data.as_bytes());
+        let mut cbuf = Cursor::new(&mut buf);
+        let mut state = ChunkReaderState::ReadSize;
+        let result = state.next(&mut cbuf);
+        assert!(result.is_none());
+        assert!(matches!(state, ChunkReaderState::ReadSize));
+    }
+
+    #[test]
+    fn test_chunked_reader_chunksize_error() {
+        let data = "HOLA\r\n";
+        let mut buf = BytesMut::from(data.as_bytes());
+        let mut cbuf = Cursor::new(&mut buf);
+        let mut state = ChunkReaderState::ReadSize;
+        let result = state.next(&mut cbuf);
+        assert!(result.is_none());
+        assert!(matches!(
+            state,
+            ChunkReaderState::Failed(ChunkReaderError::Size(_))
+        ));
+    }
+
+    #[test]
     fn test_chunked_reader_chunk() {
         let data = "mozilla\r\ngees";
         let mut buf = BytesMut::from(data.as_bytes());
@@ -531,5 +556,26 @@ pub(crate) mod tests {
         assert!(matches!(chunk, ChunkType::EndCRLF(_)));
         assert_eq!(state, ChunkReaderState::End);
         assert_eq!(cbuf.remaining(), &b"extra data"[..]);
+    }
+
+    #[test]
+    fn test_chunked_reader_end_crlf_partial() {
+        let data = "\r";
+        let mut buf = BytesMut::from(data);
+        let mut cbuf = Cursor::new(&mut buf);
+        let mut state = ChunkReaderState::EndCRLF;
+        let chunk = state.next(&mut cbuf);
+        assert!(chunk.is_none());
+        assert_eq!(state, ChunkReaderState::EndCRLF);
+    }
+
+    #[test]
+    fn test_chunked_reader_ended() {
+        let data = "\r\n";
+        let mut buf = BytesMut::from(data);
+        let mut cbuf = Cursor::new(&mut buf);
+        let mut state = ChunkReaderState::End;
+        let chunk = state.next(&mut cbuf);
+        assert!(chunk.is_none());
     }
 }
