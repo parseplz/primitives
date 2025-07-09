@@ -156,10 +156,6 @@ impl HeaderMap {
             .map(|pos| self.headers[pos].value_as_str())
     }
 
-    pub fn is_empty_value(&self, index: usize) -> bool {
-        self.headers[index].value_as_str().is_empty()
-    }
-
     // ----- update
     pub fn update_header_key_all(&mut self, old_key: &str, new_key: &str) -> bool {
         let mut result = false;
@@ -404,6 +400,25 @@ mod tests {
         assert_eq!(result, verify);
     }
 
+    #[test]
+    fn test_header_map_remove_header_on_position() {
+        let mut map = build_header_map();
+        map.remove_header_on_position(0);
+        map.remove_header_on_position(2);
+        map.remove_header_on_position(4);
+        map.remove_header_on_position(6);
+        map.remove_header_on_position(8);
+        map.remove_header_on_position(10);
+        let result = map.into_bytes();
+        let verify = "Content-Length: 20\r\n\
+                     Transfer-encoding: chunked\r\n\
+                     Content-Type:application/json\r\n\
+                     Content-Length:20\r\n\
+                     Trailer: Some\r\n\
+                     X-custom-header: somevalue\r\n\r\n";
+        assert_eq!(result, verify);
+    }
+
     // ---------- Key
     // ------ find
     #[test]
@@ -564,6 +579,60 @@ mod tests {
         assert_eq!(result, verify);
     }
 
+    // ----- truncate
+
+    #[test]
+    fn test_header_map_truncate_header_values_single() {
+        let data = "Header: a\r\n\r\n";
+        let buf = BytesMut::from(data);
+        let mut header_map = HeaderMap::from(buf);
+        header_map.truncate_header_value_on_position(0, "a");
+        let result = header_map.into_bytes();
+        assert_eq!(result, "Header: \r\n\r\n");
+    }
+
+    #[test]
+    fn test_header_map_truncate_header_values() {
+        let data = "Header: a,  b,c\r\n\r\n";
+        let buf = BytesMut::from(data);
+        let mut header_map = HeaderMap::from(buf);
+        header_map.truncate_header_value_on_position(0, "c");
+        let result = header_map.into_bytes();
+        assert_eq!(result, "Header: a,  b\r\n\r\n");
+
+        let mut header_map = HeaderMap::from(result);
+        header_map.truncate_header_value_on_position(0, "b");
+        let result = header_map.into_bytes();
+        assert_eq!(result, "Header: a\r\n\r\n");
+    }
+
+    #[test]
+    fn test_header_map_truncate_header_values_middle() {
+        let input = "Content-Encoding: gzip, deflate, br\r\n\r\n";
+        let mut header_map = HeaderMap::from(BytesMut::from(input));
+        header_map.truncate_header_value_on_position(0, ContentEncoding::Deflate);
+        let result = header_map.into_bytes();
+        assert_eq!(result, "Content-Encoding: gzip\r\n\r\n");
+    }
+
+    #[test]
+    fn test_header_map_truncate_header_values_all() {
+        let input = "Content-Encoding: gzip, deflate, br\r\n\r\n";
+        let mut header_map = HeaderMap::from(BytesMut::from(input));
+        header_map.truncate_header_value_on_position(0, ContentEncoding::Gzip);
+        let result = header_map.into_bytes();
+        assert_eq!(result, "Content-Encoding: \r\n\r\n");
+    }
+
+    #[test]
+    fn test_header_map_truncate_header_values_no_match() {
+        let input = "Content-Encoding: gzip, deflate, br\r\n\r\n";
+        let mut header_map = HeaderMap::from(BytesMut::from(input));
+        header_map.truncate_header_value_on_position(0, "invalid");
+        let result = header_map.into_bytes();
+        assert_eq!(result, "Content-Encoding: gzip, deflate, br\r\n\r\n");
+    }
+
     // ---------- value
     // ----- update
     #[test]
@@ -603,36 +672,22 @@ mod tests {
         assert_eq!(map.len(), 290);
     }
 
+    // ----- common
     #[test]
-    fn test_header_map_truncate_header_values() {
-        let data = "Header: a,  b,c\r\n\r\n";
-        let buf = BytesMut::from(data);
-        let mut header_map = HeaderMap::from(buf);
-        header_map.truncate_header_value_on_position(0, "c");
-        let result = header_map.into_bytes();
-        assert_eq!(result, "Header: a,  b\r\n\r\n");
-
-        let mut header_map = HeaderMap::from(result);
-        header_map.truncate_header_value_on_position(0, "b");
-        let result = header_map.into_bytes();
-        assert_eq!(result, "Header: a\r\n\r\n");
+    fn test_header_map_has_key_and_value() {
+        let map = build_header_map();
+        let key = "Content-Length";
+        let value = "20";
+        let result = map.has_key_and_value(key, value);
+        assert_eq!(result, Some(1));
     }
 
     #[test]
-    fn test_header_map_truncate_header_values_middle() {
-        let input = "Content-Encoding: gzip, deflate, br\r\n\r\n";
-        let mut header_map = HeaderMap::from(BytesMut::from(input));
-        header_map.truncate_header_value_on_position(0, ContentEncoding::Deflate);
-        let result = header_map.into_bytes();
-        assert_eq!(result, "Content-Encoding: gzip\r\n\r\n");
-    }
-
-    #[test]
-    fn test_header_map_truncate_header_values_all() {
-        let input = "Content-Encoding: gzip, deflate, br\r\n\r\n";
-        let mut header_map = HeaderMap::from(BytesMut::from(input));
-        header_map.truncate_header_value_on_position(0, ContentEncoding::Gzip);
-        let result = header_map.into_bytes();
-        assert_eq!(result, "Content-Encoding: \r\n\r\n");
+    fn test_header_map_has_key_and_value_not() {
+        let map = build_header_map();
+        let key = "Content-Length";
+        let value = "30";
+        let result = map.has_key_and_value(key, value);
+        assert_eq!(result, None);
     }
 }

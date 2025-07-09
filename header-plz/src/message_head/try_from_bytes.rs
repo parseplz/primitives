@@ -22,10 +22,7 @@ where
         if let Some(infoline_index) = data.iter().position(|&x| x == 13) {
             let raw = data.split_to(infoline_index + 2);
             let info_line = T::try_build_infoline(raw)?;
-            return Ok(Self {
-                info_line,
-                header_map: HeaderMap::from(data),
-            });
+            return Ok(MessageHead::new(info_line, HeaderMap::from(data)));
         }
         Err(HeaderReadError::HeaderStruct(
             String::from_utf8_lossy(&data).to_string(),
