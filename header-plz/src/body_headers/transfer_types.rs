@@ -11,7 +11,7 @@ impl TransferType {
         if let Ok(size) = value.parse::<usize>() {
             TransferType::ContentLength(size)
         } else {
-            eprintln!("Failed to parse Content-Length| {}", value);
+            eprintln!("Failed to parse Content-Length| {value}");
             TransferType::Close
         }
     }
