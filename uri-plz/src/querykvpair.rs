@@ -77,6 +77,12 @@ mod tests {
     use super::*;
 
     #[test]
+    fn test_kv_pair_empty() {
+        let query = QueryKvPair::parse(BytesMut::new(), false);
+        assert!(query.is_none());
+    }
+
+    #[test]
     fn test_kv_pair() {
         let raw_query = BytesMut::from("a=b");
         let verify = raw_query.as_ptr_range();
