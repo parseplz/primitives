@@ -190,10 +190,10 @@ impl ChunkReaderState {
                 String::from_utf8_lossy(&buf.as_ref()[0..buf.position()]).to_string(),
             ))?;
         // 2. Convert hex size to integer.
-        let size = usize::from_str_radix(&String::from_utf8_lossy(hex_size), 16)?;
+        let size = u64::from_str_radix(&String::from_utf8_lossy(hex_size), 16)?;
         // 3. Add CRLF
         buf.set_position(buf.position() + 2);
-        Ok(size)
+        Ok(size as usize)
     }
 }
 
@@ -308,6 +308,110 @@ pub(crate) mod tests {
         assert!(matches!(result.unwrap(), ChunkType::EndCRLF(_)));
         assert_eq!(cbuf.position(), cbuf.len());
         assert_eq!(ChunkReaderState::End, state);
+    }
+
+    #[test]
+    fn test_chunked_reader_read_partial() {
+        let data = "4\r\n\
+                        Wiki\r\n\
+                        6\r\n\
+                        pedia \r\n\
+                        E\r\n\
+                        in";
+        let remain = " \r\n\
+                            \r\n\
+                            chunks.\r\n\
+                            0; hola\r\n\
+                            \r\n";
+        let mut buf = BytesMut::from(data);
+        let mut cbuf = Cursor::new(&mut buf);
+        let mut state = ChunkReaderState::ReadSize;
+        loop {
+            match state.next(&mut cbuf) {
+                Some(_) => match state {
+                    ChunkReaderState::LastChunk => break,
+                    _ => continue,
+                },
+                None => {
+                    assert_eq!(state, ChunkReaderState::ReadChunk(14));
+                    cbuf.as_mut().put_slice(remain.as_bytes());
+                    continue;
+                }
+            }
+        }
+
+        assert_eq!(state, ChunkReaderState::LastChunk);
+        state = ChunkReaderState::EndCRLF;
+        state.next(&mut cbuf);
+        assert_eq!(state, ChunkReaderState::End);
+        assert_eq!(cbuf.position(), cbuf.len());
+    }
+
+    #[test]
+    fn test_mark_size_chunk_true() {
+        let data = "7\r\n";
+        let mut buf = BytesMut::from(data);
+        let mut cbuf = Cursor::new(&mut buf);
+        let result = ChunkReaderState::mark_size_chunk(&mut cbuf);
+        assert!(result);
+        assert_eq!(cbuf.position(), 1);
+        let size = ChunkReaderState::try_get_size(&mut cbuf).unwrap();
+        assert_eq!(size, 7);
+    }
+
+    #[test]
+    fn test_mark_size_chunk_true_with_extension() {
+        let data = "7; hola amigo\r\n";
+        let mut buf = BytesMut::from(data);
+        let mut cbuf = Cursor::new(&mut buf);
+        let result = ChunkReaderState::mark_size_chunk(&mut cbuf);
+        assert!(result);
+        assert_eq!(cbuf.position(), data.len() - 2);
+        let size = ChunkReaderState::try_get_size(&mut cbuf).unwrap();
+        assert_eq!(size, 7);
+    }
+
+    #[test]
+    fn test_mark_size_chunk_false() {
+        let data = "7\r";
+        let mut buf = BytesMut::from(data);
+        let mut cbuf = Cursor::new(&mut buf);
+        let result = ChunkReaderState::mark_size_chunk(&mut cbuf);
+        assert!(!result);
+    }
+
+    #[test]
+    fn test_chunked_reader_extra_data() {
+        let data = "\r\n\
+                    extra data";
+        let mut buf = BytesMut::from(data);
+        let mut cbuf = Cursor::new(&mut buf);
+        let mut state = ChunkReaderState::EndCRLF;
+        let chunk = state.next(&mut cbuf).unwrap();
+        assert!(matches!(chunk, ChunkType::EndCRLF(_)));
+        assert_eq!(state, ChunkReaderState::End);
+        assert_eq!(cbuf.remaining(), &b"extra data"[..]);
+    }
+
+    #[test]
+    fn test_chunked_reader_end_crlf_partial() {
+        let data = "\r";
+        let mut buf = BytesMut::from(data);
+        let mut cbuf = Cursor::new(&mut buf);
+        let mut state = ChunkReaderState::EndCRLF;
+        let chunk = state.next(&mut cbuf);
+        assert!(chunk.is_none());
+        assert_eq!(state, ChunkReaderState::EndCRLF);
+    }
+
+    #[test]
+    fn test_chunked_reader_ended() {
+        let data = "\r\n";
+        let mut buf = BytesMut::from(data);
+        let mut cbuf = Cursor::new(&mut buf);
+        let mut state = ChunkReaderState::End;
+        let chunk = state.next(&mut cbuf);
+        assert!(chunk.is_none());
     }
 
     #[test]
@@ -445,45 +549,8 @@ pub(crate) mod tests {
     }
 
     #[test]
-    fn test_chunked_reader_read_partial() {
-        let data = "4\r\n\
-                        Wiki\r\n\
-                        6\r\n\
-                        pedia \r\n\
-                        E\r\n\
-                        in";
-        let remain = " \r\n\
-                            \r\n\
-                            chunks.\r\n\
-                            0; hola\r\n\
-                            \r\n";
-        let mut buf = BytesMut::from(data);
-        let mut cbuf = Cursor::new(&mut buf);
-        let mut state = ChunkReaderState::ReadSize;
-        loop {
-            match state.next(&mut cbuf) {
-                Some(_) => match state {
-                    ChunkReaderState::LastChunk => break,
-                    _ => continue,
-                },
-                None => {
-                    assert_eq!(state, ChunkReaderState::ReadChunk(14));
-                    cbuf.as_mut().put_slice(remain.as_bytes());
-                    continue;
-                }
-            }
-        }
-
-        assert_eq!(state, ChunkReaderState::LastChunk);
-        state = ChunkReaderState::EndCRLF;
-        state.next(&mut cbuf);
-        assert_eq!(state, ChunkReaderState::End);
-        assert_eq!(cbuf.position(), cbuf.len());
-    }
-
-    #[test]
     fn test_chunked_reader_read_loop() {
-        let data = "7; hola amigo\r\n\
+        let input = "7; hola amigo\r\n\
                             Mozilla\r\n\
                             9\r\n\
                             Developer\r\n\
@@ -493,7 +560,7 @@ pub(crate) mod tests {
                             a: b\r\n\
                             c: d\r\n\
                             \r\n";
-        let mut buf = BytesMut::from(data);
+        let mut buf = BytesMut::from(input);
         let mut cbuf = Cursor::new(&mut buf);
         let mut state = ChunkReaderState::ReadSize;
         loop {
@@ -510,72 +577,5 @@ pub(crate) mod tests {
         }
 
         assert_eq!(cbuf.remaining().len(), 0);
-    }
-
-    #[test]
-    fn test_mark_size_chunk_true() {
-        let data = "7\r\n";
-        let mut buf = BytesMut::from(data);
-        let mut cbuf = Cursor::new(&mut buf);
-        let result = ChunkReaderState::mark_size_chunk(&mut cbuf);
-        assert!(result);
-        assert_eq!(cbuf.position(), 1);
-        let size = ChunkReaderState::try_get_size(&mut cbuf).unwrap();
-        assert_eq!(size, 7);
-    }
-
-    #[test]
-    fn test_mark_size_chunk_true_with_extension() {
-        let data = "7; hola amigo\r\n";
-        let mut buf = BytesMut::from(data);
-        let mut cbuf = Cursor::new(&mut buf);
-        let result = ChunkReaderState::mark_size_chunk(&mut cbuf);
-        assert!(result);
-        assert_eq!(cbuf.position(), data.len() - 2);
-        let size = ChunkReaderState::try_get_size(&mut cbuf).unwrap();
-        assert_eq!(size, 7);
-    }
-
-    #[test]
-    fn test_mark_size_chunk_false() {
-        let data = "7\r";
-        let mut buf = BytesMut::from(data);
-        let mut cbuf = Cursor::new(&mut buf);
-        let result = ChunkReaderState::mark_size_chunk(&mut cbuf);
-        assert!(!result);
-    }
-
-    #[test]
-    fn test_chunked_reader_extra_data() {
-        let data = "\r\n\
-                    extra data";
-        let mut buf = BytesMut::from(data);
-        let mut cbuf = Cursor::new(&mut buf);
-        let mut state = ChunkReaderState::EndCRLF;
-        let chunk = state.next(&mut cbuf).unwrap();
-        assert!(matches!(chunk, ChunkType::EndCRLF(_)));
-        assert_eq!(state, ChunkReaderState::End);
-        assert_eq!(cbuf.remaining(), &b"extra data"[..]);
-    }
-
-    #[test]
-    fn test_chunked_reader_end_crlf_partial() {
-        let data = "\r";
-        let mut buf = BytesMut::from(data);
-        let mut cbuf = Cursor::new(&mut buf);
-        let mut state = ChunkReaderState::EndCRLF;
-        let chunk = state.next(&mut cbuf);
-        assert!(chunk.is_none());
-        assert_eq!(state, ChunkReaderState::EndCRLF);
-    }
-
-    #[test]
-    fn test_chunked_reader_ended() {
-        let data = "\r\n";
-        let mut buf = BytesMut::from(data);
-        let mut cbuf = Cursor::new(&mut buf);
-        let mut state = ChunkReaderState::End;
-        let chunk = state.next(&mut cbuf);
-        assert!(chunk.is_none());
     }
 }
