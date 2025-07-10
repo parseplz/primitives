@@ -9,13 +9,12 @@ pub enum ChunkType {
     LastChunk(BytesMut),
     Trailers(HeaderMap),
     EndCRLF(BytesMut),
-    Extra(BytesMut),
 }
 
 impl ChunkType {
     fn len(&self) -> usize {
         match self {
-            ChunkType::Size(buf) | ChunkType::Chunk(buf) | ChunkType::Extra(buf) => buf.len(),
+            ChunkType::Size(buf) | ChunkType::Chunk(buf) => buf.len(),
             ChunkType::LastChunk(_) => 3,
             ChunkType::EndCRLF(_) => 2,
             ChunkType::Trailers(header_map) => header_map.len(),
@@ -26,7 +25,6 @@ impl ChunkType {
         match self {
             ChunkType::Size(buf)
             | ChunkType::Chunk(buf)
-            | ChunkType::Extra(buf)
             | ChunkType::LastChunk(buf)
             | ChunkType::EndCRLF(buf) => buf,
             ChunkType::Trailers(header_map) => header_map.into_bytes(),
@@ -90,9 +88,6 @@ mod tests {
 
         let chunk = ChunkType::Chunk(buf.clone());
         assert_eq!(chunk.len(), 6);
-
-        let extra = ChunkType::Extra(buf.clone());
-        assert_eq!(extra.len(), 6);
 
         let last_chunk = ChunkType::LastChunk(buf.clone());
         assert_eq!(last_chunk.len(), 3);
