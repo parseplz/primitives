@@ -5,7 +5,7 @@ edition = "2024"
 
 [dependencies]
 # Primitives
-body-plz = "0.0.26"
+header-plz = "0.0.21"
 
 # Compression
 brotli = "8.0.0"
@@ -14,3 +14,4 @@ zstd = "0.13.3"
 
 # Workspace
 thiserror = { workspace = true }
+bytes = { workspace = true }
