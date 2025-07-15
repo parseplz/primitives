@@ -95,37 +95,37 @@ mod tests {
     }
 
     #[test]
-    fn test_brotli_basic() {
+    fn test_basic_brotli() {
         let result = test_decompress(INPUT, ContentEncoding::Brotli);
         assert_eq!(result.as_ref(), INPUT);
     }
 
     #[test]
-    fn test_deflate_basic() {
+    fn test_basic_deflate() {
         let result = test_decompress(INPUT, ContentEncoding::Deflate);
         assert_eq!(result.as_ref(), INPUT);
     }
 
     #[test]
-    fn test_gzip_basic() {
+    fn test_basic_gzip() {
         let result = test_decompress(INPUT, ContentEncoding::Gzip);
         assert_eq!(result.as_ref(), INPUT);
     }
 
     #[test]
-    fn test_zstd_basic() {
+    fn test_basic_zstd() {
         let result = test_decompress(INPUT, ContentEncoding::Zstd);
         assert_eq!(result.as_ref(), INPUT);
     }
 
     #[test]
-    fn test_compress_basic() {
+    fn test_basic_compress() {
         let result = test_decompress(INPUT, ContentEncoding::Compress);
         assert_eq!(result.as_ref(), INPUT);
     }
 
     #[test]
-    fn test_identity_basic() {
+    fn test_basic_identity() {
         let result = test_decompress(INPUT, ContentEncoding::Identity);
         assert_eq!(result.as_ref(), INPUT);
     }
