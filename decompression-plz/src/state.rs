@@ -1,6 +1,25 @@
-use crate::dstruct::DecompressionStruct;
+use crate::{dstruct::DecompressionStruct, error::DecompressErrorStruct};
 use bytes::BytesMut;
-use header_plz::body_headers::content_encoding::ContentEncoding;
+use header_plz::body_headers::{content_encoding::ContentEncoding, encoding_info::EncodingInfo};
+
+/*
+1. Main
+    true    => Main_decompressed + Extra_decompressed
+    false   => Err()
+
+2. Extra
+    true    => Main
+    false   => Main + Extra
+
+3. Main + Extra
+    true    => Main_and_Extra_decompressed
+    false   => Err()
+*/
+
+// 1. Try decompressing extra
+// 2. If success, try decompressing main
+// 2. If failed, try decompressing main + extra
+// 3. If failed, try decompressing main
 
 enum State<'a> {
     // Main
@@ -18,33 +37,22 @@ impl<'a> State<'a> {
     fn start(
         main: BytesMut,
         extra: Option<BytesMut>,
-        encodings: &'a [ContentEncoding],
+        encodings: &'a [EncodingInfo],
         buf: &'a mut BytesMut,
     ) -> Self {
-        let d = DecompressionStruct::new(main, extra, encodings, buf);
-        if d.extra.is_some() {
-            Self::Extra(d)
+        let dstruct = DecompressionStruct::new(main, extra, encodings, buf);
+        if dstruct.extra.is_some() {
+            Self::Extra(dstruct)
         } else {
-            Self::MainOnly(d)
+            Self::MainOnly(dstruct)
         }
     }
+
+    fn try_next(self) -> Result<Self, DecompressErrorStruct> {
+        todo!()
+    }
+
+    fn ended(self) -> bool {
+        matches!(self, Self::EndMainOnly(_)) || matches!(self, Self::EndMainOnyDecompressed(_))
+    }
 }
-
-/*
-1. Extra
-    true    => Main
-    false   => Main + Extra
-
-2. Main
-    true    => Main_decompressed + Extra_decompressed
-    false   => Err()
-
-3. Main + Extra
-    true    => Main_and_Extra_decompressed
-    false   => Err()
-*/
-
-// 1. Try decompressing extra
-// 2. If success, try decompressing main
-// 2. If failed, try decompressing main + extra
-// 3. If failed, try decompressing main

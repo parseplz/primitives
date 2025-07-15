@@ -2,14 +2,26 @@ use std::io::{Read, Write, copy};
 
 use brotli::Decompressor;
 use bytes::{BufMut, BytesMut, buf::Writer};
-use header_plz::body_headers::content_encoding::ContentEncoding;
+use header_plz::body_headers::{content_encoding::ContentEncoding, encoding_info::EncodingInfo};
 
 mod decompressors;
 mod magic_bytes;
 use decompressors::*;
 
-use crate::decompression::error::DecompressError;
-mod error;
+use crate::{decompression::error::DecompressError, error::DecompressErrorStruct};
+pub mod error;
+
+pub fn decompress_all<R, W>(
+    compressed: R,
+    writer: W,
+    encoding_info: &[EncodingInfo],
+) -> Result<BytesMut, DecompressErrorStruct>
+where
+    R: Read,
+    W: Write,
+{
+    todo!()
+}
 
 pub fn decompress<R, W>(
     mut input: R,

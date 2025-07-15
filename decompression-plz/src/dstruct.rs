@@ -1,10 +1,10 @@
 use bytes::BytesMut;
-use header_plz::body_headers::content_encoding::ContentEncoding;
+use header_plz::body_headers::{content_encoding::ContentEncoding, encoding_info::EncodingInfo};
 
 pub struct DecompressionStruct<'a> {
     main: BytesMut,
     pub extra: Option<BytesMut>,
-    encodings: &'a [ContentEncoding],
+    encoding_info: &'a [EncodingInfo],
     buf: &'a mut BytesMut,
 }
 
@@ -12,13 +12,13 @@ impl<'a> DecompressionStruct<'a> {
     pub fn new(
         main: BytesMut,
         extra: Option<BytesMut>,
-        encodings: &'a [ContentEncoding],
+        encoding_info: &'a [EncodingInfo],
         buf: &'a mut BytesMut,
     ) -> Self {
         Self {
             main,
             extra,
-            encodings,
+            encoding_info,
             buf,
         }
     }
