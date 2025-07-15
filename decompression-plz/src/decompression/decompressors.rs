@@ -20,6 +20,7 @@ where
     W: Write,
 {
     copy(&mut flate2::read::DeflateDecoder::new(input), &mut buf).map_err(DecompressError::Deflate)
+    //copy(&mut flate2::read::ZlibDecoder::new(input), &mut buf).map_err(DecompressError::Deflate)
 }
 
 pub fn decompress_gzip<R, W>(input: R, mut buf: W) -> Result<u64, DecompressError>
