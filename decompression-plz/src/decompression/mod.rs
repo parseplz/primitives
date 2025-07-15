@@ -30,7 +30,7 @@ pub fn decompress(
 }
 
 #[cfg(test)]
-mod tests {
+pub mod tests {
     use std::io::{Read, Write};
 
     use bytes::{BufMut, BytesMut};
@@ -39,7 +39,7 @@ mod tests {
 
     use crate::decompression::decompress;
 
-    const INPUT: &[u8] = b"hello world";
+    pub const INPUT: &[u8] = b"hello world";
 
     pub fn all_compressed_data() -> Vec<u8> {
         let level = 0;
@@ -62,9 +62,9 @@ mod tests {
 
     pub fn compress_deflate(data: &[u8]) -> Vec<u8> {
         let mut compressed = Vec::new();
-        let mut encoder = flate2::read::DeflateEncoder::new(&data[..], flate2::Compression::fast());
-        //let mut encoder = flate2::write::ZlibEncoder::new(&mut compressed, Compression::fast());
-        encoder.read_to_end(&mut compressed).unwrap();
+        let mut encoder = flate2::write::ZlibEncoder::new(&mut compressed, Compression::fast());
+        encoder.write_all(data).unwrap();
+        encoder.finish().unwrap();
         compressed
     }
 
