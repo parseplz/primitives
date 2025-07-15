@@ -1,4 +1,4 @@
-use std::io::{Read, copy};
+use std::io::{Read, Write, copy};
 
 use brotli::Decompressor;
 use bytes::{BufMut, BytesMut, buf::Writer};
@@ -11,18 +11,22 @@ use decompressors::*;
 use crate::decompression::error::DecompressError;
 mod error;
 
-pub fn decompress(
-    mut input: &[u8],
-    writer: &mut Writer<BytesMut>,
+pub fn decompress<R, W>(
+    mut input: R,
+    mut writer: W,
     content_encoding: ContentEncoding,
-) -> Result<u64, DecompressError> {
+) -> Result<u64, DecompressError>
+where
+    R: Read,
+    W: Write,
+{
     match content_encoding {
         ContentEncoding::Brotli => decompress_brotli(input, writer),
         ContentEncoding::Compress | ContentEncoding::Zstd => decompress_zstd(input, writer),
         ContentEncoding::Deflate => decompress_deflate(input, writer),
         ContentEncoding::Gzip => decompress_gzip(input, writer),
         ContentEncoding::Identity => {
-            std::io::copy(&mut input, writer).map_err(DecompressError::Identity)
+            std::io::copy(&mut input, &mut writer).map_err(DecompressError::Identity)
         }
         ContentEncoding::Chunked => todo!(),
         ContentEncoding::Unknown(_) => todo!(),
