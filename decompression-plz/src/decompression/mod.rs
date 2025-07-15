@@ -6,6 +6,7 @@ use header_plz::body_headers::content_encoding::ContentEncoding;
 
 mod decompressors;
 use decompressors::*;
+mod error;
 
 pub fn decompress(
     mut input: &[u8],
