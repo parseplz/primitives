@@ -1,7 +1,6 @@
+use crate::dstruct::DecompressionStruct;
 use bytes::BytesMut;
 use header_plz::body_headers::content_encoding::ContentEncoding;
-
-use crate::dstruct::DecompressionStruct;
 
 enum State<'a> {
     // Main
@@ -16,7 +15,7 @@ enum State<'a> {
 }
 
 impl<'a> State<'a> {
-    fn new(
+    fn start(
         main: BytesMut,
         extra: Option<BytesMut>,
         encodings: &'a [ContentEncoding],

@@ -4,34 +4,33 @@ use std::io::copy;
 
 use brotli::Decompressor;
 
-pub fn decompress_brotli<R, W>(input: R, mut buf: W) -> Result<u64, std::io::Error>
+use crate::decompression::error::DecompressError;
+
+pub fn decompress_brotli<R, W>(input: R, mut buf: W) -> Result<u64, DecompressError>
 where
     R: Read,
     W: Write,
 {
-    let mut dec = Decompressor::new(input, 4096);
-    copy(&mut dec, &mut buf)
+    copy(&mut Decompressor::new(input, 4096), &mut buf).map_err(DecompressError::Brotli)
 }
 
-pub fn decompress_deflate<R, W>(input: R, mut buf: W) -> Result<u64, std::io::Error>
+pub fn decompress_deflate<R, W>(input: R, mut buf: W) -> Result<u64, DecompressError>
 where
     R: Read,
     W: Write,
 {
-    let mut dec = flate2::read::ZlibDecoder::new(input);
-    copy(&mut dec, &mut buf)
+    copy(&mut flate2::read::DeflateDecoder::new(input), &mut buf).map_err(DecompressError::Deflate)
 }
 
-pub fn decompress_gzip<R, W>(input: R, mut buf: W) -> Result<u64, std::io::Error>
+pub fn decompress_gzip<R, W>(input: R, mut buf: W) -> Result<u64, DecompressError>
 where
     R: Read,
     W: Write,
 {
-    let mut dec = flate2::read::GzDecoder::new(input);
-    copy(&mut dec, &mut buf)
+    copy(&mut flate2::read::GzDecoder::new(input), &mut buf).map_err(DecompressError::Gzip)
 }
 
-pub fn decompress_zstd<R, W>(input: R, mut buf: W) -> Result<u64, std::io::Error>
+pub fn decompress_zstd<R, W>(input: R, mut buf: W) -> Result<u64, DecompressError>
 where
     R: Read,
     W: Write,
@@ -39,6 +38,9 @@ where
     //zstd::stream::copy_decode(input, &mut buf)?;
     //Ok(0)
     // -----
-    let mut reader = zstd::stream::read::Decoder::new(input)?;
-    copy(&mut reader, &mut buf)
+    copy(
+        &mut zstd::stream::read::Decoder::new(input).map_err(DecompressError::Zstd)?,
+        &mut buf,
+    )
+    .map_err(DecompressError::Zstd)
 }
