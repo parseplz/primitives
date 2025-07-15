@@ -23,7 +23,6 @@ const ZSTD_MAGIC: [u8; 4] = [0x28, 0xb5, 0x2f, 0xfd];
 
 pub fn is_compressed(input: &[u8], encoding: &ContentEncoding) -> bool {
     match encoding {
-        ContentEncoding::Brotli => false,
         ContentEncoding::Deflate => {
             matches!(
                 input,
@@ -42,9 +41,42 @@ pub fn is_compressed(input: &[u8], encoding: &ContentEncoding) -> bool {
         }
         ContentEncoding::Gzip => input.starts_with(&GZIP_MAGIC),
         ContentEncoding::Zstd | ContentEncoding::Compress => input.starts_with(&ZSTD_MAGIC),
+        ContentEncoding::Brotli => todo!(),
         ContentEncoding::Identity => todo!(),
         ContentEncoding::Chunked => todo!(),
         ContentEncoding::Unknown(_) => todo!(),
     }
 }
 
+#[cfg(test)]
+mod tests {
+    use header_plz::body_headers::content_encoding::ContentEncoding;
+
+    use crate::decompression::{magic_bytes::is_compressed, tests::*};
+
+    #[test]
+    fn test_magic_bytes_deflate() {
+        assert!(is_compressed(
+            &compress_deflate(INPUT),
+            &ContentEncoding::Deflate
+        ));
+    }
+
+    #[test]
+    fn test_magic_bytes_gzip() {
+        assert!(is_compressed(&compress_gzip(INPUT), &ContentEncoding::Gzip));
+    }
+
+    #[test]
+    fn test_magic_bytes_zstd() {
+        assert!(is_compressed(&compress_zstd(INPUT), &ContentEncoding::Zstd));
+    }
+
+    #[test]
+    fn test_magic_bytes_compress() {
+        assert!(is_compressed(
+            &compress_zstd(INPUT),
+            &ContentEncoding::Compress
+        ));
+    }
+}
