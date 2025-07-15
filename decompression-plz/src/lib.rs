@@ -1,3 +1,4 @@
 #![allow(warnings)]
 mod decompression;
-mod dstruct;
+pub mod dstruct;
+mod state;
