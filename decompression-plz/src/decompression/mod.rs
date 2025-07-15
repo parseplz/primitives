@@ -5,6 +5,7 @@ use bytes::{BufMut, BytesMut, buf::Writer};
 use header_plz::body_headers::content_encoding::ContentEncoding;
 
 mod decompressors;
+mod magic_bytes;
 use decompressors::*;
 
 use crate::decompression::error::DecompressError;
