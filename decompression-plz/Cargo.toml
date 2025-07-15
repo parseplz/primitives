@@ -4,3 +4,13 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
+# Primitives
+body-plz = "0.0.26"
+
+# Compression
+brotli = "8.0.0"
+flate2 = "1.1.0"
+zstd = "0.13.3"
+
+# Workspace
+thiserror = { workspace = true }
