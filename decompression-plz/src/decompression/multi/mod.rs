@@ -7,12 +7,13 @@ use crate::{
 };
 
 mod error;
+use error::*;
 
 pub fn decompress_multi(
     mut compressed: &[u8],
     mut writer: &mut Writer<&mut BytesMut>,
     encoding_info: &[EncodingInfo],
-) -> Result<BytesMut, DecompressErrorStruct> {
+) -> Result<BytesMut, MultiDecompressError> {
     let mut input: &[u8] = compressed;
     let mut output: BytesMut = writer.get_mut().split();
 
@@ -26,23 +27,18 @@ pub fn decompress_multi(
                 }
                 Err(e) => {
                     let reason = if header_index == 0 && compression_index == 0 {
-                        Reason::Corrupt
+                        MultiDecompressErrorReason::Corrupt
                     } else {
-                        Reason::PartialCorrupt(header_index, compression_index)
-                    };
-
-                    let body = match reason {
-                        Reason::Corrupt => None,
-                        Reason::PartialCorrupt(_, _) => {
-                            writer.get_mut().clear();
-                            std::io::copy(&mut input, writer).unwrap();
-                            output = writer.get_mut().split();
-                            Some(output)
+                        writer.get_mut().clear();
+                        std::io::copy(&mut input, writer).unwrap();
+                        output = writer.get_mut().split();
+                        MultiDecompressErrorReason::Partial {
+                            partial_body: output,
+                            header_index,
+                            compression_index,
                         }
                     };
-
-                    todo!()
-                    //return Err(DecompressErrorStruct::new(output, None, e, reason));
+                    return Err(MultiDecompressError::new(reason, e));
                 }
             }
         }
@@ -68,7 +64,7 @@ mod tests {
     }
 
     #[test]
-    fn test_decompress_all_single_header() {
+    fn test_decompress_multi_single_header() {
         let input = all_compressed_data();
         let mut buf = BytesMut::new();
         let mut writer = (&mut buf).writer();
@@ -87,7 +83,7 @@ mod tests {
     }
 
     #[test]
-    fn test_decompress_all_multi_header() {
+    fn test_decompress_multi_multi_header() {
         let input = all_compressed_data();
         let mut buf = BytesMut::new();
         let mut writer = (&mut buf).writer();
@@ -104,7 +100,7 @@ mod tests {
     }
 
     #[test]
-    fn test_decompress_all_multi_header_split() {
+    fn test_decompress_multi_multi_header_split() {
         let input = all_compressed_data();
         let mut buf = BytesMut::new();
         let mut writer = (&mut buf).writer();
@@ -118,9 +114,8 @@ mod tests {
         assert_eq!(result, INPUT);
     }
 
-    /*
     #[test]
-    fn test_decompress_all_error_single_header() {
+    fn test_decompress_multi_error_partial_single_header() {
         let input = compress_brotli(INPUT);
         let mut buf = BytesMut::new();
         let mut writer = (&mut buf).writer();
@@ -129,14 +124,20 @@ mod tests {
             vec![ContentEncoding::Deflate, ContentEncoding::Brotli],
         )];
         let result = decompress_multi(&input, &mut writer, &einfo_list).unwrap_err();
-        assert_eq!(*result.reason(), Reason::PartialCorrupt(0, 1));
-        let (body, extra_body) = result.into_body_and_extra();
-        assert_eq!(body.as_ref(), INPUT);
-        assert!(extra_body.is_none());
+        if let MultiDecompressErrorReason::Partial {
+            partial_body,
+            header_index,
+            compression_index,
+        } = result.reason
+        {
+            assert_eq!(header_index, 0);
+            assert_eq!(compression_index, 1);
+            assert_eq!(partial_body.as_ref(), INPUT);
+        }
     }
 
     #[test]
-    fn test_decompress_all_error_single_header_all_compression() {
+    fn test_decompress_multi_error_partial_single_header_all_compression() {
         let input = all_compressed_data();
         let mut buf = BytesMut::new();
         let mut writer = (&mut buf).writer();
@@ -152,14 +153,20 @@ mod tests {
             ],
         )];
         let result = decompress_multi(&input, &mut writer, &einfo_list).unwrap_err();
-        assert_eq!(*result.reason(), Reason::PartialCorrupt(0, 5));
-        let (body, extra_body) = result.into_body_and_extra();
-        assert_eq!(body.as_ref(), INPUT);
-        assert!(extra_body.is_none());
+        if let MultiDecompressErrorReason::Partial {
+            partial_body,
+            header_index,
+            compression_index,
+        } = result.reason
+        {
+            assert_eq!(header_index, 0);
+            assert_eq!(compression_index, 5);
+            assert_eq!(partial_body.as_ref(), INPUT);
+        }
     }
 
     #[test]
-    fn test_decompress_all_error_multi_header() {
+    fn test_decompress_multi_error_partial_multi_header() {
         let input = compress_brotli(INPUT);
         let mut buf = BytesMut::new();
         let mut writer = (&mut buf).writer();
@@ -168,14 +175,20 @@ mod tests {
             EncodingInfo::new(4, vec![ContentEncoding::Brotli]),
         ];
         let result = decompress_multi(&input, &mut writer, &einfo_list).unwrap_err();
-        assert_eq!(*result.reason(), Reason::PartialCorrupt(1, 0));
-        let (body, extra_body) = result.into_body_and_extra();
-        assert_eq!(body.as_ref(), INPUT);
-        assert!(extra_body.is_none());
+        if let MultiDecompressErrorReason::Partial {
+            partial_body,
+            header_index,
+            compression_index,
+        } = result.reason
+        {
+            assert_eq!(header_index, 1);
+            assert_eq!(compression_index, 0);
+            assert_eq!(partial_body.as_ref(), INPUT);
+        }
     }
 
     #[test]
-    fn test_decompress_all_error_multi_header_all_compression() {
+    fn test_decompress_multi_error_partial_multi_header_all_compression() {
         let input = all_compressed_data();
         let mut buf = BytesMut::new();
         let mut writer = (&mut buf).writer();
@@ -188,14 +201,29 @@ mod tests {
             EncodingInfo::new(5, vec![ContentEncoding::Identity]),
         ];
         let result = decompress_multi(&input, &mut writer, &einfo_list).unwrap_err();
-        assert_eq!(*result.reason(), Reason::PartialCorrupt(5, 0));
-        let (body, extra_body) = result.into_body_and_extra();
-        assert_eq!(body.as_ref(), INPUT);
-        assert!(extra_body.is_none());
+        if let MultiDecompressErrorReason::Partial {
+            partial_body,
+            header_index,
+            compression_index,
+        } = result.reason
+        {
+            assert_eq!(header_index, 5);
+            assert_eq!(compression_index, 0);
+            assert_eq!(partial_body.as_ref(), INPUT);
+        }
     }
 
     #[test]
-    fn test_decompress_all_error_corrupt() {
+    fn test_decompress_multi_error_corrupt_single_header() {
+        let mut buf = BytesMut::new();
+        let mut writer = (&mut buf).writer();
+        let einfo_list = vec![EncodingInfo::new(0, vec![ContentEncoding::Zstd])];
+        let result = decompress_multi(INPUT, &mut writer, &einfo_list).unwrap_err();
+        assert!(matches!(result.reason, MultiDecompressErrorReason::Corrupt));
+    }
+
+    #[test]
+    fn test_decompress_multi_error_corrupt_multi_header() {
         let mut buf = BytesMut::new();
         let mut writer = (&mut buf).writer();
         let einfo_list = vec![
@@ -203,10 +231,6 @@ mod tests {
             EncodingInfo::new(4, vec![ContentEncoding::Brotli]),
         ];
         let result = decompress_multi(INPUT, &mut writer, &einfo_list).unwrap_err();
-        assert_eq!(*result.reason(), Reason::Corrupt);
-        let (body, extra_body) = result.into_body_and_extra();
-        assert_eq!(body.as_ref(), INPUT);
-        assert!(extra_body.is_none());
+        assert!(matches!(result.reason, MultiDecompressErrorReason::Corrupt));
     }
-    */
 }
