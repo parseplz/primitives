@@ -30,21 +30,11 @@ pub fn is_compressed(input: &[u8], encoding: &ContentEncoding) -> bool {
                 if *first_byte == DEFLATE_MAGIC_FIRST_BYTE
                     && DEFLATE_MAGIC_SECOND_BYTES.contains(second_byte)
             )
-            //if let Some(first_byte) = input.get(0)
-            //    && first_byte == &DEFLATE_MAGIC_FIRST_BYTE
-            //    && let Some(second_byte) = input.get(1)
-            //    && DEFLATE_MAGIC_SECOND_BYTES.contains(second_byte)
-            //{
-            //    return true;
-            //}
-            //false
         }
         ContentEncoding::Gzip => input.starts_with(&GZIP_MAGIC),
         ContentEncoding::Zstd | ContentEncoding::Compress => input.starts_with(&ZSTD_MAGIC),
-        ContentEncoding::Brotli => todo!(),
-        ContentEncoding::Identity => todo!(),
-        ContentEncoding::Chunked => todo!(),
-        ContentEncoding::Unknown(_) => todo!(),
+        ContentEncoding::Brotli | ContentEncoding::Compress | ContentEncoding::Identity => true,
+        ContentEncoding::Chunked | ContentEncoding::Unknown(_) => false,
     }
 }
 
@@ -78,5 +68,15 @@ mod tests {
             &compress_zstd(INPUT),
             &ContentEncoding::Compress
         ));
+    }
+
+    #[test]
+    fn test_magic_bytes_identity() {
+        assert!(is_compressed(INPUT, &ContentEncoding::Identity));
+    }
+
+    #[test]
+    fn test_magic_bytes_chunked() {
+        assert!(!is_compressed(INPUT, &ContentEncoding::Chunked));
     }
 }
