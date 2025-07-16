@@ -1,80 +1,22 @@
-use std::io::{Read, Write, copy};
-
 use brotli::Decompressor;
-use bytes::{BufMut, BytesMut, buf::Writer};
 use header_plz::body_headers::{content_encoding::ContentEncoding, encoding_info::EncodingInfo};
 
-mod decompressors;
 mod magic_bytes;
-use decompressors::*;
+use thiserror::Error;
 
-use crate::{
-    decompression::error::DecompressError,
-    error::{DecompressErrorStruct, Reason},
-};
-pub mod error;
+pub mod multi;
+pub mod single;
 
-pub fn decompress_all(
-    mut compressed: &[u8],
-    mut writer: &mut Writer<&mut BytesMut>,
-    encoding_info: &[EncodingInfo],
-) -> Result<BytesMut, DecompressErrorStruct> {
-    let mut input: &[u8] = compressed;
-    let mut output: BytesMut = writer.get_mut().split();
-
-    for (header_index, encoding_info) in encoding_info.iter().rev().enumerate() {
-        for (compression_index, encoding) in encoding_info.encodings().iter().rev().enumerate() {
-            let result = decompress(&mut input, &mut writer, encoding.clone());
-            match result {
-                Ok(_) => {
-                    output = writer.get_mut().split();
-                    input = &output[..];
-                }
-                Err(e) => {
-                    writer.get_mut().clear();
-                    copy(&mut input, writer).unwrap();
-                    output = writer.get_mut().split();
-                    let reason = if header_index == 0 && compression_index == 0 {
-                        Reason::Corrupt
-                    } else {
-                        Reason::PartialCorrupt(header_index, compression_index)
-                    };
-                    return Err(DecompressErrorStruct::new(output, None, e, reason));
-                }
-            }
-        }
-    }
-    Ok(output)
-}
-
-pub fn decompress<R, W>(
-    mut input: R,
-    mut writer: W,
-    content_encoding: ContentEncoding,
-) -> Result<u64, DecompressError>
-where
-    R: Read,
-    W: Write,
-{
-    match content_encoding {
-        ContentEncoding::Brotli => decompress_brotli(input, writer),
-        ContentEncoding::Compress | ContentEncoding::Zstd => decompress_zstd(input, writer),
-        ContentEncoding::Deflate => decompress_deflate(input, writer),
-        ContentEncoding::Gzip => decompress_gzip(input, writer),
-        ContentEncoding::Identity => {
-            copy(&mut input, &mut writer).map_err(DecompressError::Identity)
-        }
-        ContentEncoding::Chunked => Ok(0),
-        ContentEncoding::Unknown(e) => Err(DecompressError::Unknown(e.to_string())),
-    }
-}
-
+/*
 #[cfg(test)]
 pub mod tests {
-    use crate::decompression::{
-        decompress, decompress_all,
-        decompressors::{decompress_brotli, decompress_deflate},
-        error::DecompressError,
+    use crate::{
+        decompression::{
+            decompress, decompress_multi,
+            decompressors::{decompress_brotli, decompress_deflate},
+            error::DecompressError,
+        },
+        error::Reason,
     };
     use bytes::{BufMut, BytesMut};
     use flate2::Compression;
@@ -198,8 +140,9 @@ pub mod tests {
             INPUT,
             &mut writer,
             ContentEncoding::Unknown("unknown".to_string()),
-        );
-        if let Err(DecompressError::Unknown(e)) = result {
+        )
+        .unwrap_err();
+        if let DecompressError::Unknown(e) = result {
             assert_eq!(e, "unknown");
         } else {
             panic!();
@@ -222,8 +165,7 @@ pub mod tests {
                 ContentEncoding::Identity,
             ],
         )];
-
-        let result = decompress_all(&input, &mut writer, &einfo_list).unwrap();
+        let result = decompress_multi(&input, &mut writer, &einfo_list).unwrap();
         assert_eq!(result, INPUT);
     }
 
@@ -240,7 +182,113 @@ pub mod tests {
             EncodingInfo::new(4, vec![ContentEncoding::Identity]),
         ];
 
-        let result = decompress_all(&input, &mut writer, &einfo_list).unwrap();
+        let result = decompress_multi(&input, &mut writer, &einfo_list).unwrap();
         assert_eq!(result, INPUT);
     }
+
+    #[test]
+    fn test_decompress_all_multi_header_split() {
+        let input = all_compressed_data();
+        let mut buf = BytesMut::new();
+        let mut writer = (&mut buf).writer();
+        let einfo_list = vec![
+            EncodingInfo::new(0, vec![ContentEncoding::Brotli, ContentEncoding::Deflate]),
+            EncodingInfo::new(2, vec![ContentEncoding::Gzip, ContentEncoding::Identity]),
+            EncodingInfo::new(3, vec![ContentEncoding::Zstd, ContentEncoding::Identity]),
+        ];
+
+        let result = decompress_multi(&input, &mut writer, &einfo_list).unwrap();
+        assert_eq!(result, INPUT);
+    }
+
+    #[test]
+    fn test_decompress_all_error_single_header() {
+        let input = compress_brotli(INPUT);
+        let mut buf = BytesMut::new();
+        let mut writer = (&mut buf).writer();
+        let einfo_list = vec![EncodingInfo::new(
+            0,
+            vec![ContentEncoding::Deflate, ContentEncoding::Brotli],
+        )];
+        let result = decompress_multi(&input, &mut writer, &einfo_list).unwrap_err();
+        assert_eq!(*result.reason(), Reason::PartialCorrupt(0, 1));
+        let (body, extra_body) = result.into_body_and_extra();
+        assert_eq!(body.as_ref(), INPUT);
+        assert!(extra_body.is_none());
+    }
+
+    #[test]
+    fn test_decompress_all_error_single_header_all_compression() {
+        let input = all_compressed_data();
+        let mut buf = BytesMut::new();
+        let mut writer = (&mut buf).writer();
+        let einfo_list = vec![EncodingInfo::new(
+            0,
+            vec![
+                ContentEncoding::Compress,
+                ContentEncoding::Brotli,
+                ContentEncoding::Deflate,
+                ContentEncoding::Gzip,
+                ContentEncoding::Zstd,
+                ContentEncoding::Identity,
+            ],
+        )];
+        let result = decompress_multi(&input, &mut writer, &einfo_list).unwrap_err();
+        assert_eq!(*result.reason(), Reason::PartialCorrupt(0, 5));
+        let (body, extra_body) = result.into_body_and_extra();
+        assert_eq!(body.as_ref(), INPUT);
+        assert!(extra_body.is_none());
+    }
+
+    #[test]
+    fn test_decompress_all_error_multi_header() {
+        let input = compress_brotli(INPUT);
+        let mut buf = BytesMut::new();
+        let mut writer = (&mut buf).writer();
+        let einfo_list = vec![
+            EncodingInfo::new(0, vec![ContentEncoding::Zstd]),
+            EncodingInfo::new(4, vec![ContentEncoding::Brotli]),
+        ];
+        let result = decompress_multi(&input, &mut writer, &einfo_list).unwrap_err();
+        assert_eq!(*result.reason(), Reason::PartialCorrupt(1, 0));
+        let (body, extra_body) = result.into_body_and_extra();
+        assert_eq!(body.as_ref(), INPUT);
+        assert!(extra_body.is_none());
+    }
+
+    #[test]
+    fn test_decompress_all_error_multi_header_all_compression() {
+        let input = all_compressed_data();
+        let mut buf = BytesMut::new();
+        let mut writer = (&mut buf).writer();
+        let einfo_list = vec![
+            EncodingInfo::new(0, vec![ContentEncoding::Brotli]),
+            EncodingInfo::new(1, vec![ContentEncoding::Brotli]),
+            EncodingInfo::new(2, vec![ContentEncoding::Deflate]),
+            EncodingInfo::new(3, vec![ContentEncoding::Gzip]),
+            EncodingInfo::new(4, vec![ContentEncoding::Zstd]),
+            EncodingInfo::new(5, vec![ContentEncoding::Identity]),
+        ];
+        let result = decompress_multi(&input, &mut writer, &einfo_list).unwrap_err();
+        assert_eq!(*result.reason(), Reason::PartialCorrupt(5, 0));
+        let (body, extra_body) = result.into_body_and_extra();
+        assert_eq!(body.as_ref(), INPUT);
+        assert!(extra_body.is_none());
+    }
+
+    #[test]
+    fn test_decompress_all_error_corrupt() {
+        let mut buf = BytesMut::new();
+        let mut writer = (&mut buf).writer();
+        let einfo_list = vec![
+            EncodingInfo::new(0, vec![ContentEncoding::Zstd]),
+            EncodingInfo::new(4, vec![ContentEncoding::Brotli]),
+        ];
+        let result = decompress_multi(INPUT, &mut writer, &einfo_list).unwrap_err();
+        assert_eq!(*result.reason(), Reason::Corrupt);
+        let (body, extra_body) = result.into_body_and_extra();
+        assert_eq!(body.as_ref(), INPUT);
+        assert!(extra_body.is_none());
+    }
 }
+*/

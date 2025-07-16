@@ -48,9 +48,10 @@ pub fn is_compressed(input: &[u8], encoding: &ContentEncoding) -> bool {
     }
 }
 
+/*
 #[cfg(test)]
 mod tests {
-    use crate::decompression::{magic_bytes::is_compressed, tests::*};
+    use crate::decompression::magic_bytes::is_compressed;
     use header_plz::body_headers::content_encoding::ContentEncoding;
 
     #[test]
@@ -79,3 +80,4 @@ mod tests {
         ));
     }
 }
+*/

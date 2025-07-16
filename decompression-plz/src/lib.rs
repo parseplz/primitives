@@ -1,4 +1,4 @@
-#![allow(warnings)]
+#![allow(warnings, unused)]
 pub mod decompression;
 pub mod dstruct;
 pub mod dtraits;

@@ -1,7 +1,8 @@
 use bytes::BytesMut;
 
-use crate::decompression::error::DecompressError;
+use crate::decompression::single::error::DecompressError;
 
+#[cfg_attr(test, derive(PartialEq, Eq))]
 #[derive(Debug)]
 pub enum Reason {
     Corrupt,
@@ -40,5 +41,14 @@ impl DecompressErrorStruct {
             self.body.unsplit(ebody);
         }
         (self.body, self.error)
+    }
+
+    pub fn reason(&self) -> &Reason {
+        &self.reason
+    }
+
+    #[cfg(test)]
+    pub fn into_body_and_extra(mut self) -> (BytesMut, Option<BytesMut>) {
+        (self.body, self.extra_body)
     }
 }
