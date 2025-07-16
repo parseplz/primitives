@@ -9,6 +9,9 @@ mod state;
 #[cfg(test)]
 pub mod tests {
     use flate2::Compression;
+    use header_plz::body_headers::{
+        content_encoding::ContentEncoding, encoding_info::EncodingInfo,
+    };
     use std::io::Write;
     pub const INPUT: &[u8] = b"hello world";
 
@@ -17,6 +20,16 @@ pub mod tests {
         let deflate_compressed = compress_deflate(&brotli_compressed);
         let gzip_compressed = compress_gzip(&deflate_compressed);
         compress_zstd(&gzip_compressed)
+    }
+
+    pub fn all_encoding_info() -> Vec<EncodingInfo> {
+        vec![
+            EncodingInfo::new(0, vec![ContentEncoding::Brotli]),
+            EncodingInfo::new(1, vec![ContentEncoding::Deflate]),
+            EncodingInfo::new(2, vec![ContentEncoding::Gzip]),
+            EncodingInfo::new(3, vec![ContentEncoding::Zstd]),
+            EncodingInfo::new(4, vec![ContentEncoding::Identity]),
+        ]
     }
 
     pub fn compress_brotli(data: &[u8]) -> Vec<u8> {
