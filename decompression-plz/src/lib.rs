@@ -22,7 +22,7 @@ pub mod tests {
         compress_zstd(&gzip_compressed)
     }
 
-    pub fn all_encoding_info() -> Vec<EncodingInfo> {
+    pub fn all_encoding_info_multi_header() -> Vec<EncodingInfo> {
         vec![
             EncodingInfo::new(0, vec![ContentEncoding::Brotli]),
             EncodingInfo::new(1, vec![ContentEncoding::Deflate]),
@@ -30,6 +30,19 @@ pub mod tests {
             EncodingInfo::new(3, vec![ContentEncoding::Zstd]),
             EncodingInfo::new(4, vec![ContentEncoding::Identity]),
         ]
+    }
+
+    pub fn all_encoding_info_single_header() -> Vec<EncodingInfo> {
+        vec![EncodingInfo::new(
+            0,
+            vec![
+                ContentEncoding::Brotli,
+                ContentEncoding::Deflate,
+                ContentEncoding::Gzip,
+                ContentEncoding::Zstd,
+                ContentEncoding::Identity,
+            ],
+        )]
     }
 
     pub fn compress_brotli(data: &[u8]) -> Vec<u8> {

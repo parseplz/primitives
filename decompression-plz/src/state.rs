@@ -1,5 +1,8 @@
 use crate::{
-    decompression::multi::{decompress_multi, error::MultiDecompressError},
+    decompression::{
+        magic_bytes::is_compressed,
+        multi::{decompress_multi, error::MultiDecompressError},
+    },
     dstruct::DecompressionStruct,
     error::DecompressErrorStruct,
 };
@@ -55,25 +58,33 @@ use header_plz::body_headers::{content_encoding::ContentEncoding, encoding_info:
 pub enum State<'a> {
     // Main
     MainOnly(DecompressionStruct<'a>),
-    EndMainOnly(BytesMut),
+    EndMainOnlyDecompressed(BytesMut),
     // Main + Extra
-    Extra(DecompressionStruct<'a>),
-    ExtraDecompressedMain(DecompressionStruct<'a>),
-    MainPlusExtra(DecompressionStruct<'a>),
+    ExtraTryDecompress(DecompressionStruct<'a>),
+    MainPlusExtraTryDecompress(DecompressionStruct<'a>),
+    ExtraDecompressedMainTryDecompress(DecompressionStruct<'a>, BytesMut),
+    ExtraNoDecompressMainTryDecompress(DecompressionStruct<'a>),
     EndMainOnyDecompressed(DecompressionStruct<'a>),
-    EndMainPlusExtra(DecompressionStruct<'a>),
+    EndMainPlusExtraDecompressed(BytesMut),
+    EndExtraMainDecompressedSeparate(BytesMut, BytesMut),
 }
 
 impl std::fmt::Debug for State<'_> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             State::MainOnly(_) => write!(f, "MainOnly"),
-            State::EndMainOnly(_) => write!(f, "EndMainOnly"),
-            State::Extra(_) => write!(f, "Extra"),
-            State::ExtraDecompressedMain(_) => write!(f, "ExtraDecompressedMain"),
-            State::MainPlusExtra(_) => write!(f, "MainPlusExtra"),
+            State::EndMainOnlyDecompressed(_) => write!(f, "EndMainOnly"),
+            State::ExtraTryDecompress(_) => write!(f, "Extra"),
+            State::ExtraDecompressedMainTryDecompress(..) => {
+                write!(f, "ExtraDecompressedMainTryDecompress")
+            }
+            State::ExtraNoDecompressMainTryDecompress(_) => write!(f, "MainPlusExtra"),
             State::EndMainOnyDecompressed(_) => write!(f, "EndMainOnyDecompressed"),
-            State::EndMainPlusExtra(_) => write!(f, "EndMainPlusExtra"),
+            State::EndMainPlusExtraDecompressed(_) => write!(f, "EndMainPlusExtra"),
+            State::MainPlusExtraTryDecompress(_) => write!(f, "ExtraPlainMainTryDecompress"),
+            State::EndExtraMainDecompressedSeparate(..) => {
+                write!(f, "EndExtraMainDecompressedSeparate")
+            }
         }
     }
 }
@@ -87,7 +98,7 @@ impl<'a> State<'a> {
     ) -> Self {
         let dstruct = DecompressionStruct::new(main, extra, encodings, buf);
         if dstruct.extra.is_some() {
-            Self::Extra(dstruct)
+            Self::ExtraTryDecompress(dstruct)
         } else {
             Self::MainOnly(dstruct)
         }
@@ -95,25 +106,39 @@ impl<'a> State<'a> {
 
     fn try_next(self) -> Result<Self, MultiDecompressError> {
         match self {
-            // Main only
-            State::MainOnly(dstruct) => {
-                let mut writer = dstruct.buf.writer();
-                let result = decompress_multi(&dstruct.main, &mut writer, &dstruct.encoding_info)?;
-                Ok(State::EndMainOnly(result))
+            State::MainOnly(mut dstruct) => {
+                let result = dstruct.try_decompress_main()?;
+                Ok(State::EndMainOnlyDecompressed(result))
             }
-            State::EndMainOnly(_) | State::EndMainPlusExtra(_) => {
+            State::ExtraTryDecompress(mut dstruct) => match dstruct.is_extra_compressed() {
+                true => match dstruct.try_decompress_extra() {
+                    Ok(extra_decompressed) => Ok(State::ExtraDecompressedMainTryDecompress(
+                        dstruct,
+                        extra_decompressed,
+                    )),
+                    Err(_) => Ok(State::ExtraNoDecompressMainTryDecompress(dstruct)),
+                },
+                false => Ok(State::MainPlusExtraTryDecompress(dstruct)),
+            },
+            State::ExtraDecompressedMainTryDecompress(mut dstruct, extra) => {
+                let result = dstruct.try_decompress_main()?;
+                Ok(State::EndMainPlusExtraDecompressed(result))
+            }
+            State::ExtraNoDecompressMainTryDecompress(decompression_struct) => todo!(),
+            State::MainPlusExtraTryDecompress(decompression_struct) => todo!(),
+            State::EndMainOnyDecompressed(decompression_struct) => todo!(),
+            State::EndMainOnlyDecompressed(_)
+            | State::EndMainPlusExtraDecompressed(_)
+            | State::EndExtraMainDecompressedSeparate(..) => {
                 panic!("already ended")
             }
-            //
-            State::Extra(decompression_struct) => todo!(),
-            State::ExtraDecompressedMain(decompression_struct) => todo!(),
-            State::MainPlusExtra(decompression_struct) => todo!(),
-            State::EndMainOnyDecompressed(decompression_struct) => todo!(),
         }
     }
 
     fn ended(&self) -> bool {
-        matches!(self, Self::EndMainOnly(_)) || matches!(self, Self::EndMainOnyDecompressed(_))
+        matches!(self, Self::EndMainOnlyDecompressed(_))
+            || matches!(self, Self::EndExtraMainDecompressedSeparate(..))
+            || matches!(self, Self::EndMainPlusExtraDecompressed(_))
     }
 }
 
@@ -133,14 +158,41 @@ mod tests {
 
     use crate::tests::*;
 
-    #[test]
-    fn test_state_main_only_single() {
+    fn test_all_compression(einfo: Vec<EncodingInfo>) {
         let compressed = all_compressed_data();
         let input = BytesMut::from(&compressed[..]);
-        let einfo = all_encoding_info();
         let mut buf = BytesMut::new();
         let state = State::start(input, None, &einfo, &mut buf);
         let result = runner(state).unwrap();
-        assert_eq!(result, State::EndMainOnly("hello world".into()));
+        assert_eq!(result, State::EndMainOnlyDecompressed("hello world".into()));
+    }
+
+    // ----- Main
+    #[test]
+    fn test_state_main_only_single_header() {
+        let einfo = all_encoding_info_single_header();
+        test_all_compression(einfo);
+    }
+
+    #[test]
+    fn test_state_main_only_multi_header() {
+        let einfo = all_encoding_info_multi_header();
+        test_all_compression(einfo);
+    }
+
+    // ----- Main + Extra
+    #[test]
+    fn test_state_main_extra_compressed_together_single_header() {
+        let einfo = all_encoding_info_single_header();
+        let compressed = all_compressed_data();
+        let main = BytesMut::from(&compressed[..compressed.len() / 2]);
+        let extra = BytesMut::from(&compressed[compressed.len() / 2..]);
+        let mut buf = BytesMut::new();
+        let state = State::start(main, Some(extra), &einfo, &mut buf);
+        let result = runner(state).unwrap();
+        assert_eq!(
+            result,
+            State::EndMainPlusExtraDecompressed("hello world".into())
+        );
     }
 }
