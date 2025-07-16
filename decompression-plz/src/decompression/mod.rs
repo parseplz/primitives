@@ -74,6 +74,7 @@ pub mod tests {
     use crate::decompression::{
         decompress, decompress_all,
         decompressors::{decompress_brotli, decompress_deflate},
+        error::DecompressError,
     };
     use bytes::{BufMut, BytesMut};
     use flate2::Compression;
@@ -135,7 +136,9 @@ pub mod tests {
             ContentEncoding::Deflate => compress_deflate(data),
             ContentEncoding::Gzip => compress_gzip(data),
             ContentEncoding::Zstd | ContentEncoding::Compress => compress_zstd(data),
-            ContentEncoding::Identity => data.to_vec(),
+            ContentEncoding::Identity | ContentEncoding::Unknown(_) | ContentEncoding::Chunked => {
+                data.to_vec()
+            }
             _ => panic!(),
         };
         let mut buf = BytesMut::new();
@@ -181,9 +184,51 @@ pub mod tests {
         assert_eq!(result.as_ref(), INPUT);
     }
 
+    #[test]
+    fn test_basic_chunked() {
+        let result = test_decompress(INPUT, ContentEncoding::Chunked);
+        assert_eq!(result.as_ref(), b"");
+    }
+
+    #[test]
+    fn test_basic_unknown() {
+        let mut buf = BytesMut::new();
+        let mut writer = buf.writer();
+        let result = decompress(
+            INPUT,
+            &mut writer,
+            ContentEncoding::Unknown("unknown".to_string()),
+        );
+        if let Err(DecompressError::Unknown(e)) = result {
+            assert_eq!(e, "unknown");
+        } else {
+            panic!();
+        }
+    }
+
     // Combined tests
     #[test]
-    fn test_decompress_all() {
+    fn test_decompress_all_single_header() {
+        let input = all_compressed_data();
+        let mut buf = BytesMut::new();
+        let mut writer = (&mut buf).writer();
+        let einfo_list = vec![EncodingInfo::new(
+            0,
+            vec![
+                ContentEncoding::Brotli,
+                ContentEncoding::Deflate,
+                ContentEncoding::Gzip,
+                ContentEncoding::Zstd,
+                ContentEncoding::Identity,
+            ],
+        )];
+
+        let result = decompress_all(&input, &mut writer, &einfo_list).unwrap();
+        assert_eq!(result, INPUT);
+    }
+
+    #[test]
+    fn test_decompress_all_multi_header() {
         let input = all_compressed_data();
         let mut buf = BytesMut::new();
         let mut writer = (&mut buf).writer();
