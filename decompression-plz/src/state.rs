@@ -51,7 +51,8 @@ use header_plz::body_headers::{content_encoding::ContentEncoding, encoding_info:
     zstd        | success
 */
 
-enum State<'a> {
+#[cfg_attr(test, derive(PartialEq))]
+pub enum State<'a> {
     // Main
     MainOnly(DecompressionStruct<'a>),
     EndMainOnly(BytesMut),
@@ -63,8 +64,22 @@ enum State<'a> {
     EndMainPlusExtra(DecompressionStruct<'a>),
 }
 
+impl std::fmt::Debug for State<'_> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            State::MainOnly(_) => write!(f, "MainOnly"),
+            State::EndMainOnly(_) => write!(f, "EndMainOnly"),
+            State::Extra(_) => write!(f, "Extra"),
+            State::ExtraDecompressedMain(_) => write!(f, "ExtraDecompressedMain"),
+            State::MainPlusExtra(_) => write!(f, "MainPlusExtra"),
+            State::EndMainOnyDecompressed(_) => write!(f, "EndMainOnyDecompressed"),
+            State::EndMainPlusExtra(_) => write!(f, "EndMainPlusExtra"),
+        }
+    }
+}
+
 impl<'a> State<'a> {
-    fn start(
+    pub fn start(
         main: BytesMut,
         extra: Option<BytesMut>,
         encodings: &'a [EncodingInfo],
@@ -97,14 +112,35 @@ impl<'a> State<'a> {
         }
     }
 
-    fn ended(self) -> bool {
+    fn ended(&self) -> bool {
         matches!(self, Self::EndMainOnly(_)) || matches!(self, Self::EndMainOnyDecompressed(_))
+    }
+}
+
+pub fn runner(mut state: State) -> Result<State, MultiDecompressError> {
+    loop {
+        state = state.try_next()?;
+        if state.ended() {
+            return Ok(state);
+        }
     }
 }
 
 #[cfg(test)]
 mod tests {
+    use super::*;
+    use bytes::BytesMut;
+
+    use crate::tests::*;
 
     #[test]
-    fn test_state_main_only_single() {}
+    fn test_state_main_only_single() {
+        let compressed = all_compressed_data();
+        let input = BytesMut::from(&compressed[..]);
+        let einfo = all_encoding_info();
+        let mut buf = BytesMut::new();
+        let state = State::start(input, None, &einfo, &mut buf);
+        let result = runner(state).unwrap();
+        assert_eq!(result, State::EndMainOnly("hello world".into()));
+    }
 }

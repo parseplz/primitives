@@ -1,6 +1,7 @@
 use bytes::BytesMut;
 use header_plz::body_headers::{content_encoding::ContentEncoding, encoding_info::EncodingInfo};
 
+#[cfg_attr(test, derive(PartialEq))]
 pub struct DecompressionStruct<'a> {
     pub main: BytesMut,
     pub extra: Option<BytesMut>,
