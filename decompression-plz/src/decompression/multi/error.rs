@@ -15,6 +15,12 @@ impl MultiDecompressError {
     }
 }
 
+impl From<std::io::Error> for MultiDecompressError {
+    fn from(e: std::io::Error) -> Self {
+        MultiDecompressError::new(MultiDecompressErrorReason::Copy, DecompressError::Copy(e))
+    }
+}
+
 #[derive(Debug, Error)]
 pub enum MultiDecompressErrorReason {
     #[error("Corrupt")]
@@ -25,4 +31,6 @@ pub enum MultiDecompressErrorReason {
         header_index: usize,
         compression_index: usize,
     },
+    #[error("Copy")]
+    Copy,
 }

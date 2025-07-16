@@ -30,7 +30,7 @@ pub fn decompress_multi(
                         MultiDecompressErrorReason::Corrupt
                     } else {
                         writer.get_mut().clear();
-                        std::io::copy(&mut input, writer).unwrap();
+                        std::io::copy(&mut input, writer)?;
                         output = writer.get_mut().split();
                         MultiDecompressErrorReason::Partial {
                             partial_body: output,
