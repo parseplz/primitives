@@ -81,21 +81,6 @@ pub mod tests {
 
     pub const INPUT: &[u8] = b"hello world";
 
-    pub fn all_compressed_data() -> Vec<u8> {
-        let brotli_compressed = compress_brotli(INPUT);
-        let deflate_compressed = compress_deflate(&brotli_compressed);
-        let gzip_compressed = compress_gzip(&deflate_compressed);
-        compress_zstd(&gzip_compressed)
-    }
-
-    pub fn compressed_data() -> Vec<u8> {
-        let data = b"hello world";
-        let brotli_compressed = compress_brotli(data);
-        let deflate_compressed = compress_deflate(&brotli_compressed);
-        let gzip_compressed = compress_gzip(&deflate_compressed);
-        compress_zstd(&gzip_compressed)
-    }
-
     pub fn compress_brotli(data: &[u8]) -> Vec<u8> {
         let mut compressed = Vec::new();
         {
