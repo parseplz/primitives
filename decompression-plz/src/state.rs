@@ -21,6 +21,32 @@ use header_plz::body_headers::{content_encoding::ContentEncoding, encoding_info:
 // 2. If failed, try decompressing main + extra
 // 3. If failed, try decompressing main
 
+/*
+1. Extra part of Main. ie. compresssed together
+
+    Compression | Result
+    ------------|----------
+    all         | success
+
+2. Main - compressed + Extra - raw
+
+    Compression | Result
+    ------------|----------
+    brotli      | error + main decompressed + extra no read
+    deflate     | error + main decompressed + extra read
+    gzip        | error + main decompressed + extra no read
+    zstd        | error + main decompressed + extra read
+
+3. Main - compressed + Extra - compressed = separately compressed
+
+    Compression | Result
+    ------------|----------
+    brotli      | error + main decompressed + extra no read
+    deflate     | error + main decompressed + extra read
+    gzip        | error + main decompressed + extra no read
+    zstd        | success
+*/
+
 enum State<'a> {
     // Main
     MainOnly(DecompressionStruct<'a>),

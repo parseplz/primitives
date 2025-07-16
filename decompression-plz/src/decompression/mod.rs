@@ -8,19 +8,49 @@ mod decompressors;
 mod magic_bytes;
 use decompressors::*;
 
-use crate::{decompression::error::DecompressError, error::DecompressErrorStruct};
+use crate::{
+    decompression::error::DecompressError,
+    error::{DecompressErrorStruct, Reason},
+};
 pub mod error;
 
-pub fn decompress_all<R, W>(
-    compressed: R,
-    writer: W,
+pub fn decompress_all(
+    mut compressed: &[u8],
+    mut writer: &mut Writer<&mut BytesMut>,
     encoding_info: &[EncodingInfo],
-) -> Result<BytesMut, DecompressErrorStruct>
+) -> Result<(), DecompressErrorStruct>
 where
-    R: Read,
-    W: Write,
+    // R: Read + 'a,
+    //&'a R: Read,
+    //W: Write,
 {
-    todo!()
+    let mut input: &[u8] = compressed;
+    let mut output: BytesMut = writer.get_mut().split();
+
+    for (header_index, encoding_info) in encoding_info.iter().rev().enumerate() {
+        for (compression_index, encoding) in encoding_info.encodings().iter().rev().enumerate() {
+            let result = decompress(&mut compressed, &mut writer, encoding.clone());
+
+            match result {
+                Ok(_) => {
+                    output = writer.get_mut().split();
+                    input = &output[..];
+                }
+                Err(e) => {
+                    writer.get_mut().clear();
+                    copy(&mut input, writer).unwrap();
+                    output = writer.get_mut().split();
+                    let reason = if header_index == 0 && compression_index == 0 {
+                        Reason::Corrupt
+                    } else {
+                        Reason::PartialCorrupt(header_index, compression_index)
+                    };
+                    return Err(DecompressErrorStruct::new(output, None, e, reason));
+                }
+            }
+        }
+    }
+    Ok(())
 }
 
 pub fn decompress<R, W>(
