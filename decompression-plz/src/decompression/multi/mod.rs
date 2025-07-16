@@ -6,7 +6,7 @@ use crate::{
     error::{DecompressErrorStruct, Reason},
 };
 
-mod error;
+pub mod error;
 use error::*;
 
 pub fn decompress_multi(
@@ -49,19 +49,10 @@ pub fn decompress_multi(
 #[cfg(test)]
 mod tests {
 
+    use super::*;
+    use crate::{decompression::single::tests::*, tests::*};
     use bytes::BufMut;
     use header_plz::body_headers::content_encoding::ContentEncoding;
-
-    use crate::decompression::single::tests::*;
-
-    use super::*;
-
-    pub fn all_compressed_data() -> Vec<u8> {
-        let brotli_compressed = compress_brotli(INPUT);
-        let deflate_compressed = compress_deflate(&brotli_compressed);
-        let gzip_compressed = compress_gzip(&deflate_compressed);
-        compress_zstd(&gzip_compressed)
-    }
 
     #[test]
     fn test_decompress_multi_single_header() {

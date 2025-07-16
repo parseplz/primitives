@@ -42,7 +42,10 @@ pub fn is_compressed(input: &[u8], encoding: &ContentEncoding) -> bool {
 mod tests {
     use header_plz::body_headers::content_encoding::ContentEncoding;
 
-    use crate::decompression::{magic_bytes::is_compressed, single::tests::*};
+    use crate::{
+        decompression::{magic_bytes::is_compressed, single::tests::*},
+        tests::*,
+    };
 
     #[test]
     fn test_magic_bytes_deflate() {

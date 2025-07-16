@@ -78,39 +78,10 @@ pub mod tests {
     };
     use std::io::{Read, Write};
 
-    use crate::decompression::single::{decompress, error::DecompressError};
-
-    pub const INPUT: &[u8] = b"hello world";
-
-    pub fn compress_brotli(data: &[u8]) -> Vec<u8> {
-        let mut compressed = Vec::new();
-        {
-            let mut writer = brotli::CompressorWriter::new(&mut compressed, 4096, 0, 22);
-            writer.write_all(data).unwrap();
-            writer.flush().unwrap();
-        }
-        compressed
-    }
-
-    pub fn compress_deflate(data: &[u8]) -> Vec<u8> {
-        let mut compressed = Vec::new();
-        let mut encoder = flate2::write::ZlibEncoder::new(&mut compressed, Compression::fast());
-        encoder.write_all(data).unwrap();
-        encoder.finish().unwrap();
-        compressed
-    }
-
-    pub fn compress_gzip(data: &[u8]) -> Vec<u8> {
-        let mut compressed = Vec::new();
-        let mut encoder = flate2::write::GzEncoder::new(&mut compressed, Compression::fast());
-        encoder.write_all(data).unwrap();
-        encoder.finish().unwrap();
-        compressed
-    }
-
-    pub fn compress_zstd(data: &[u8]) -> Vec<u8> {
-        zstd::encode_all(data, 1).unwrap()
-    }
+    use crate::{
+        decompression::single::{decompress, error::DecompressError},
+        tests::*,
+    };
 
     fn test_decompress(data: &[u8], content_encoding: ContentEncoding) -> BytesMut {
         let compressed = match content_encoding {

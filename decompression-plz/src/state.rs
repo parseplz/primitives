@@ -1,5 +1,9 @@
-use crate::{dstruct::DecompressionStruct, error::DecompressErrorStruct};
-use bytes::BytesMut;
+use crate::{
+    decompression::multi::{decompress_multi, error::MultiDecompressError},
+    dstruct::DecompressionStruct,
+    error::DecompressErrorStruct,
+};
+use bytes::{BufMut, BytesMut};
 use header_plz::body_headers::{content_encoding::ContentEncoding, encoding_info::EncodingInfo};
 
 /*
@@ -50,7 +54,7 @@ use header_plz::body_headers::{content_encoding::ContentEncoding, encoding_info:
 enum State<'a> {
     // Main
     MainOnly(DecompressionStruct<'a>),
-    EndMainOnly(DecompressionStruct<'a>),
+    EndMainOnly(BytesMut),
     // Main + Extra
     Extra(DecompressionStruct<'a>),
     ExtraDecompressedMain(DecompressionStruct<'a>),
@@ -74,11 +78,33 @@ impl<'a> State<'a> {
         }
     }
 
-    fn try_next(self) -> Result<Self, DecompressErrorStruct> {
-        todo!()
+    fn try_next(self) -> Result<Self, MultiDecompressError> {
+        match self {
+            // Main only
+            State::MainOnly(dstruct) => {
+                let mut writer = dstruct.buf.writer();
+                let result = decompress_multi(&dstruct.main, &mut writer, &dstruct.encoding_info)?;
+                Ok(State::EndMainOnly(result))
+            }
+            State::EndMainOnly(_) | State::EndMainPlusExtra(_) => {
+                panic!("already ended")
+            }
+            //
+            State::Extra(decompression_struct) => todo!(),
+            State::ExtraDecompressedMain(decompression_struct) => todo!(),
+            State::MainPlusExtra(decompression_struct) => todo!(),
+            State::EndMainOnyDecompressed(decompression_struct) => todo!(),
+        }
     }
 
     fn ended(self) -> bool {
         matches!(self, Self::EndMainOnly(_)) || matches!(self, Self::EndMainOnyDecompressed(_))
     }
+}
+
+#[cfg(test)]
+mod tests {
+
+    #[test]
+    fn test_state_main_only_single() {}
 }

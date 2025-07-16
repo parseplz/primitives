@@ -2,10 +2,10 @@ use bytes::BytesMut;
 use header_plz::body_headers::{content_encoding::ContentEncoding, encoding_info::EncodingInfo};
 
 pub struct DecompressionStruct<'a> {
-    main: BytesMut,
+    pub main: BytesMut,
     pub extra: Option<BytesMut>,
-    encoding_info: &'a [EncodingInfo],
-    buf: &'a mut BytesMut,
+    pub encoding_info: &'a [EncodingInfo],
+    pub buf: &'a mut BytesMut,
 }
 
 impl<'a> DecompressionStruct<'a> {
