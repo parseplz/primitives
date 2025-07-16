@@ -3,18 +3,31 @@ use bytes::BytesMut;
 use crate::decompression::error::DecompressError;
 
 #[derive(Debug)]
+pub enum Reason {
+    Corrupt,
+    PartialCorrupt(usize, usize), // header index , compression index
+}
+
+#[derive(Debug)]
 pub struct DecompressErrorStruct {
-    pub body: BytesMut,
-    pub extra_body: Option<BytesMut>,
-    pub error: DecompressError,
+    body: BytesMut,
+    extra_body: Option<BytesMut>,
+    error: DecompressError,
+    reason: Reason,
 }
 
 impl DecompressErrorStruct {
-    pub fn new(body: BytesMut, extra_body: Option<BytesMut>, error: DecompressError) -> Self {
+    pub fn new(
+        body: BytesMut,
+        extra_body: Option<BytesMut>,
+        error: DecompressError,
+        reason: Reason,
+    ) -> Self {
         DecompressErrorStruct {
             body,
             extra_body,
             error,
+            reason,
         }
     }
 
