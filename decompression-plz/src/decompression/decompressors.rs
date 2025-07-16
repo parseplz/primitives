@@ -2,8 +2,6 @@ use std::io::Read;
 use std::io::Write;
 use std::io::copy;
 
-use brotli::Decompressor;
-
 use crate::decompression::error::DecompressError;
 
 pub fn decompress_brotli<R, W>(input: R, mut buf: W) -> Result<u64, DecompressError>
@@ -11,7 +9,7 @@ where
     R: Read,
     W: Write,
 {
-    copy(&mut Decompressor::new(input, 4096), &mut buf).map_err(DecompressError::Brotli)
+    copy(&mut brotli::Decompressor::new(input, 4096), &mut buf).map_err(DecompressError::Brotli)
 }
 
 pub fn decompress_deflate<R, W>(input: R, mut buf: W) -> Result<u64, DecompressError>
