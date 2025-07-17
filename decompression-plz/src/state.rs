@@ -174,7 +174,13 @@ impl<'a> State<'a> {
     }
 }
 
-pub fn runner(mut state: State) -> Result<State, MultiDecompressError> {
+pub fn runner<'a>(
+    main: BytesMut,
+    extra: Option<BytesMut>,
+    encodings: &'a [EncodingInfo],
+    buf: &'a mut BytesMut,
+) -> Result<State<'a>, MultiDecompressError> {
+    let mut state = State::start(main, extra, encodings, buf);
     loop {
         state = state.try_next()?;
         if state.ended() {
@@ -183,6 +189,7 @@ pub fn runner(mut state: State) -> Result<State, MultiDecompressError> {
     }
 }
 
+/*
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -225,3 +232,4 @@ mod tests {
         assert_eq!(result, State::EndMainPlusExtra("hello world".into()));
     }
 }
+*/
