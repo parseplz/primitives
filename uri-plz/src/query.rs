@@ -10,7 +10,10 @@ pub struct Query {
 
 impl Query {
     fn new(qmark: BytesMut, kv_pair: Option<Vec<QueryKvPair>>) -> Self {
-        Query { qmark, kv_pair }
+        Query {
+            qmark,
+            kv_pair,
+        }
     }
 
     pub fn parse(mut input: BytesMut) -> Option<Self> {

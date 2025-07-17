@@ -14,7 +14,10 @@ impl MultiDecompressError {
         reason: MultiDecompressErrorReason,
         error: DecompressError,
     ) -> Self {
-        MultiDecompressError { reason, error }
+        MultiDecompressError {
+            reason,
+            error,
+        }
     }
 }
 

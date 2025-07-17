@@ -9,7 +9,10 @@ pub struct Cursor<'a> {
 
 impl<'a> Cursor<'a> {
     pub fn new(inner: &'a mut BytesMut) -> Self {
-        Cursor { inner, pos: 0 }
+        Cursor {
+            inner,
+            pos: 0,
+        }
     }
 
     pub fn into_inner(&mut self) -> BytesMut {

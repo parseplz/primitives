@@ -15,7 +15,10 @@ pub struct Header {
 
 impl Header {
     pub fn new(key: BytesMut, value: BytesMut) -> Self {
-        Header { key, value }
+        Header {
+            key,
+            value,
+        }
     }
 
     pub fn into_bytes(mut self) -> BytesMut {

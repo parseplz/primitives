@@ -18,7 +18,10 @@ pub struct HeaderMap {
 
 impl HeaderMap {
     pub fn new(headers: Vec<Header>, crlf: BytesMut) -> Self {
-        HeaderMap { headers, crlf }
+        HeaderMap {
+            headers,
+            crlf,
+        }
     }
 
     pub fn into_bytes(mut self) -> BytesMut {

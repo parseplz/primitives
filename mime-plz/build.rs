@@ -8,9 +8,8 @@ use std::io::Write;
 
 use serde_json::Value;
 
-const LABELS: [&str; 8] = [
-    "APP", "AUDIO", "FONT", "IMAGE", "MESSAGE", "MODEL", "TEXT", "VIDEO",
-];
+const LABELS: [&str; 8] =
+    ["APP", "AUDIO", "FONT", "IMAGE", "MESSAGE", "MODEL", "TEXT", "VIDEO"];
 
 fn main() {
     println!("cargo:rerun-if-changed=./artifacts/db.json");
