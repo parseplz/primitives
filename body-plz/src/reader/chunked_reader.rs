@@ -85,12 +85,16 @@ impl ChunkReaderState {
                             // 1.b.1. If size == 0, then LastChunk
                             if size == 0 {
                                 *self = Self::LastChunk;
-                                return Some(ChunkType::LastChunk(buf.split_at_current_pos()));
+                                return Some(ChunkType::LastChunk(
+                                    buf.split_at_current_pos(),
+                                ));
                                 // 1.b.2. else, ReadChunk(size + 2)
                             } else {
                                 *self = Self::ReadChunk(size + 2);
                             }
-                            return Some(ChunkType::Size(buf.split_at_current_pos()));
+                            return Some(ChunkType::Size(
+                                buf.split_at_current_pos(),
+                            ));
                         }
                         // 1.c. If get_size() returns error, Failed State
                         Err(e) => {
@@ -119,12 +123,15 @@ impl ChunkReaderState {
                 if buf.remaining() == CRLF.as_bytes() {
                     buf.set_position(buf.position() + 2);
                     *self = Self::End;
-                    return Some(ChunkType::EndCRLF(buf.split_at_current_pos()));
+                    return Some(ChunkType::EndCRLF(
+                        buf.split_at_current_pos(),
+                    ));
                 }
                 // 4.b. Actual Headers
                 if MessageHead::is_complete(buf) {
                     *self = Self::End;
-                    let header_map = HeaderMap::from(buf.split_at_current_pos());
+                    let header_map =
+                        HeaderMap::from(buf.split_at_current_pos());
                     Some(ChunkType::Trailers(header_map))
                 } else {
                     None
@@ -187,10 +194,12 @@ impl ChunkReaderState {
             .split(|c| *c == b';')
             .nth(0)
             .ok_or(ChunkReaderError::SplitExtension(
-                String::from_utf8_lossy(&buf.as_ref()[0..buf.position()]).to_string(),
+                String::from_utf8_lossy(&buf.as_ref()[0..buf.position()])
+                    .to_string(),
             ))?;
         // 2. Convert hex size to integer.
-        let size = u64::from_str_radix(&String::from_utf8_lossy(hex_size), 16)?;
+        let size =
+            u64::from_str_radix(&String::from_utf8_lossy(hex_size), 16)?;
         // 3. Add CRLF
         buf.set_position(buf.position() + 2);
         Ok(size as usize)
@@ -334,7 +343,8 @@ pub(crate) mod tests {
                 },
                 None => {
                     assert_eq!(state, ChunkReaderState::ReadChunk(14));
-                    cbuf.as_mut().put_slice(remain.as_bytes());
+                    cbuf.as_mut()
+                        .put_slice(remain.as_bytes());
                     continue;
                 }
             }
@@ -566,7 +576,9 @@ pub(crate) mod tests {
         loop {
             match state.next(&mut cbuf) {
                 Some(_) => match state {
-                    ChunkReaderState::LastChunk => state = ChunkReaderState::ReadTrailers,
+                    ChunkReaderState::LastChunk => {
+                        state = ChunkReaderState::ReadTrailers
+                    }
                     ChunkReaderState::End => {
                         break;
                     }

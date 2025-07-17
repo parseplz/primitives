@@ -43,7 +43,8 @@ impl ParseBodyHeaders for MessageHead<Response> {
 #[cfg(test)]
 mod tests {
     use crate::body_headers::{
-        TransferType, content_encoding::ContentEncoding, encoding_info::EncodingInfo,
+        TransferType, content_encoding::ContentEncoding,
+        encoding_info::EncodingInfo,
     };
     use bytes::BytesMut;
     use mime_plz::ContentType;
@@ -104,7 +105,10 @@ mod tests {
         let buf = BytesMut::from(request);
         let result = MessageHead::<Request>::try_from(buf).unwrap();
         let body_headers = result.parse_body_headers().unwrap();
-        assert_eq!(body_headers.content_type.unwrap(), ContentType::Application);
+        assert_eq!(
+            body_headers.content_type.unwrap(),
+            ContentType::Application
+        );
 
         assert_eq!(
             body_headers.content_encoding.unwrap(),

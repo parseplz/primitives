@@ -9,4 +9,6 @@ pub mod methods;
 
 pub use message_head::header_map::HeaderMap;
 pub use message_head::header_map::header::Header;
-pub use message_head::info_line::{InfoLine, request::Request, response::Response};
+pub use message_head::info_line::{
+    InfoLine, request::Request, response::Response,
+};

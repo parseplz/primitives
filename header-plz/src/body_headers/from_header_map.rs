@@ -1,7 +1,10 @@
 use mime_plz::ContentType;
 
 use super::{BodyHeader, transfer_types::TransferType};
-use crate::{Header, HeaderMap, body_headers::encoding_info::EncodingInfo, const_headers::*};
+use crate::{
+    Header, HeaderMap, body_headers::encoding_info::EncodingInfo,
+    const_headers::*,
+};
 
 impl From<&HeaderMap> for Option<BodyHeader> {
     fn from(header_map: &HeaderMap) -> Self {
@@ -18,7 +21,9 @@ impl From<&HeaderMap> for BodyHeader {
             .headers()
             .iter()
             .enumerate()
-            .for_each(|(index, header)| parse_body_headers(&mut bh, index, header));
+            .for_each(|(index, header)| {
+                parse_body_headers(&mut bh, index, header)
+            });
 
         // if TransferType is Unknown, and if content_encoding or transfer_encoding
         // or content_type is present, then set TransferType to Close
@@ -48,7 +53,9 @@ pub fn parse_body_headers(bh: &mut BodyHeader, index: usize, header: &Header) {
         }
     } else if key.eq_ignore_ascii_case(CONTENT_ENCODING) {
         let einfo = EncodingInfo::from((index, header.value_as_str()));
-        bh.content_encoding.get_or_insert_with(Vec::new).push(einfo);
+        bh.content_encoding
+            .get_or_insert_with(Vec::new)
+            .push(einfo);
     } else if key.eq_ignore_ascii_case(CONTENT_TYPE) {
         if let Some((main_type, _)) = header.value_as_str().split_once('/') {
             bh.content_type = Some(ContentType::from(main_type));
@@ -161,9 +168,18 @@ mod tests {
                      Transfer-Encoding: chunked\r\n\r\n";
         let result = build_body_header(input);
         let einfo = vec![
-            EncodingInfo::new(1, vec![ContentEncoding::Brotli, ContentEncoding::Compress]),
-            EncodingInfo::new(3, vec![ContentEncoding::Deflate, ContentEncoding::Gzip]),
-            EncodingInfo::new(5, vec![ContentEncoding::Identity, ContentEncoding::Zstd]),
+            EncodingInfo::new(
+                1,
+                vec![ContentEncoding::Brotli, ContentEncoding::Compress],
+            ),
+            EncodingInfo::new(
+                3,
+                vec![ContentEncoding::Deflate, ContentEncoding::Gzip],
+            ),
+            EncodingInfo::new(
+                5,
+                vec![ContentEncoding::Identity, ContentEncoding::Zstd],
+            ),
             EncodingInfo::new(7, vec![ContentEncoding::Chunked]),
         ];
         let verify = BodyHeader {
@@ -199,9 +215,18 @@ mod tests {
                      Connection: close\r\n\r\n";
         let result = build_body_header(input);
         let einfo = vec![
-            EncodingInfo::new(1, vec![ContentEncoding::Brotli, ContentEncoding::Compress]),
-            EncodingInfo::new(3, vec![ContentEncoding::Deflate, ContentEncoding::Gzip]),
-            EncodingInfo::new(5, vec![ContentEncoding::Identity, ContentEncoding::Zstd]),
+            EncodingInfo::new(
+                1,
+                vec![ContentEncoding::Brotli, ContentEncoding::Compress],
+            ),
+            EncodingInfo::new(
+                3,
+                vec![ContentEncoding::Deflate, ContentEncoding::Gzip],
+            ),
+            EncodingInfo::new(
+                5,
+                vec![ContentEncoding::Identity, ContentEncoding::Zstd],
+            ),
         ];
         let verify = BodyHeader {
             content_encoding: Some(einfo),

@@ -1,3 +1,5 @@
+use std::io::Read;
+
 use bytes::{BytesMut, buf::Writer};
 use header_plz::body_headers::encoding_info::EncodingInfo;
 
@@ -17,8 +19,14 @@ pub fn decompress_multi(
     let mut input: &[u8] = compressed;
     let mut output: BytesMut = writer.get_mut().split();
 
-    for (header_index, encoding_info) in encoding_info.iter().rev().enumerate() {
-        for (compression_index, encoding) in encoding_info.encodings().iter().rev().enumerate() {
+    for (header_index, encoding_info) in encoding_info.iter().rev().enumerate()
+    {
+        for (compression_index, encoding) in encoding_info
+            .encodings()
+            .iter()
+            .rev()
+            .enumerate()
+        {
             let result = decompress(&mut input, &mut writer, encoding.clone());
             match result {
                 Ok(_) => {
@@ -26,7 +34,8 @@ pub fn decompress_multi(
                     input = &output[..];
                 }
                 Err(e) => {
-                    let reason = if header_index == 0 && compression_index == 0 {
+                    let reason = if header_index == 0 && compression_index == 0
+                    {
                         MultiDecompressErrorReason::Corrupt
                     } else {
                         writer.get_mut().clear();
@@ -69,7 +78,8 @@ mod tests {
                 ContentEncoding::Identity,
             ],
         )];
-        let result = decompress_multi(&input, &mut writer, &einfo_list).unwrap();
+        let result =
+            decompress_multi(&input, &mut writer, &einfo_list).unwrap();
         assert_eq!(result, INPUT);
     }
 
@@ -86,7 +96,8 @@ mod tests {
             EncodingInfo::new(4, vec![ContentEncoding::Identity]),
         ];
 
-        let result = decompress_multi(&input, &mut writer, &einfo_list).unwrap();
+        let result =
+            decompress_multi(&input, &mut writer, &einfo_list).unwrap();
         assert_eq!(result, INPUT);
     }
 
@@ -96,12 +107,22 @@ mod tests {
         let mut buf = BytesMut::new();
         let mut writer = (&mut buf).writer();
         let einfo_list = vec![
-            EncodingInfo::new(0, vec![ContentEncoding::Brotli, ContentEncoding::Deflate]),
-            EncodingInfo::new(2, vec![ContentEncoding::Gzip, ContentEncoding::Identity]),
-            EncodingInfo::new(3, vec![ContentEncoding::Zstd, ContentEncoding::Identity]),
+            EncodingInfo::new(
+                0,
+                vec![ContentEncoding::Brotli, ContentEncoding::Deflate],
+            ),
+            EncodingInfo::new(
+                2,
+                vec![ContentEncoding::Gzip, ContentEncoding::Identity],
+            ),
+            EncodingInfo::new(
+                3,
+                vec![ContentEncoding::Zstd, ContentEncoding::Identity],
+            ),
         ];
 
-        let result = decompress_multi(&input, &mut writer, &einfo_list).unwrap();
+        let result =
+            decompress_multi(&input, &mut writer, &einfo_list).unwrap();
         assert_eq!(result, INPUT);
     }
 
@@ -114,7 +135,8 @@ mod tests {
             0,
             vec![ContentEncoding::Deflate, ContentEncoding::Brotli],
         )];
-        let result = decompress_multi(&input, &mut writer, &einfo_list).unwrap_err();
+        let result =
+            decompress_multi(&input, &mut writer, &einfo_list).unwrap_err();
         if let MultiDecompressErrorReason::Partial {
             partial_body,
             header_index,
@@ -143,7 +165,8 @@ mod tests {
                 ContentEncoding::Identity,
             ],
         )];
-        let result = decompress_multi(&input, &mut writer, &einfo_list).unwrap_err();
+        let result =
+            decompress_multi(&input, &mut writer, &einfo_list).unwrap_err();
         if let MultiDecompressErrorReason::Partial {
             partial_body,
             header_index,
@@ -165,7 +188,8 @@ mod tests {
             EncodingInfo::new(0, vec![ContentEncoding::Zstd]),
             EncodingInfo::new(4, vec![ContentEncoding::Brotli]),
         ];
-        let result = decompress_multi(&input, &mut writer, &einfo_list).unwrap_err();
+        let result =
+            decompress_multi(&input, &mut writer, &einfo_list).unwrap_err();
         if let MultiDecompressErrorReason::Partial {
             partial_body,
             header_index,
@@ -191,7 +215,8 @@ mod tests {
             EncodingInfo::new(4, vec![ContentEncoding::Zstd]),
             EncodingInfo::new(5, vec![ContentEncoding::Identity]),
         ];
-        let result = decompress_multi(&input, &mut writer, &einfo_list).unwrap_err();
+        let result =
+            decompress_multi(&input, &mut writer, &einfo_list).unwrap_err();
         if let MultiDecompressErrorReason::Partial {
             partial_body,
             header_index,
@@ -208,8 +233,10 @@ mod tests {
     fn test_decompress_multi_error_corrupt_single_header() {
         let mut buf = BytesMut::new();
         let mut writer = (&mut buf).writer();
-        let einfo_list = vec![EncodingInfo::new(0, vec![ContentEncoding::Zstd])];
-        let result = decompress_multi(INPUT, &mut writer, &einfo_list).unwrap_err();
+        let einfo_list =
+            vec![EncodingInfo::new(0, vec![ContentEncoding::Zstd])];
+        let result =
+            decompress_multi(INPUT, &mut writer, &einfo_list).unwrap_err();
         assert!(matches!(result.reason, MultiDecompressErrorReason::Corrupt));
     }
 
@@ -221,7 +248,8 @@ mod tests {
             EncodingInfo::new(0, vec![ContentEncoding::Zstd]),
             EncodingInfo::new(4, vec![ContentEncoding::Brotli]),
         ];
-        let result = decompress_multi(INPUT, &mut writer, &einfo_list).unwrap_err();
+        let result =
+            decompress_multi(INPUT, &mut writer, &einfo_list).unwrap_err();
         assert!(matches!(result.reason, MultiDecompressErrorReason::Corrupt));
     }
 }

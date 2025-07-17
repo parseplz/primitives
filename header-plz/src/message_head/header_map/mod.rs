@@ -69,17 +69,24 @@ impl HeaderMap {
 
     // ---------- Entire header
     // ----- find
-    pub fn header_position_all(&self, to_find_hdr: &str) -> Option<Vec<usize>> {
+    pub fn header_position_all(
+        &self,
+        to_find_hdr: &str,
+    ) -> Option<Vec<usize>> {
         let (key, val) = Header::split_header(to_find_hdr);
         self.find_position_all(|h| {
-            h.key_as_str().eq_ignore_ascii_case(key) && h.value_as_str().eq_ignore_ascii_case(val)
+            h.key_as_str().eq_ignore_ascii_case(key)
+                && h.value_as_str()
+                    .eq_ignore_ascii_case(val)
         })
     }
 
     pub fn header_position(&self, to_find_hdr: &str) -> Option<usize> {
         let (key, val) = Header::split_header(to_find_hdr);
         self.find_position(|h| {
-            h.key_as_str().eq_ignore_ascii_case(key) && h.value_as_str().eq_ignore_ascii_case(val)
+            h.key_as_str().eq_ignore_ascii_case(key)
+                && h.value_as_str()
+                    .eq_ignore_ascii_case(val)
         })
     }
 
@@ -157,7 +164,11 @@ impl HeaderMap {
     }
 
     // ----- update
-    pub fn update_header_key_all(&mut self, old_key: &str, new_key: &str) -> bool {
+    pub fn update_header_key_all(
+        &mut self,
+        old_key: &str,
+        new_key: &str,
+    ) -> bool {
         let mut result = false;
         if let Some(positions) = self.header_key_position_all(old_key) {
             result = true;
@@ -177,7 +188,11 @@ impl HeaderMap {
         result
     }
 
-    pub fn update_header_value_on_key_all(&mut self, key: &str, value: &str) -> bool {
+    pub fn update_header_value_on_key_all(
+        &mut self,
+        key: &str,
+        value: &str,
+    ) -> bool {
         let mut result = false;
         if let Some(positions) = self.header_key_position_all(key) {
             result = true;
@@ -188,7 +203,11 @@ impl HeaderMap {
         result
     }
 
-    pub fn update_header_value_on_key(&mut self, key: &str, value: &str) -> bool {
+    pub fn update_header_value_on_key(
+        &mut self,
+        key: &str,
+        value: &str,
+    ) -> bool {
         let mut result = false;
         if let Some(position) = self.header_key_position(key) {
             result = true;
@@ -217,8 +236,11 @@ impl HeaderMap {
     }
 
     // truncate
-    pub fn truncate_header_value_on_position<T>(&mut self, pos: usize, truncate_at: T)
-    where
+    pub fn truncate_header_value_on_position<T>(
+        &mut self,
+        pos: usize,
+        truncate_at: T,
+    ) where
         T: AsRef<str>,
     {
         let value = self.headers[pos].value_as_str();
@@ -234,7 +256,9 @@ impl HeaderMap {
             }
         }
 
-        self.headers[pos].value_as_mut().truncate(index);
+        self.headers[pos]
+            .value_as_mut()
+            .truncate(index);
         self.headers[pos]
             .value_as_mut()
             .extend_from_slice(CRLF.as_bytes());
@@ -242,15 +266,23 @@ impl HeaderMap {
 
     // ---------- value
     // ------ update
-    pub fn update_header_value_on_position(&mut self, pos: usize, value: &str) {
+    pub fn update_header_value_on_position(
+        &mut self,
+        pos: usize,
+        value: &str,
+    ) {
         self.headers[pos].change_value(value);
     }
 
     // common
     pub fn has_key_and_value(&self, key: &str, value: &str) -> Option<usize> {
         self.headers.iter().position(|header| {
-            header.key_as_str().eq_ignore_ascii_case(key)
-                && header.value_as_str().eq_ignore_ascii_case(value)
+            header
+                .key_as_str()
+                .eq_ignore_ascii_case(key)
+                && header
+                    .value_as_str()
+                    .eq_ignore_ascii_case(value)
         })
     }
 
@@ -610,7 +642,8 @@ mod tests {
     fn test_header_map_truncate_header_values_middle() {
         let input = "Content-Encoding: gzip, deflate, br\r\n\r\n";
         let mut header_map = HeaderMap::from(BytesMut::from(input));
-        header_map.truncate_header_value_on_position(0, ContentEncoding::Deflate);
+        header_map
+            .truncate_header_value_on_position(0, ContentEncoding::Deflate);
         let result = header_map.into_bytes();
         assert_eq!(result, "Content-Encoding: gzip\r\n\r\n");
     }

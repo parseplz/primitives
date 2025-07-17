@@ -28,7 +28,9 @@ pub struct Request {
  */
 
 impl InfoLine for Request {
-    fn try_build_infoline(mut data: BytesMut) -> Result<Request, InfoLineError> {
+    fn try_build_infoline(
+        mut data: BytesMut,
+    ) -> Result<Request, InfoLineError> {
         let mut index = data
             .iter()
             .position(|&x| x == SP as u8)

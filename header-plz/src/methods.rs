@@ -33,7 +33,10 @@ impl From<&[u8]> for Method {
             POST => Method::POST,
             PUT => Method::PUT,
             TRACE => Method::TRACE,
-            _ => unreachable!("unknown method| {}", String::from_utf8_lossy(bytes)),
+            _ => unreachable!(
+                "unknown method| {}",
+                String::from_utf8_lossy(bytes)
+            ),
         }
     }
 }

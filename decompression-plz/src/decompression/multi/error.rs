@@ -10,14 +10,20 @@ pub struct MultiDecompressError {
 }
 
 impl MultiDecompressError {
-    pub fn new(reason: MultiDecompressErrorReason, error: DecompressError) -> Self {
+    pub fn new(
+        reason: MultiDecompressErrorReason,
+        error: DecompressError,
+    ) -> Self {
         MultiDecompressError { reason, error }
     }
 }
 
 impl From<std::io::Error> for MultiDecompressError {
     fn from(e: std::io::Error) -> Self {
-        MultiDecompressError::new(MultiDecompressErrorReason::Copy, DecompressError::Copy(e))
+        MultiDecompressError::new(
+            MultiDecompressErrorReason::Copy,
+            DecompressError::Copy(e),
+        )
     }
 }
 

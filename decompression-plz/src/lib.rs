@@ -48,7 +48,8 @@ pub mod tests {
     pub fn compress_brotli(data: &[u8]) -> Vec<u8> {
         let mut compressed = Vec::new();
         {
-            let mut writer = brotli::CompressorWriter::new(&mut compressed, 4096, 0, 22);
+            let mut writer =
+                brotli::CompressorWriter::new(&mut compressed, 4096, 0, 22);
             writer.write_all(data).unwrap();
             writer.flush().unwrap();
         }
@@ -57,7 +58,10 @@ pub mod tests {
 
     pub fn compress_deflate(data: &[u8]) -> Vec<u8> {
         let mut compressed = Vec::new();
-        let mut encoder = flate2::write::ZlibEncoder::new(&mut compressed, Compression::fast());
+        let mut encoder = flate2::write::ZlibEncoder::new(
+            &mut compressed,
+            Compression::fast(),
+        );
         encoder.write_all(data).unwrap();
         encoder.finish().unwrap();
         compressed
@@ -65,7 +69,10 @@ pub mod tests {
 
     pub fn compress_gzip(data: &[u8]) -> Vec<u8> {
         let mut compressed = Vec::new();
-        let mut encoder = flate2::write::GzEncoder::new(&mut compressed, Compression::fast());
+        let mut encoder = flate2::write::GzEncoder::new(
+            &mut compressed,
+            Compression::fast(),
+        );
         encoder.write_all(data).unwrap();
         encoder.finish().unwrap();
         compressed

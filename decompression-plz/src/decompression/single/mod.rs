@@ -18,52 +18,72 @@ where
     let mut input = std::io::Cursor::new(input);
     match content_encoding {
         ContentEncoding::Brotli => decompress_brotli(input, writer),
-        ContentEncoding::Compress | ContentEncoding::Zstd => decompress_zstd(input, writer),
+        ContentEncoding::Compress | ContentEncoding::Zstd => {
+            decompress_zstd(input, writer)
+        }
         ContentEncoding::Deflate => decompress_deflate(input, writer),
         ContentEncoding::Gzip => decompress_gzip(input, writer),
         ContentEncoding::Identity => {
             copy(&mut input, &mut writer).map_err(DecompressError::Identity)
         }
         ContentEncoding::Chunked => Ok(0),
-        ContentEncoding::Unknown(e) => Err(DecompressError::Unknown(e.to_string())),
+        ContentEncoding::Unknown(e) => {
+            Err(DecompressError::Unknown(e.to_string()))
+        }
     }
 }
 
 #[inline]
-pub fn decompress_brotli<R, W>(input: R, mut buf: W) -> Result<u64, DecompressError>
+pub fn decompress_brotli<R, W>(
+    input: R,
+    mut buf: W,
+) -> Result<u64, DecompressError>
 where
     R: Read,
     W: Write,
 {
-    copy(&mut brotli::Decompressor::new(input, 4096), &mut buf).map_err(DecompressError::Brotli)
+    copy(&mut brotli::Decompressor::new(input, 4096), &mut buf)
+        .map_err(DecompressError::Brotli)
 }
 
 #[inline]
-pub fn decompress_deflate<R, W>(input: R, mut buf: W) -> Result<u64, DecompressError>
+pub fn decompress_deflate<R, W>(
+    input: R,
+    mut buf: W,
+) -> Result<u64, DecompressError>
 where
     R: Read,
     W: Write,
 {
-    copy(&mut flate2::read::ZlibDecoder::new(input), &mut buf).map_err(DecompressError::Deflate)
+    copy(&mut flate2::read::ZlibDecoder::new(input), &mut buf)
+        .map_err(DecompressError::Deflate)
 }
 
 #[inline]
-pub fn decompress_gzip<R, W>(input: R, mut buf: W) -> Result<u64, DecompressError>
+pub fn decompress_gzip<R, W>(
+    input: R,
+    mut buf: W,
+) -> Result<u64, DecompressError>
 where
     R: Read,
     W: Write,
 {
-    copy(&mut flate2::read::GzDecoder::new(input), &mut buf).map_err(DecompressError::Gzip)
+    copy(&mut flate2::read::GzDecoder::new(input), &mut buf)
+        .map_err(DecompressError::Gzip)
 }
 
 #[inline]
-pub fn decompress_zstd<R, W>(input: R, mut buf: W) -> Result<u64, DecompressError>
+pub fn decompress_zstd<R, W>(
+    input: R,
+    mut buf: W,
+) -> Result<u64, DecompressError>
 where
     R: Read,
     W: Write,
 {
     copy(
-        &mut zstd::stream::read::Decoder::new(input).map_err(DecompressError::Zstd)?,
+        &mut zstd::stream::read::Decoder::new(input)
+            .map_err(DecompressError::Zstd)?,
         &mut buf,
     )
     .map_err(DecompressError::Zstd)
@@ -83,20 +103,26 @@ pub mod tests {
         tests::*,
     };
 
-    fn test_decompress(data: &[u8], content_encoding: ContentEncoding) -> BytesMut {
+    fn test_decompress(
+        data: &[u8],
+        content_encoding: ContentEncoding,
+    ) -> BytesMut {
         let compressed = match content_encoding {
             ContentEncoding::Brotli => compress_brotli(data),
             ContentEncoding::Deflate => compress_deflate(data),
             ContentEncoding::Gzip => compress_gzip(data),
-            ContentEncoding::Zstd | ContentEncoding::Compress => compress_zstd(data),
-            ContentEncoding::Identity | ContentEncoding::Unknown(_) | ContentEncoding::Chunked => {
-                data.to_vec()
+            ContentEncoding::Zstd | ContentEncoding::Compress => {
+                compress_zstd(data)
             }
+            ContentEncoding::Identity
+            | ContentEncoding::Unknown(_)
+            | ContentEncoding::Chunked => data.to_vec(),
             _ => panic!(),
         };
         let mut buf = BytesMut::new();
         let mut writer = buf.writer();
-        decompress(compressed.as_slice(), &mut writer, content_encoding).unwrap();
+        decompress(compressed.as_slice(), &mut writer, content_encoding)
+            .unwrap();
         writer.into_inner()
     }
 

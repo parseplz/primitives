@@ -1,5 +1,7 @@
 use super::MessageHead;
-use crate::{HeaderMap, error::HeaderReadError, message_head::info_line::InfoLine};
+use crate::{
+    HeaderMap, error::HeaderReadError, message_head::info_line::InfoLine,
+};
 use bytes::BytesMut;
 
 /* Steps:

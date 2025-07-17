@@ -33,22 +33,31 @@ impl BodyHeader {
     }
 
     pub fn content_type(&self) -> ContentType {
-        self.content_type.map_or(ContentType::Unknown, |ct| ct)
+        self.content_type
+            .map_or(ContentType::Unknown, |ct| ct)
     }
 
     pub fn chunked_te_position(&self) -> Option<(usize, usize)> {
-        self.transfer_encoding.as_ref().and_then(|einfo_vec| {
-            einfo_vec.iter().enumerate().find_map(|(outer_idx, ei)| {
-                ei.encodings()
+        self.transfer_encoding
+            .as_ref()
+            .and_then(|einfo_vec| {
+                einfo_vec
                     .iter()
-                    .position(|enc| *enc == ContentEncoding::Chunked)
-                    .map(|inner_idx| (outer_idx, inner_idx))
+                    .enumerate()
+                    .find_map(|(outer_idx, ei)| {
+                        ei.encodings()
+                            .iter()
+                            .position(|enc| *enc == ContentEncoding::Chunked)
+                            .map(|inner_idx| (outer_idx, inner_idx))
+                    })
             })
-        })
     }
 
     pub fn update_transfer_type(&mut self, transfer_type: TransferType) {
-        if self.transfer_type.is_none_or(|tt| transfer_type >= tt) {
+        if self
+            .transfer_type
+            .is_none_or(|tt| transfer_type >= tt)
+        {
             self.transfer_type = Some(transfer_type);
         }
     }
@@ -62,9 +71,15 @@ mod tests {
     #[test]
     fn test_bodyheader_sanitize_all() {
         let body = BodyHeader {
-            content_encoding: Some(vec![EncodingInfo::new(0, vec![ContentEncoding::Gzip])]),
+            content_encoding: Some(vec![EncodingInfo::new(
+                0,
+                vec![ContentEncoding::Gzip],
+            )]),
             content_type: Some(ContentType::Application),
-            transfer_encoding: Some(vec![EncodingInfo::new(0, vec![ContentEncoding::Gzip])]),
+            transfer_encoding: Some(vec![EncodingInfo::new(
+                0,
+                vec![ContentEncoding::Gzip],
+            )]),
             transfer_type: Some(TransferType::Close),
         };
         let sbody = body.clone().sanitize();

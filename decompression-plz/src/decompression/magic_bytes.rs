@@ -14,7 +14,8 @@ const GZIP_MAGIC: [u8; 2] = [0x1f, 0x8b];
 78 F9 	xù 	Best Compression (with preset dictionary)
 */
 const DEFLATE_MAGIC_FIRST_BYTE: u8 = 0x78;
-const DEFLATE_MAGIC_SECOND_BYTES: [u8; 8] = [0x01, 0x5E, 0x9C, 0xDA, 0x20, 0x7D, 0xBB, 0xF9];
+const DEFLATE_MAGIC_SECOND_BYTES: [u8; 8] =
+    [0x01, 0x5E, 0x9C, 0xDA, 0x20, 0x7D, 0xBB, 0xF9];
 
 // TODO: Zstandard Dictionary ?
 // https://github.com/facebook/zstd/issues/768 - 0xFD2FB528
@@ -32,8 +33,12 @@ pub fn is_compressed(input: &[u8], encoding: &ContentEncoding) -> bool {
             )
         }
         ContentEncoding::Gzip => input.starts_with(&GZIP_MAGIC),
-        ContentEncoding::Zstd | ContentEncoding::Compress => input.starts_with(&ZSTD_MAGIC),
-        ContentEncoding::Brotli | ContentEncoding::Compress | ContentEncoding::Identity => true,
+        ContentEncoding::Zstd | ContentEncoding::Compress => {
+            input.starts_with(&ZSTD_MAGIC)
+        }
+        ContentEncoding::Brotli
+        | ContentEncoding::Compress
+        | ContentEncoding::Identity => true,
         ContentEncoding::Chunked | ContentEncoding::Unknown(_) => false,
     }
 }

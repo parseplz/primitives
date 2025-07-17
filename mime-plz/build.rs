@@ -15,7 +15,8 @@ const LABELS: [&str; 8] = [
 fn main() {
     println!("cargo:rerun-if-changed=./artifacts/db.json");
     println!("Building mime type database");
-    let file_content = fs::read_to_string("./artifacts/db.json").expect("error reading file");
+    let file_content =
+        fs::read_to_string("./artifacts/db.json").expect("error reading file");
     let result: Value = serde_json::from_str::<Value>(&file_content).unwrap();
     let mut app_vec: Vec<&str> = Vec::new();
     let mut audio_vec: Vec<&str> = Vec::new();
@@ -87,8 +88,9 @@ fn main() {
 
 fn vec_to_string(content_type: &str, vec: Vec<&str>) -> String {
     let len = vec.len();
-    let mut ct_string =
-        format!("#[rustfmt::skip]\npub const EXT_{content_type}: [&str; {len}] = [");
+    let mut ct_string = format!(
+        "#[rustfmt::skip]\npub const EXT_{content_type}: [&str; {len}] = ["
+    );
     for ext in vec {
         ct_string.push_str(&format!(r#""{ext}","#));
     }
@@ -108,6 +110,10 @@ fn unique_across_vectors(vectors: Vec<Vec<&str>>) -> Vec<Vec<&str>> {
     let mut seen = HashSet::new();
     vectors
         .into_iter()
-        .map(|vec| vec.into_iter().filter(|&item| seen.insert(item)).collect())
+        .map(|vec| {
+            vec.into_iter()
+                .filter(|&item| seen.insert(item))
+                .collect()
+        })
         .collect()
 }

@@ -18,7 +18,9 @@ pub struct Response {
  */
 
 impl InfoLine for Response {
-    fn try_build_infoline(mut data: BytesMut) -> Result<Response, InfoLineError> {
+    fn try_build_infoline(
+        mut data: BytesMut,
+    ) -> Result<Response, InfoLineError> {
         // "1" in decimal
         let index = if data[5] == 49 {
             9

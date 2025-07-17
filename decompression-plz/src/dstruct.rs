@@ -1,7 +1,9 @@
 use std::io::{Cursor, Read};
 
 use bytes::{BufMut, BytesMut};
-use header_plz::body_headers::{content_encoding::ContentEncoding, encoding_info::EncodingInfo};
+use header_plz::body_headers::{
+    content_encoding::ContentEncoding, encoding_info::EncodingInfo,
+};
 
 use crate::decompression::{
     magic_bytes::is_compressed,
@@ -49,7 +51,9 @@ impl<'a> DecompressionStruct<'a> {
         is_compressed(self.extra(), last_encoding)
     }
 
-    pub fn try_decompress_extra(&mut self) -> Result<BytesMut, MultiDecompressError> {
+    pub fn try_decompress_extra(
+        &mut self,
+    ) -> Result<BytesMut, MultiDecompressError> {
         let mut writer = self.buf.writer();
         decompress_multi(
             self.extra.as_ref().unwrap().as_ref(),
@@ -58,16 +62,22 @@ impl<'a> DecompressionStruct<'a> {
         )
     }
 
-    pub fn try_decompress_main(&mut self) -> Result<BytesMut, MultiDecompressError> {
+    pub fn try_decompress_main(
+        &mut self,
+    ) -> Result<BytesMut, MultiDecompressError> {
         let mut writer = self.buf.writer();
         decompress_multi(self.main.as_ref(), &mut writer, &self.encoding_info)
     }
 
-    pub fn try_decompress_main_and_extra(&mut self) -> Result<BytesMut, MultiDecompressError> {
-        self.buf.reserve(self.main.len() + self.extra().len());
+    pub fn try_decompress_main_plus_extra(
+        &mut self,
+    ) -> Result<BytesMut, MultiDecompressError> {
+        self.buf
+            .reserve(self.main.len() + self.extra().len());
         // copy main and extra to buf
         self.buf.put(self.main.as_ref());
-        self.buf.put(self.extra.as_ref().unwrap().as_ref());
+        self.buf
+            .put(self.extra.as_ref().unwrap().as_ref());
         let combined = self.buf.split();
         let mut writer = self.buf.writer();
         decompress_multi(&combined, &mut writer, &self.encoding_info)

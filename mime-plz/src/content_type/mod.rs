@@ -4,7 +4,18 @@ pub mod from_extension;
 use serde::{Deserialize, Serialize};
 
 // Enum to represent different content types
-#[derive(Debug, Default, PartialEq, Clone, Copy, Eq, Serialize, Deserialize, PartialOrd, Ord)]
+#[derive(
+    Debug,
+    Default,
+    PartialEq,
+    Clone,
+    Copy,
+    Eq,
+    Serialize,
+    Deserialize,
+    PartialOrd,
+    Ord,
+)]
 pub enum ContentType {
     #[serde(rename = "app")]
     Application,

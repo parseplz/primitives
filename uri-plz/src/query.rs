@@ -66,7 +66,13 @@ mod tests {
         let query = Query::parse(buf).unwrap();
         assert_eq!(query.qmark, "?");
         assert!(query.kv_pair.is_none());
-        assert_eq!(query.into_data().unwrap().as_ptr_range(), verify);
+        assert_eq!(
+            query
+                .into_data()
+                .unwrap()
+                .as_ptr_range(),
+            verify
+        );
     }
 
     #[test]
@@ -79,7 +85,13 @@ mod tests {
         let kv_vec = query.kv_pair.as_ref().unwrap();
         assert_eq!(kv_vec[0].key, Some("a".into()));
         assert_eq!(kv_vec[0].val, Some("b".into()));
-        assert_eq!(query.into_data().unwrap().as_ptr_range(), verify);
+        assert_eq!(
+            query
+                .into_data()
+                .unwrap()
+                .as_ptr_range(),
+            verify
+        );
     }
 
     #[test]
@@ -95,7 +107,13 @@ mod tests {
         assert_eq!(kv_vec[1].val, Some("d".into()));
         assert_eq!(kv_vec[2].key, Some("e".into()));
         assert_eq!(kv_vec[2].val, Some("f".into()));
-        assert_eq!(query.into_data().unwrap().as_ptr_range(), verify);
+        assert_eq!(
+            query
+                .into_data()
+                .unwrap()
+                .as_ptr_range(),
+            verify
+        );
     }
 
     #[test]
@@ -108,7 +126,13 @@ mod tests {
         assert_eq!(kv[0].val, Some("value".into()));
         assert_eq!(kv[1].key, Some("key".into()));
         assert_eq!(kv[1].val, None);
-        assert_eq!(query.into_data().unwrap().as_ptr_range(), verify);
+        assert_eq!(
+            query
+                .into_data()
+                .unwrap()
+                .as_ptr_range(),
+            verify
+        );
     }
 
     #[test]
@@ -119,7 +143,13 @@ mod tests {
         let kv = query.kv_pair.as_ref().unwrap();
         assert_eq!(kv[0].key, None);
         assert_eq!(kv[0].val, Some("key".into()));
-        assert_eq!(query.into_data().unwrap().as_ptr_range(), verify);
+        assert_eq!(
+            query
+                .into_data()
+                .unwrap()
+                .as_ptr_range(),
+            verify
+        );
     }
 
     #[test]
@@ -131,7 +161,13 @@ mod tests {
         let kv_vec = query.kv_pair.as_ref().unwrap();
         assert_eq!(kv_vec[0].key, Some("a".into()));
         assert_eq!(kv_vec[0].val, Some("b".into()));
-        assert_eq!(query.into_data().unwrap().as_ptr_range(), verify);
+        assert_eq!(
+            query
+                .into_data()
+                .unwrap()
+                .as_ptr_range(),
+            verify
+        );
     }
 
     #[test]
@@ -146,7 +182,13 @@ mod tests {
         assert_eq!(kv[1].val, None);
         assert_eq!(kv[2].key, Some("c".into()));
         assert_eq!(kv[2].val, Some("d".into()));
-        assert_eq!(query.into_data().unwrap().as_ptr_range(), verify);
+        assert_eq!(
+            query
+                .into_data()
+                .unwrap()
+                .as_ptr_range(),
+            verify
+        );
     }
 
     #[test]
@@ -157,6 +199,12 @@ mod tests {
         let kv = query.kv_pair.as_ref().unwrap();
         assert_eq!(kv[0].key, None);
         assert_eq!(kv[0].val, Some("value".into()));
-        assert_eq!(query.into_data().unwrap().as_ptr_range(), verify);
+        assert_eq!(
+            query
+                .into_data()
+                .unwrap()
+                .as_ptr_range(),
+            verify
+        );
     }
 }
