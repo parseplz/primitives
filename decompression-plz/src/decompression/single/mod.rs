@@ -6,7 +6,7 @@ use header_plz::body_headers::content_encoding::ContentEncoding;
 pub mod error;
 use error::DecompressError;
 
-pub fn decompress<R, W>(
+pub fn decompress_single<R, W>(
     mut input: R,
     mut writer: W,
     content_encoding: ContentEncoding,
@@ -99,7 +99,7 @@ pub mod tests {
     use std::io::{Read, Write};
 
     use crate::{
-        decompression::single::{decompress, error::DecompressError},
+        decompression::single::{decompress_single, error::DecompressError},
         tests::*,
     };
 
@@ -121,8 +121,12 @@ pub mod tests {
         };
         let mut buf = BytesMut::new();
         let mut writer = buf.writer();
-        decompress(compressed.as_slice(), &mut writer, content_encoding)
-            .unwrap();
+        decompress_single(
+            compressed.as_slice(),
+            &mut writer,
+            content_encoding,
+        )
+        .unwrap();
         writer.into_inner()
     }
 
@@ -173,7 +177,7 @@ pub mod tests {
     fn test_basic_unknown() {
         let mut buf = BytesMut::new();
         let mut writer = buf.writer();
-        let result = decompress(
+        let result = decompress_single(
             INPUT,
             &mut writer,
             ContentEncoding::Unknown("unknown".to_string()),
