@@ -4,7 +4,7 @@ use bytes::{BytesMut, buf::Writer};
 use header_plz::body_headers::encoding_info::EncodingInfo;
 
 use crate::{
-    decompression::single::decompress,
+    decompression::single::decompress_single,
     error::{DecompressErrorStruct, Reason},
 };
 
@@ -27,11 +27,60 @@ pub fn decompress_multi(
             .rev()
             .enumerate()
         {
-            let result = decompress(&mut input, &mut writer, encoding.clone());
+            let result =
+                decompress_single(&mut input, &mut writer, encoding.clone());
             match result {
                 Ok(_) => {
                     output = writer.get_mut().split();
                     input = &output[..];
+                }
+                Err(e) => {
+                    let reason = if header_index == 0 && compression_index == 0
+                    {
+                        MultiDecompressErrorReason::Corrupt
+                    } else {
+                        writer.get_mut().clear();
+                        std::io::copy(&mut input, writer)?;
+                        output = writer.get_mut().split();
+                        MultiDecompressErrorReason::Partial {
+                            partial_body: output,
+                            header_index,
+                            compression_index,
+                        }
+                    };
+                    return Err(MultiDecompressError::new(reason, e));
+                }
+            }
+        }
+    }
+    Ok(output)
+}
+
+pub fn decompress_multi_new<R>(
+    mut compressed: R,
+    mut writer: &mut Writer<&mut BytesMut>,
+    encoding_info: &[EncodingInfo],
+) -> Result<BytesMut, MultiDecompressError>
+where
+    R: Read + From<BytesMut> + std::convert::AsRef<[u8]>,
+{
+    let mut input = compressed;
+    let mut output: BytesMut = writer.get_mut().split();
+
+    for (header_index, encoding_info) in encoding_info.iter().rev().enumerate()
+    {
+        for (compression_index, encoding) in encoding_info
+            .encodings()
+            .iter()
+            .rev()
+            .enumerate()
+        {
+            let result =
+                decompress_single(&mut input, &mut writer, encoding.clone());
+            match result {
+                Ok(_) => {
+                    output = writer.get_mut().split();
+                    input = output.split().into();
                 }
                 Err(e) => {
                     let reason = if header_index == 0 && compression_index == 0
