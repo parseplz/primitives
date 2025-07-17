@@ -74,7 +74,17 @@ pub enum State<'a> {
 impl std::fmt::Debug for State<'_> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            _ => todo!(),
+            State::MainOnly(_) => write!(f, "MainOnly"),
+            State::EndMainOnly(_) => write!(f, "EndMainOnly"),
+            State::ExtraTry(_) => write!(f, "ExtraTry"),
+            State::ExtraDoneMainTry(_, _) => write!(f, "ExtraDoneMainTry"),
+            State::ExtraPlusMainTry(_) => write!(f, "ExtraPlusMainTry"),
+            State::ExtraRawMainTry(_) => write!(f, "ExtraRawMainTry"),
+            State::EndExtraRawMainDone(_) => write!(f, "EndExtraRawMainDone"),
+            State::EndMainPlusExtra(_) => write!(f, "EndMainPlusExtra"),
+            State::EndExtraMainSeparate(_, _) => {
+                write!(f, "EndExtraMainSeparate")
+            }
         }
     }
 }
