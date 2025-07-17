@@ -1,9 +1,55 @@
 #![allow(warnings, unused)]
+
+use bytes::BytesMut;
+use header_plz::body_headers::BodyHeader;
+
+use crate::state::runner;
 pub mod decompression;
 pub mod dstruct;
 pub mod dtraits;
 mod error;
 mod state;
+
+pub fn decompress<T>(
+    mut message: T,
+    mut extra_body: Option<BytesMut>,
+    buf: &mut BytesMut,
+) -> Result<(), error::DecompressErrorStruct>
+where
+    T: dtraits::DecompressTrait,
+{
+    let mut body = message.get_body().into_bytes().unwrap();
+    let body_headers = message.body_headers_as_mut().take();
+
+    //
+    if let Some(BodyHeader {
+        transfer_encoding: Some(einfo_list),
+        ..
+    }) = body_headers.as_ref()
+    {
+        match runner(&body, extra_body.as_deref(), einfo_list, buf) {
+            Ok(state) => {
+                (body, extra_body) = state.into();
+            }
+            Err(e) => todo!(),
+        }
+    }
+
+    //
+    if let Some(BodyHeader {
+        content_encoding: Some(einfo_list),
+        ..
+    }) = body_headers.as_ref()
+    {
+        match runner(&body, extra_body.as_deref(), einfo_list, buf) {
+            Ok(state) => {
+                (body, extra_body) = state.into();
+            }
+            Err(e) => todo!(),
+        }
+    }
+    Ok(())
+}
 
 // helper function for tests
 #[cfg(test)]
