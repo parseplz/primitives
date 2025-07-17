@@ -15,25 +15,9 @@ pub struct DecompressionStruct<'a> {
     pub extra: Option<&'a [u8]>,
     pub encoding_info: &'a [EncodingInfo],
     pub writer: Writer<&'a mut BytesMut>,
-    // Writer<&mut BytesMut>
 }
 
 impl<'a> DecompressionStruct<'a> {
-    pub fn nnew(
-        main: BytesMut,
-        extra: Option<BytesMut>,
-        encoding_info: &'a [EncodingInfo],
-        buf: &'a mut BytesMut,
-    ) -> Self {
-        todo!()
-        //Self {
-        //    main,
-        //    extra,
-        //    encoding_info,
-        //    buf,
-        //}
-    }
-
     pub fn new(
         main: &'a [u8],
         extra: Option<&'a [u8]>,
