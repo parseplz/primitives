@@ -190,7 +190,7 @@ impl<'a> From<State<'a>> for (BytesMut, Option<BytesMut>) {
                 (main, None)
             }
             State::EndExtraMainSeparate(main, extra) => (main, Some(extra)),
-            _ => panic!(),
+            _ => unreachable!(),
         }
     }
 }
@@ -224,6 +224,8 @@ mod tests {
         let result = runner(&input, None, &einfo, &mut buf).unwrap();
         if let State::EndMainOnly(main) = result {
             assert_eq!(main, "hello world");
+        } else {
+            panic!()
         }
     }
 
@@ -234,7 +236,6 @@ mod tests {
         test_all_compression(einfo);
     }
 
-    /*
     #[test]
     fn test_state_main_only_multi_header() {
         let einfo = all_encoding_info_multi_header();
@@ -246,12 +247,14 @@ mod tests {
     fn test_state_main_extra_compressed_together_single_header() {
         let einfo = all_encoding_info_single_header();
         let compressed = all_compressed_data();
-        let main = BytesMut::from(&compressed[..compressed.len() / 2]);
-        let extra = BytesMut::from(&compressed[compressed.len() / 2..]);
+        let main = &compressed[..compressed.len() / 2];
+        let extra = &compressed[compressed.len() / 2..];
         let mut buf = BytesMut::new();
-        let state = State::start(main, Some(extra), &einfo, &mut buf);
-        let result = runner(state).unwrap();
-        assert_eq!(result, State::EndMainPlusExtra("hello world".into()));
+        let result = runner(&main, Some(&extra), &einfo, &mut buf).unwrap();
+        if let State::EndMainPlusExtra(main) = result {
+            assert_eq!(main, "hello world");
+        } else {
+            panic!()
+        }
     }
-    */
 }
