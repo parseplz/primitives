@@ -56,54 +56,6 @@ pub fn decompress_multi(
     Ok(output)
 }
 
-pub fn decompress_multi_new<R>(
-    mut compressed: R,
-    mut writer: &mut Writer<&mut BytesMut>,
-    encoding_info: &[EncodingInfo],
-) -> Result<BytesMut, MultiDecompressError>
-where
-    R: Read + From<BytesMut> + std::convert::AsRef<[u8]>,
-{
-    let mut input = compressed;
-    let mut output: BytesMut = writer.get_mut().split();
-
-    for (header_index, encoding_info) in encoding_info.iter().rev().enumerate()
-    {
-        for (compression_index, encoding) in encoding_info
-            .encodings()
-            .iter()
-            .rev()
-            .enumerate()
-        {
-            let result =
-                decompress_single(&mut input, &mut writer, encoding.clone());
-            match result {
-                Ok(_) => {
-                    output = writer.get_mut().split();
-                    input = output.split().into();
-                }
-                Err(e) => {
-                    let reason = if header_index == 0 && compression_index == 0
-                    {
-                        MultiDecompressErrorReason::Corrupt
-                    } else {
-                        writer.get_mut().clear();
-                        std::io::copy(&mut input, writer)?;
-                        output = writer.get_mut().split();
-                        MultiDecompressErrorReason::Partial {
-                            partial_body: output,
-                            header_index,
-                            compression_index,
-                        }
-                    };
-                    return Err(MultiDecompressError::new(reason, e));
-                }
-            }
-        }
-    }
-    Ok(output)
-}
-
 #[cfg(test)]
 mod tests {
 
