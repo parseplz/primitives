@@ -7,7 +7,9 @@ use crate::{
     error::DecompressErrorStruct,
 };
 use bytes::{BufMut, BytesMut};
-use header_plz::body_headers::{content_encoding::ContentEncoding, encoding_info::EncodingInfo};
+use header_plz::body_headers::{
+    content_encoding::ContentEncoding, encoding_info::EncodingInfo,
+};
 
 /*
 1. Main
@@ -58,33 +60,22 @@ use header_plz::body_headers::{content_encoding::ContentEncoding, encoding_info:
 pub enum State<'a> {
     // Main
     MainOnly(DecompressionStruct<'a>),
-    EndMainOnlyDecompressed(BytesMut),
+    EndMainOnly(BytesMut),
     // Main + Extra
-    ExtraTryDecompress(DecompressionStruct<'a>),
-    MainPlusExtraTryDecompress(DecompressionStruct<'a>),
-    ExtraDecompressedMainTryDecompress(DecompressionStruct<'a>, BytesMut),
-    ExtraNoDecompressMainTryDecompress(DecompressionStruct<'a>),
-    EndMainOnyDecompressed(DecompressionStruct<'a>),
-    EndMainPlusExtraDecompressed(BytesMut),
-    EndExtraMainDecompressedSeparate(BytesMut, BytesMut),
+    ExtraTry(DecompressionStruct<'a>),
+    ExtraDoneMainTry(DecompressionStruct<'a>, BytesMut),
+    ExtraPlusMainTry(DecompressionStruct<'a>),
+    ExtraRawMainTry(DecompressionStruct<'a>),
+    // End
+    EndExtraRawMainDone(DecompressionStruct<'a>),
+    EndMainPlusExtra(BytesMut),
+    EndExtraMainSeparate(BytesMut, BytesMut),
 }
 
 impl std::fmt::Debug for State<'_> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            State::MainOnly(_) => write!(f, "MainOnly"),
-            State::EndMainOnlyDecompressed(_) => write!(f, "EndMainOnly"),
-            State::ExtraTryDecompress(_) => write!(f, "Extra"),
-            State::ExtraDecompressedMainTryDecompress(..) => {
-                write!(f, "ExtraDecompressedMainTryDecompress")
-            }
-            State::ExtraNoDecompressMainTryDecompress(_) => write!(f, "MainPlusExtra"),
-            State::EndMainOnyDecompressed(_) => write!(f, "EndMainOnyDecompressed"),
-            State::EndMainPlusExtraDecompressed(_) => write!(f, "EndMainPlusExtra"),
-            State::MainPlusExtraTryDecompress(_) => write!(f, "ExtraPlainMainTryDecompress"),
-            State::EndExtraMainDecompressedSeparate(..) => {
-                write!(f, "EndExtraMainDecompressedSeparate")
-            }
+            _ => todo!(),
         }
     }
 }
@@ -98,47 +89,88 @@ impl<'a> State<'a> {
     ) -> Self {
         let dstruct = DecompressionStruct::new(main, extra, encodings, buf);
         if dstruct.extra.is_some() {
-            Self::ExtraTryDecompress(dstruct)
+            Self::ExtraTry(dstruct)
         } else {
             Self::MainOnly(dstruct)
         }
     }
 
     fn try_next(self) -> Result<Self, MultiDecompressError> {
-        match self {
+        let next_state = match self {
             State::MainOnly(mut dstruct) => {
                 let result = dstruct.try_decompress_main()?;
-                Ok(State::EndMainOnlyDecompressed(result))
+                State::EndMainOnly(result)
             }
-            State::ExtraTryDecompress(mut dstruct) => match dstruct.is_extra_compressed() {
-                true => match dstruct.try_decompress_extra() {
-                    Ok(extra_decompressed) => Ok(State::ExtraDecompressedMainTryDecompress(
-                        dstruct,
-                        extra_decompressed,
-                    )),
-                    Err(_) => Ok(State::ExtraNoDecompressMainTryDecompress(dstruct)),
-                },
-                false => Ok(State::MainPlusExtraTryDecompress(dstruct)),
-            },
-            State::ExtraDecompressedMainTryDecompress(mut dstruct, extra) => {
-                let result = dstruct.try_decompress_main()?;
-                Ok(State::EndMainPlusExtraDecompressed(result))
+            /* Extra - is compressed
+             *         true => try decompress
+             *                   Ok  => ExtraDoneMainTry
+             *                   Err => ExtraPlusMainTry
+             *                          [ Maybe main + extra can decompress ]
+             *         false => ExtraPlusMainTry
+             */
+            State::ExtraTry(mut dstruct) => {
+                match dstruct.is_extra_compressed() {
+                    true => match dstruct.try_decompress_extra() {
+                        Ok(extra_decompressed) => State::ExtraDoneMainTry(
+                            dstruct,
+                            extra_decompressed,
+                        ),
+                        Err(_) => State::ExtraPlusMainTry(dstruct),
+                    },
+                    false => State::ExtraPlusMainTry(dstruct),
+                }
             }
-            State::ExtraNoDecompressMainTryDecompress(decompression_struct) => todo!(),
-            State::MainPlusExtraTryDecompress(decompression_struct) => todo!(),
-            State::EndMainOnyDecompressed(decompression_struct) => todo!(),
-            State::EndMainOnlyDecompressed(_)
-            | State::EndMainPlusExtraDecompressed(_)
-            | State::EndExtraMainDecompressedSeparate(..) => {
+            /* Main - try decompress
+             *        Ok  => EndExtraMainSeparate
+             *        Err => ExtraPlusMainTry
+             *               [ Maybe main + extra can decompress ]
+             */
+            State::ExtraDoneMainTry(mut dstruct, extra) => {
+                match dstruct.try_decompress_main() {
+                    Ok(main_decompressed) => {
+                        State::EndExtraMainSeparate(main_decompressed, extra)
+                    }
+                    Err(_) => State::ExtraPlusMainTry(dstruct),
+                }
+            }
+            /* Main + Extra - try decompress
+             *      Ok  => EndMainPlusExtraDecompressed
+             *      Err => ExtraRawMainTry
+             */
+            State::ExtraPlusMainTry(mut decompression_struct) => {
+                match decompression_struct.try_decompress_main_plus_extra() {
+                    Ok(main_plus_extra_decompressed) => {
+                        State::EndMainPlusExtra(main_plus_extra_decompressed)
+                    }
+                    Err(_) => State::ExtraRawMainTry(decompression_struct),
+                }
+            }
+            /* Main - try decompress
+             *      Ok  => EndExtraRawMainDone
+             *      Err => Err
+             */
+            State::ExtraRawMainTry(mut decompression_struct) => {
+                match decompression_struct.try_decompress_main() {
+                    Ok(main_decompressed) => {
+                        State::EndExtraRawMainDone(decompression_struct)
+                    }
+                    Err(e) => return Err(e),
+                }
+            }
+            State::EndExtraRawMainDone(decompression_struct) => todo!(),
+            State::EndMainOnly(_)
+            | State::EndMainPlusExtra(_)
+            | State::EndExtraMainSeparate(..) => {
                 panic!("already ended")
             }
-        }
+        };
+        Ok(next_state)
     }
 
     fn ended(&self) -> bool {
-        matches!(self, Self::EndMainOnlyDecompressed(_))
-            || matches!(self, Self::EndExtraMainDecompressedSeparate(..))
-            || matches!(self, Self::EndMainPlusExtraDecompressed(_))
+        matches!(self, Self::EndMainOnly(_))
+            || matches!(self, Self::EndExtraMainSeparate(..))
+            || matches!(self, Self::EndMainPlusExtra(_))
     }
 }
 
@@ -164,7 +196,7 @@ mod tests {
         let mut buf = BytesMut::new();
         let state = State::start(input, None, &einfo, &mut buf);
         let result = runner(state).unwrap();
-        assert_eq!(result, State::EndMainOnlyDecompressed("hello world".into()));
+        assert_eq!(result, State::EndMainOnly("hello world".into()));
     }
 
     // ----- Main
@@ -190,9 +222,6 @@ mod tests {
         let mut buf = BytesMut::new();
         let state = State::start(main, Some(extra), &einfo, &mut buf);
         let result = runner(state).unwrap();
-        assert_eq!(
-            result,
-            State::EndMainPlusExtraDecompressed("hello world".into())
-        );
+        assert_eq!(result, State::EndMainPlusExtra("hello world".into()));
     }
 }
