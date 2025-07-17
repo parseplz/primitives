@@ -1,6 +1,6 @@
 use std::io::{Cursor, Read};
 
-use bytes::{BufMut, BytesMut};
+use bytes::{BufMut, BytesMut, buf::Writer};
 use header_plz::body_headers::{
     content_encoding::ContentEncoding, encoding_info::EncodingInfo,
 };
@@ -10,26 +10,41 @@ use crate::decompression::{
     multi::{decompress_multi, error::MultiDecompressError},
 };
 
-#[cfg_attr(test, derive(PartialEq))]
 pub struct DecompressionStruct<'a> {
-    pub main: BytesMut,
-    pub extra: Option<BytesMut>,
+    pub main: &'a [u8],
+    pub extra: Option<&'a [u8]>,
     pub encoding_info: &'a [EncodingInfo],
-    pub buf: &'a mut BytesMut,
+    pub writer: Writer<&'a mut BytesMut>,
+    // Writer<&mut BytesMut>
 }
 
 impl<'a> DecompressionStruct<'a> {
-    pub fn new(
+    pub fn nnew(
         main: BytesMut,
         extra: Option<BytesMut>,
         encoding_info: &'a [EncodingInfo],
         buf: &'a mut BytesMut,
     ) -> Self {
+        todo!()
+        //Self {
+        //    main,
+        //    extra,
+        //    encoding_info,
+        //    buf,
+        //}
+    }
+
+    pub fn new(
+        main: &'a [u8],
+        extra: Option<&'a [u8]>,
+        encoding_info: &'a [EncodingInfo],
+        writer: Writer<&'a mut BytesMut>,
+    ) -> Self {
         Self {
             main,
             extra,
             encoding_info,
-            buf,
+            writer,
         }
     }
 
@@ -54,10 +69,10 @@ impl<'a> DecompressionStruct<'a> {
     pub fn try_decompress_extra(
         &mut self,
     ) -> Result<BytesMut, MultiDecompressError> {
-        let mut writer = self.buf.writer();
+        //let mut writer = self.writer.writer();
         decompress_multi(
             self.extra.as_ref().unwrap().as_ref(),
-            &mut writer,
+            &mut self.writer,
             &self.encoding_info,
         )
     }
@@ -65,21 +80,23 @@ impl<'a> DecompressionStruct<'a> {
     pub fn try_decompress_main(
         &mut self,
     ) -> Result<BytesMut, MultiDecompressError> {
-        let mut writer = self.buf.writer();
-        decompress_multi(self.main.as_ref(), &mut writer, &self.encoding_info)
+        decompress_multi(
+            self.main.as_ref(),
+            &mut self.writer,
+            &self.encoding_info,
+        )
     }
 
     pub fn try_decompress_main_plus_extra(
         &mut self,
     ) -> Result<BytesMut, MultiDecompressError> {
-        self.buf
-            .reserve(self.main.len() + self.extra().len());
+        let to_copy = self.main.len() + self.extra().len();
+        let mut buf = self.writer.get_mut();
+        buf.reserve(to_copy);
         // copy main and extra to buf
-        self.buf.put(self.main.as_ref());
-        self.buf
-            .put(self.extra.as_ref().unwrap().as_ref());
-        let combined = self.buf.split();
-        let mut writer = self.buf.writer();
-        decompress_multi(&combined, &mut writer, &self.encoding_info)
+        buf.put(self.main.as_ref());
+        buf.put(self.extra.as_ref().unwrap().as_ref());
+        let combined = buf.split();
+        decompress_multi(&combined, &mut self.writer, &self.encoding_info)
     }
 }
