@@ -174,6 +174,17 @@ impl<'a> State<'a> {
     }
 }
 
+impl<'a> From<State<'a>> for (BytesMut, Option<BytesMut>) {
+    fn from(state: State) -> Self {
+        match state {
+            State::EndMainOnly(main) => (main, None),
+            State::EndExtraMainSeparate(main, extra) => (main, Some(extra)),
+            State::EndMainPlusExtra(main) => (main, None),
+            _ => panic!(),
+        }
+    }
+}
+
 pub fn runner<'a>(
     main: BytesMut,
     extra: Option<BytesMut>,
