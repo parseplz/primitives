@@ -72,9 +72,9 @@ pub mod tests {
         vec![
             EncodingInfo::new(0, vec![ContentEncoding::Brotli]),
             EncodingInfo::new(1, vec![ContentEncoding::Deflate]),
-            EncodingInfo::new(2, vec![ContentEncoding::Gzip]),
-            EncodingInfo::new(3, vec![ContentEncoding::Zstd]),
-            EncodingInfo::new(4, vec![ContentEncoding::Identity]),
+            EncodingInfo::new(2, vec![ContentEncoding::Identity]),
+            EncodingInfo::new(3, vec![ContentEncoding::Gzip]),
+            EncodingInfo::new(4, vec![ContentEncoding::Zstd]),
         ]
     }
 
@@ -84,9 +84,9 @@ pub mod tests {
             vec![
                 ContentEncoding::Brotli,
                 ContentEncoding::Deflate,
+                ContentEncoding::Identity,
                 ContentEncoding::Gzip,
                 ContentEncoding::Zstd,
-                ContentEncoding::Identity,
             ],
         )]
     }

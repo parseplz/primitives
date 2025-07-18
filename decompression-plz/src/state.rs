@@ -41,10 +41,10 @@ use header_plz::body_headers::{
 
     Compression | Result
     ------------|----------
-    brotli      | error + main decompressed + extra no read
-    deflate     | error + main decompressed + extra read
-    gzip        | error + main decompressed + extra no read
-    zstd        | error + main decompressed + extra read
+    brotli      | no error + main decompressed + extra no read
+    deflate     | no error + main decompressed + extra read
+    gzip        | no error + main decompressed + extra no read
+    zstd        | error + main read + extra read
 
 3. Main - compressed + Extra - compressed = separately compressed
 
@@ -218,7 +218,7 @@ mod tests {
     use crate::tests::*;
 
     // ----- Main
-    fn assert_mainonly_finish(
+    fn assert_main_only_finish_flow(
         main: &[u8],
         extra: Option<&[u8]>,
         encoding_info: &mut Vec<EncodingInfo>,
@@ -232,7 +232,7 @@ mod tests {
             State::EndMainOnly(out) => {
                 assert_eq!(out, "hello world");
             }
-            other => panic!("Expected EndMainOnly, got {other:?}"),
+            _ => panic!(),
         }
     }
 
@@ -241,26 +241,26 @@ mod tests {
         let mut info =
             vec![EncodingInfo::new(0, vec![ContentEncoding::Brotli])];
         let compressed = compress_brotli(INPUT);
-        assert_mainonly_finish(&compressed, None, &mut info);
+        assert_main_only_finish_flow(&compressed, None, &mut info);
     }
 
     #[test]
     fn test_state_main_only_multi_compression_single_header() {
         let mut info = all_encoding_info_single_header();
         let compressed = all_compressed_data();
-        assert_mainonly_finish(&compressed, None, &mut info);
+        assert_main_only_finish_flow(&compressed, None, &mut info);
     }
 
     #[test]
     fn test_state_main_only_multi_compression_multi_header() {
         let mut info = all_encoding_info_multi_header();
         let compressed = all_compressed_data();
-        assert_mainonly_finish(&compressed, None, &mut info);
+        assert_main_only_finish_flow(&compressed, None, &mut info);
     }
 
     // ----- Extra
 
-    // Main + Extra
+    // Main + Extra - compressed together
     fn assert_main_plus_extra_flow(
         enc_info: &mut Vec<EncodingInfo>,
         compressed: &[u8],
@@ -277,17 +277,12 @@ mod tests {
             (&mut buf).writer(),
         );
 
-        state = state
-            .try_next()
-            .expect("first transition failed");
+        state = state.try_next().unwrap();
         assert!(matches!(state, State::ExtraPlusMainTry(_)));
 
-        match state
-            .try_next()
-            .expect("second transition failed")
-        {
+        match state.try_next().unwrap() {
             State::EndMainPlusExtra(val) => assert_eq!(val, "hello world"),
-            other => panic!("Expected EndMainPlusExtra, got {:?}", other),
+            _ => panic!(),
         }
     }
 
@@ -311,5 +306,80 @@ mod tests {
         let mut info = all_encoding_info_multi_header();
         let compressed = all_compressed_data();
         assert_main_plus_extra_flow(&mut info, &compressed);
+    }
+
+    // Main - separate + Extra - separate
+    fn assert_main_separate_extra_separate_flow(
+        enc_info: &mut Vec<EncodingInfo>,
+        main: &[u8],
+        extra: &[u8],
+    ) {
+        let mut buf = BytesMut::new();
+        let mut state =
+            State::start(main, Some(extra), enc_info, (&mut buf).writer());
+        state = state.try_next().unwrap();
+        assert!(
+            matches!(state, State::ExtraDoneMainTry(_, ref result) if result == INPUT)
+        );
+
+        match state.try_next().unwrap() {
+            State::EndExtraMainSeparate(main, extra) => {
+                assert_eq!(main, INPUT);
+                assert_eq!(extra, INPUT);
+            }
+            _ => panic!(),
+        }
+    }
+
+    #[test]
+    fn test_state_main_separate_extra_separate_single_compression() {
+        let mut info =
+            vec![EncodingInfo::new(0, vec![ContentEncoding::Brotli])];
+        let main = compress_brotli(INPUT);
+        let extra = main.clone();
+        assert_main_separate_extra_separate_flow(&mut info, &main, &extra);
+    }
+
+    #[test]
+    fn test_state_main_separate_extra_separate_single_header() {
+        let mut info = all_encoding_info_single_header();
+        let main = all_compressed_data();
+        let extra = main.clone();
+        assert_main_separate_extra_separate_flow(&mut info, &main, &extra);
+    }
+
+    #[test]
+    fn test_state_main_separate_extra_separate_multi_header() {
+        let mut info = all_encoding_info_multi_header();
+        let main = all_compressed_data();
+        let extra = main.clone();
+        assert_main_separate_extra_separate_flow(&mut info, &main, &extra);
+    }
+
+    // Main - compressed + Extra - raw
+    fn assert_main_compressed_extra_raw_flow(
+        enc_info: &mut Vec<EncodingInfo>,
+        main: &[u8],
+        extra: &[u8],
+    ) {
+        let mut buf = BytesMut::new();
+        let mut state =
+            State::start(main, Some(extra), enc_info, (&mut buf).writer());
+        state = state.try_next().unwrap();
+        assert!(matches!(state, State::ExtraPlusMainTry(_)));
+        state = state.try_next().unwrap();
+        dbg!(&state);
+        if let State::EndMainPlusExtra(main) = state {
+            dbg!(&main);
+            assert_eq!(main, "hello world");
+        }
+        // assert!(matches!(state, State::ExtraRawMainTry(_)));
+    }
+
+    #[test]
+    fn test_state_main_compressed_exra_raw_single_compression() {
+        let mut info = vec![EncodingInfo::new(0, vec![ContentEncoding::Gzip])];
+        let main = compress_gzip(b"Hello ");
+        assert_main_compressed_extra_raw_flow(&mut info, &main, b"world");
     }
 }

@@ -63,12 +63,27 @@ impl<'a> DecompressionStruct<'a> {
     }
 
     pub fn is_encodings_empty(&self) -> bool {
-        self.encoding_info
-            .last()
+        match self.encoding_info.split_last() {
+            Some((last, rest)) if rest.is_empty() => {
+                last.encodings().is_empty()
+            }
+            _ => false,
+        }
+    }
+
+    /*
+    pub fn is_encodings_empty(&self) -> bool {
+        let mut iter = self.encoding_info.iter().rev();
+        if iter
+            .next()
             .unwrap()
             .encodings()
             .is_empty()
-    }
+        {
+            return iter.next().is_none();
+        }
+        false
+    }*/
 
     pub fn extra(&self) -> &[u8] {
         self.extra.as_ref().unwrap().as_ref()
@@ -101,38 +116,37 @@ impl<'a> DecompressionStruct<'a> {
     pub fn try_decompress_main_plus_extra(
         &mut self,
     ) -> Result<BytesMut, MultiDecompressError> {
-        let to_copy = self.main.len() + self.extra().len();
-        let mut buf = self.writer.get_mut();
-        buf.reserve(to_copy);
-        // copy main and extra to buf
-        buf.put(self.main.as_ref());
-        buf.put(self.extra.as_ref().unwrap().as_ref());
-        let combined = buf.split();
-        decompress_multi(&combined, &mut self.writer, &self.encoding_info)
-    }
-
-    pub fn try_decompress_main_plus_extra_new(
-        &mut self,
-    ) -> Result<BytesMut, MultiDecompressError> {
         let last_encoding = self.pop_last_encoding();
         let mut chained = Cursor::new(self.main.as_ref())
             .chain(Cursor::new(self.extra.as_ref().unwrap().as_ref()));
-        let _ = decompress_single(chained, &mut self.writer, &last_encoding)
-            .map_err(|e| {
-            MultiDecompressError::new(MultiDecompressErrorReason::Corrupt, e)
-        })?;
+        dbg!(&chained);
+        let _ =
+            decompress_single(&mut chained, &mut self.writer, &last_encoding)
+                .map_err(|e| {
+                    MultiDecompressError::new(
+                        MultiDecompressErrorReason::Corrupt,
+                        e,
+                    )
+                })?;
+        let (main, extra) = chained.get_ref();
+        dbg!(main.position());
+        dbg!(extra.position());
 
         let output = self.writer.get_mut().split();
+        //dbg!(&output);
+        //dbg!(&self.encoding_info);
+        //dbg!(&self.writer);
         if self.is_encodings_empty() {
+            dbg!("empty");
             Ok(output)
         } else {
-            let _ = decompress_multi(
+            let result = decompress_multi(
                 &output,
                 &mut self.writer,
                 &self.encoding_info,
             )?;
             self.push_last_encoding(last_encoding);
-            Ok(self.writer.get_mut().split())
+            Ok(result)
         }
     }
 }
@@ -174,7 +188,7 @@ mod tests {
         );
         assert_eq!(
             decompression_struct.last_encoding(),
-            &ContentEncoding::Identity
+            &ContentEncoding::Zstd
         );
     }
 
@@ -190,7 +204,7 @@ mod tests {
         );
         assert_eq!(
             decompression_struct.last_encoding(),
-            &ContentEncoding::Identity
+            &ContentEncoding::Zstd
         );
     }
 
@@ -231,9 +245,9 @@ mod tests {
             vec![
                 ContentEncoding::Brotli,
                 ContentEncoding::Deflate,
+                ContentEncoding::Identity,
                 ContentEncoding::Gzip,
                 ContentEncoding::Zstd,
-                ContentEncoding::Identity,
                 ContentEncoding::Brotli,
             ],
         )];
@@ -255,11 +269,11 @@ mod tests {
         let to_verify = vec![
             EncodingInfo::new(0, vec![ContentEncoding::Brotli]),
             EncodingInfo::new(1, vec![ContentEncoding::Deflate]),
-            EncodingInfo::new(2, vec![ContentEncoding::Gzip]),
-            EncodingInfo::new(3, vec![ContentEncoding::Zstd]),
+            EncodingInfo::new(2, vec![ContentEncoding::Identity]),
+            EncodingInfo::new(3, vec![ContentEncoding::Gzip]),
             EncodingInfo::new(
                 4,
-                vec![ContentEncoding::Identity, ContentEncoding::Brotli],
+                vec![ContentEncoding::Zstd, ContentEncoding::Brotli],
             ),
         ];
 
@@ -267,7 +281,7 @@ mod tests {
     }
 
     #[test]
-    fn test_dstruct_is_encodings_empty_true() {
+    fn test_dstruct_is_encodings_empty_true_single_value() {
         let mut encoding_info = vec![EncodingInfo::new(0, vec![])];
         let mut buf = BytesMut::new();
         let decompression_struct = DecompressionStruct::new(
@@ -280,9 +294,25 @@ mod tests {
     }
 
     #[test]
-    fn test_dstruct_is_encodings_empty_false() {
+    fn test_dstruct_is_encodings_empty_false_single_value() {
         let mut encoding_info =
             vec![EncodingInfo::new(0, vec![ContentEncoding::Gzip])];
+        let mut buf = BytesMut::new();
+        let decompression_struct = DecompressionStruct::new(
+            &[],
+            None,
+            &mut encoding_info,
+            (&mut buf).writer(),
+        );
+        assert!(!decompression_struct.is_encodings_empty());
+    }
+
+    #[test]
+    fn test_dstruct_is_encodings_empty_false_last_encoding_empty() {
+        let mut encoding_info = vec![
+            EncodingInfo::new(0, vec![ContentEncoding::Gzip]),
+            EncodingInfo::new(1, vec![]),
+        ];
         let mut buf = BytesMut::new();
         let decompression_struct = DecompressionStruct::new(
             &[],
