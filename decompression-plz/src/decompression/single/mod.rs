@@ -9,7 +9,7 @@ use error::DecompressError;
 pub fn decompress_single<R, W>(
     mut input: R,
     mut writer: W,
-    content_encoding: ContentEncoding,
+    content_encoding: &ContentEncoding,
 ) -> Result<u64, DecompressError>
 where
     R: Read,
@@ -123,7 +123,7 @@ pub mod tests {
         decompress_single(
             compressed.as_slice(),
             &mut writer,
-            content_encoding,
+            &content_encoding,
         )
         .unwrap();
         writer.into_inner()
@@ -179,7 +179,7 @@ pub mod tests {
         let result = decompress_single(
             INPUT,
             &mut writer,
-            ContentEncoding::Unknown("unknown".to_string()),
+            &ContentEncoding::Unknown("unknown".to_string()),
         )
         .unwrap_err();
         if let DecompressError::Unknown(e) = result {

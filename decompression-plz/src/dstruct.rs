@@ -45,6 +45,36 @@ impl<'a> DecompressionStruct<'a> {
             .unwrap()
     }
 
+    pub fn pop_last_encoding(&mut self) -> ContentEncoding {
+        /*
+        &mut self
+            .encoding_info
+            .last()
+            .unwrap()
+            .encodings_as_mut()
+            .pop()
+            .unwrap()
+        */
+        todo!()
+    }
+
+    pub fn push_last_encoding(&mut self, encoding: ContentEncoding) {
+        todo!()
+        //self.encoding_info
+        //    .last_mut()
+        //    .unwrap()
+        //    .encodings_as_mut()
+        //    .push(encoding);
+    }
+
+    pub fn is_encodings_empty(&self) -> bool {
+        self.encoding_info
+            .last()
+            .unwrap()
+            .encodings()
+            .is_empty()
+    }
+
     pub fn extra(&self) -> &[u8] {
         self.extra.as_ref().unwrap().as_ref()
     }
@@ -91,18 +121,25 @@ impl<'a> DecompressionStruct<'a> {
     pub fn try_decompress_main_plus_extra_new(
         &mut self,
     ) -> Result<BytesMut, MultiDecompressError> {
-        let last_encoding = self.last_encoding().clone();
+        let last_encoding = self.pop_last_encoding();
         let mut chained = Cursor::new(self.main.as_ref())
             .chain(Cursor::new(self.extra.as_ref().unwrap().as_ref()));
-        let result =
-            decompress_single(chained, &mut self.writer, last_encoding)
-                .map_err(|e| {
-                    MultiDecompressError::new(
-                        MultiDecompressErrorReason::Corrupt,
-                        e,
-                    )
-                })?;
+        let _ = decompress_single(chained, &mut self.writer, &last_encoding)
+            .map_err(|e| {
+            MultiDecompressError::new(MultiDecompressErrorReason::Corrupt, e)
+        })?;
 
-        todo!()
+        let output = self.writer.get_mut().split();
+        if self.is_encodings_empty() {
+            Ok(output)
+        } else {
+            let _ = decompress_multi(
+                &output,
+                &mut self.writer,
+                &self.encoding_info,
+            )?;
+            self.push_last_encoding(last_encoding);
+            Ok(self.writer.get_mut().split())
+        }
     }
 }
