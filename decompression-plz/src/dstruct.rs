@@ -46,25 +46,20 @@ impl<'a> DecompressionStruct<'a> {
     }
 
     pub fn pop_last_encoding(&mut self) -> ContentEncoding {
-        /*
-        &mut self
-            .encoding_info
-            .last()
+        self.encoding_info
+            .last_mut()
             .unwrap()
             .encodings_as_mut()
             .pop()
             .unwrap()
-        */
-        todo!()
     }
 
     pub fn push_last_encoding(&mut self, encoding: ContentEncoding) {
-        todo!()
-        //self.encoding_info
-        //    .last_mut()
-        //    .unwrap()
-        //    .encodings_as_mut()
-        //    .push(encoding);
+        self.encoding_info
+            .last_mut()
+            .unwrap()
+            .encodings_as_mut()
+            .push(encoding);
     }
 
     pub fn is_encodings_empty(&self) -> bool {
@@ -87,7 +82,6 @@ impl<'a> DecompressionStruct<'a> {
     pub fn try_decompress_extra(
         &mut self,
     ) -> Result<BytesMut, MultiDecompressError> {
-        //let mut writer = self.writer.writer();
         decompress_multi(
             self.extra.as_ref().unwrap().as_ref(),
             &mut self.writer,
