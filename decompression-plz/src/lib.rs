@@ -19,13 +19,13 @@ where
     T: dtraits::DecompressTrait,
 {
     let mut body = message.get_body().into_bytes().unwrap();
-    let body_headers = message.body_headers_as_mut().take();
+    let mut body_headers = message.body_headers_as_mut().take();
 
     //
     if let Some(BodyHeader {
         transfer_encoding: Some(einfo_list),
         ..
-    }) = body_headers.as_ref()
+    }) = body_headers.as_mut()
     {
         match runner(&body, extra_body.as_deref(), einfo_list, buf) {
             Ok(state) => {
@@ -39,7 +39,7 @@ where
     if let Some(BodyHeader {
         content_encoding: Some(einfo_list),
         ..
-    }) = body_headers.as_ref()
+    }) = body_headers.as_mut()
     {
         match runner(&body, extra_body.as_deref(), einfo_list, buf) {
             Ok(state) => {
