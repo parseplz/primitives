@@ -17,7 +17,7 @@ use crate::decompression::{
 pub struct DecompressionStruct<'a> {
     pub main: &'a [u8],
     pub extra: Option<&'a [u8]>,
-    pub encoding_info: &'a [EncodingInfo],
+    pub encoding_info: &'a mut [EncodingInfo],
     pub writer: Writer<&'a mut BytesMut>,
 }
 
@@ -25,7 +25,7 @@ impl<'a> DecompressionStruct<'a> {
     pub fn new(
         main: &'a [u8],
         extra: Option<&'a [u8]>,
-        encoding_info: &'a [EncodingInfo],
+        encoding_info: &'a mut [EncodingInfo],
         writer: Writer<&'a mut BytesMut>,
     ) -> Self {
         Self {
