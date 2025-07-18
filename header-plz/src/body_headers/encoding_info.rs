@@ -32,6 +32,10 @@ impl EncodingInfo {
     pub fn encodings(&self) -> &[ContentEncoding] {
         &self.encodings
     }
+
+    pub fn encodings_as_mut(&mut self) -> &mut Vec<ContentEncoding> {
+        &mut self.encodings
+    }
 }
 
 #[cfg(test)]
