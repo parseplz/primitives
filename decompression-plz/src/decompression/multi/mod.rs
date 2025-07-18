@@ -27,8 +27,9 @@ pub fn decompress_multi(
             .rev()
             .enumerate()
         {
+            let curs = std::io::Cursor::new(&mut input);
             let result =
-                decompress_single(&mut input, &mut writer, encoding.clone());
+                decompress_single(curs, &mut writer, encoding.clone());
             match result {
                 Ok(_) => {
                     output = writer.get_mut().split();
