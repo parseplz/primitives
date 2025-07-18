@@ -93,7 +93,7 @@ impl<'a> State<'a> {
     pub fn start(
         main: &'a [u8],
         extra: Option<&'a [u8]>,
-        encodings: &'a [EncodingInfo],
+        encodings: &'a mut [EncodingInfo],
         writer: Writer<&'a mut BytesMut>,
     ) -> Self {
         let dstruct = DecompressionStruct::new(main, extra, encodings, writer);
@@ -198,7 +198,7 @@ impl<'a> From<State<'a>> for (BytesMut, Option<BytesMut>) {
 pub fn runner<'a>(
     main: &'a [u8],
     extra: Option<&'a [u8]>,
-    encodings: &'a [EncodingInfo],
+    encodings: &'a mut [EncodingInfo],
     buf: &'a mut BytesMut,
 ) -> Result<State<'a>, MultiDecompressError> {
     let mut state = State::start(main, extra, encodings, buf.writer());
@@ -217,11 +217,11 @@ mod tests {
 
     use crate::tests::*;
 
-    fn test_all_compression(einfo: Vec<EncodingInfo>) {
+    fn test_all_compression(mut einfo: Vec<EncodingInfo>) {
         let compressed = all_compressed_data();
         let input = BytesMut::from(&compressed[..]);
         let mut buf = BytesMut::new();
-        let result = runner(&input, None, &einfo, &mut buf).unwrap();
+        let result = runner(&input, None, &mut einfo, &mut buf).unwrap();
         if let State::EndMainOnly(main) = result {
             assert_eq!(main, "hello world");
         } else {
@@ -245,12 +245,13 @@ mod tests {
     // ----- Main + Extra
     #[test]
     fn test_state_main_extra_compressed_together_single_header() {
-        let einfo = all_encoding_info_single_header();
+        let mut einfo = all_encoding_info_single_header();
         let compressed = all_compressed_data();
         let main = &compressed[..compressed.len() / 2];
         let extra = &compressed[compressed.len() / 2..];
         let mut buf = BytesMut::new();
-        let result = runner(&main, Some(&extra), &einfo, &mut buf).unwrap();
+        let result =
+            runner(&main, Some(&extra), &mut einfo, &mut buf).unwrap();
         if let State::EndMainPlusExtra(main) = result {
             assert_eq!(main, "hello world");
         } else {
@@ -260,12 +261,13 @@ mod tests {
 
     #[test]
     fn test_state_main_extra_compressed_together_multi_header() {
-        let einfo = all_encoding_info_multi_header();
+        let mut einfo = all_encoding_info_multi_header();
         let compressed = all_compressed_data();
         let main = &compressed[..compressed.len() / 2];
         let extra = &compressed[compressed.len() / 2..];
         let mut buf = BytesMut::new();
-        let result = runner(&main, Some(&extra), &einfo, &mut buf).unwrap();
+        let result =
+            runner(&main, Some(&extra), &mut einfo, &mut buf).unwrap();
         if let State::EndMainPlusExtra(main) = result {
             assert_eq!(main, "hello world");
         } else {
