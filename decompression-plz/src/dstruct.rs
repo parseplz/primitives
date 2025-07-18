@@ -7,7 +7,11 @@ use header_plz::body_headers::{
 
 use crate::decompression::{
     magic_bytes::is_compressed,
-    multi::{decompress_multi, error::MultiDecompressError},
+    multi::{
+        decompress_multi,
+        error::{MultiDecompressError, MultiDecompressErrorReason},
+    },
+    single::decompress_single,
 };
 
 pub struct DecompressionStruct<'a> {
@@ -82,5 +86,23 @@ impl<'a> DecompressionStruct<'a> {
         buf.put(self.extra.as_ref().unwrap().as_ref());
         let combined = buf.split();
         decompress_multi(&combined, &mut self.writer, &self.encoding_info)
+    }
+
+    pub fn try_decompress_main_plus_extra_new(
+        &mut self,
+    ) -> Result<BytesMut, MultiDecompressError> {
+        let last_encoding = self.last_encoding().clone();
+        let mut chained = Cursor::new(self.main.as_ref())
+            .chain(Cursor::new(self.extra.as_ref().unwrap().as_ref()));
+        let result =
+            decompress_single(chained, &mut self.writer, last_encoding)
+                .map_err(|e| {
+                    MultiDecompressError::new(
+                        MultiDecompressErrorReason::Corrupt,
+                        e,
+                    )
+                })?;
+
+        todo!()
     }
 }

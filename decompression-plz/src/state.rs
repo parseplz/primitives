@@ -257,4 +257,19 @@ mod tests {
             panic!()
         }
     }
+
+    #[test]
+    fn test_state_main_extra_compressed_together_multi_header() {
+        let einfo = all_encoding_info_multi_header();
+        let compressed = all_compressed_data();
+        let main = &compressed[..compressed.len() / 2];
+        let extra = &compressed[compressed.len() / 2..];
+        let mut buf = BytesMut::new();
+        let result = runner(&main, Some(&extra), &einfo, &mut buf).unwrap();
+        if let State::EndMainPlusExtra(main) = result {
+            assert_eq!(main, "hello world");
+        } else {
+            panic!()
+        }
+    }
 }
