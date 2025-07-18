@@ -75,8 +75,7 @@ impl<'a> DecompressionStruct<'a> {
     }
 
     pub fn is_extra_compressed(&self) -> bool {
-        let last_encoding = self.last_encoding();
-        is_compressed(self.extra(), last_encoding)
+        is_compressed(self.extra(), self.last_encoding())
     }
 
     pub fn try_decompress_extra(
@@ -135,5 +134,162 @@ impl<'a> DecompressionStruct<'a> {
             self.push_last_encoding(last_encoding);
             Ok(self.writer.get_mut().split())
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::tests::{
+        all_encoding_info_multi_header, all_encoding_info_single_header,
+    };
+
+    use super::*;
+
+    #[test]
+    fn test_decompression_struct_last_encoding_single_value() {
+        let mut encoding_info =
+            vec![EncodingInfo::new(0, vec![ContentEncoding::Gzip])];
+        let mut buf = BytesMut::new();
+        let decompression_struct = DecompressionStruct::new(
+            &[],
+            None,
+            &mut encoding_info,
+            (&mut buf).writer(),
+        );
+        assert_eq!(
+            decompression_struct.last_encoding(),
+            &ContentEncoding::Gzip
+        );
+    }
+
+    #[test]
+    fn test_decompression_struct_last_encoding_single_header() {
+        let mut encoding_info = all_encoding_info_single_header();
+        let mut buf = BytesMut::new();
+        let decompression_struct = DecompressionStruct::new(
+            &[],
+            None,
+            &mut encoding_info,
+            (&mut buf).writer(),
+        );
+        assert_eq!(
+            decompression_struct.last_encoding(),
+            &ContentEncoding::Identity
+        );
+    }
+
+    #[test]
+    fn test_decompression_struct_last_encoding_multi_header() {
+        let mut encoding_info = all_encoding_info_multi_header();
+        let mut buf = BytesMut::new();
+        let decompression_struct = DecompressionStruct::new(
+            &[],
+            None,
+            &mut encoding_info,
+            (&mut buf).writer(),
+        );
+        assert_eq!(
+            decompression_struct.last_encoding(),
+            &ContentEncoding::Identity
+        );
+    }
+
+    #[test]
+    fn test_push_last_encoding_single_value() {
+        let mut encoding_info =
+            vec![EncodingInfo::new(0, vec![ContentEncoding::Gzip])];
+
+        let mut buf = BytesMut::new();
+        let mut decompression_struct = DecompressionStruct::new(
+            &[],
+            None,
+            &mut encoding_info,
+            (&mut buf).writer(),
+        );
+        decompression_struct.push_last_encoding(ContentEncoding::Brotli);
+        let to_verify = vec![EncodingInfo::new(
+            0,
+            vec![ContentEncoding::Gzip, ContentEncoding::Brotli],
+        )];
+
+        assert_eq!(decompression_struct.encoding_info, to_verify);
+    }
+
+    #[test]
+    fn test_push_last_encoding_single_header() {
+        let mut encoding_info = all_encoding_info_single_header();
+        let mut buf = BytesMut::new();
+        let mut decompression_struct = DecompressionStruct::new(
+            &[],
+            None,
+            &mut encoding_info,
+            (&mut buf).writer(),
+        );
+        decompression_struct.push_last_encoding(ContentEncoding::Brotli);
+        let to_verify = vec![EncodingInfo::new(
+            0,
+            vec![
+                ContentEncoding::Brotli,
+                ContentEncoding::Deflate,
+                ContentEncoding::Gzip,
+                ContentEncoding::Zstd,
+                ContentEncoding::Identity,
+                ContentEncoding::Brotli,
+            ],
+        )];
+
+        assert_eq!(decompression_struct.encoding_info, to_verify);
+    }
+
+    #[test]
+    fn test_push_last_encoding_multi_header() {
+        let mut encoding_info = all_encoding_info_multi_header();
+        let mut buf = BytesMut::new();
+        let mut decompression_struct = DecompressionStruct::new(
+            &[],
+            None,
+            &mut encoding_info,
+            (&mut buf).writer(),
+        );
+        decompression_struct.push_last_encoding(ContentEncoding::Brotli);
+        let to_verify = vec![
+            EncodingInfo::new(0, vec![ContentEncoding::Brotli]),
+            EncodingInfo::new(1, vec![ContentEncoding::Deflate]),
+            EncodingInfo::new(2, vec![ContentEncoding::Gzip]),
+            EncodingInfo::new(3, vec![ContentEncoding::Zstd]),
+            EncodingInfo::new(
+                4,
+                vec![ContentEncoding::Identity, ContentEncoding::Brotli],
+            ),
+        ];
+
+        assert_eq!(decompression_struct.encoding_info, to_verify);
+    }
+
+    #[test]
+    fn test_dstruct_is_encodings_empty_true() {
+        let mut encoding_info = vec![EncodingInfo::new(0, vec![])];
+        let mut buf = BytesMut::new();
+        let decompression_struct = DecompressionStruct::new(
+            &[],
+            None,
+            &mut encoding_info,
+            (&mut buf).writer(),
+        );
+        assert!(decompression_struct.is_encodings_empty());
+    }
+
+    #[test]
+    fn test_dstruct_is_encodings_empty_false() {
+        let mut encoding_info =
+            vec![EncodingInfo::new(0, vec![ContentEncoding::Gzip])];
+        let mut buf = BytesMut::new();
+        let decompression_struct = DecompressionStruct::new(
+            &[],
+            None,
+            &mut encoding_info,
+            (&mut buf).writer(),
+        );
+        assert!(!decompression_struct.is_encodings_empty());
     }
 }
