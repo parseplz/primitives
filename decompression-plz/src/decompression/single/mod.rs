@@ -12,10 +12,9 @@ pub fn decompress_single<R, W>(
     content_encoding: ContentEncoding,
 ) -> Result<u64, DecompressError>
 where
-    R: Read + AsRef<[u8]>,
+    R: Read,
     W: Write,
 {
-    let mut input = std::io::Cursor::new(input);
     match content_encoding {
         ContentEncoding::Brotli => decompress_brotli(input, writer),
         ContentEncoding::Compress | ContentEncoding::Zstd => {
