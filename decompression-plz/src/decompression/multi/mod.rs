@@ -21,11 +21,8 @@ pub fn decompress_multi(
 
     for (header_index, encoding_info) in encoding_info.iter().rev().enumerate()
     {
-        for (compression_index, encoding) in encoding_info
-            .encodings()
-            .iter()
-            .rev()
-            .enumerate()
+        for (compression_index, encoding) in
+            encoding_info.encodings().iter().rev().enumerate()
         {
             let curs = std::io::Cursor::new(&mut input);
             let result = decompress_single(curs, &mut writer, encoding);
@@ -245,10 +242,11 @@ mod tests {
     fn test_decompress_multi_error_corrupt_multi_header() {
         let mut buf = BytesMut::new();
         let mut writer = (&mut buf).writer();
-        let einfo_list = vec![
+        let mut einfo_list = vec![
             EncodingInfo::new(0, vec![ContentEncoding::Zstd]),
             EncodingInfo::new(4, vec![ContentEncoding::Brotli]),
         ];
+
         let result =
             decompress_multi(INPUT, &mut writer, &einfo_list).unwrap_err();
         assert!(matches!(result.reason, MultiDecompressErrorReason::Corrupt));

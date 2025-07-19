@@ -343,8 +343,7 @@ pub(crate) mod tests {
                 },
                 None => {
                     assert_eq!(state, ChunkReaderState::ReadChunk(14));
-                    cbuf.as_mut()
-                        .put_slice(remain.as_bytes());
+                    cbuf.as_mut().put_slice(remain.as_bytes());
                     continue;
                 }
             }

@@ -89,13 +89,7 @@ mod tests {
         let query = QueryKvPair::parse(raw_query, false).unwrap();
         assert_eq!(query.key.as_ref().unwrap(), "a");
         assert_eq!(query.val.as_ref().unwrap(), "b");
-        assert_eq!(
-            query
-                .into_data()
-                .unwrap()
-                .as_ptr_range(),
-            verify
-        );
+        assert_eq!(query.into_data().unwrap().as_ptr_range(), verify);
     }
 
     #[test]
@@ -105,13 +99,7 @@ mod tests {
         let query = QueryKvPair::parse(raw_query, false).unwrap();
         assert_eq!(query.key.as_ref().unwrap(), "a");
         assert_eq!(query.val, None);
-        assert_eq!(
-            query
-                .into_data()
-                .unwrap()
-                .as_ptr_range(),
-            verify
-        );
+        assert_eq!(query.into_data().unwrap().as_ptr_range(), verify);
     }
 
     #[test]
@@ -121,13 +109,7 @@ mod tests {
         let query = QueryKvPair::parse(raw_query, false).unwrap();
         assert_eq!(query.key, None);
         assert_eq!(query.val.as_ref().unwrap(), "b");
-        assert_eq!(
-            query
-                .into_data()
-                .unwrap()
-                .as_ptr_range(),
-            verify
-        );
+        assert_eq!(query.into_data().unwrap().as_ptr_range(), verify);
     }
 
     #[test]
@@ -137,13 +119,7 @@ mod tests {
         let query = QueryKvPair::parse(raw_query, false).unwrap();
         assert_eq!(query.key, None);
         assert_eq!(query.val.as_ref().unwrap(), "a");
-        assert_eq!(
-            query
-                .into_data()
-                .unwrap()
-                .as_ptr_range(),
-            verify
-        );
+        assert_eq!(query.into_data().unwrap().as_ptr_range(), verify);
     }
 
     #[test]
@@ -153,13 +129,7 @@ mod tests {
         let query = QueryKvPair::parse(raw_query, true).unwrap();
         assert_eq!(query.key.as_ref().unwrap(), "a");
         assert_eq!(query.val.as_ref().unwrap(), "b");
-        assert_eq!(
-            query
-                .into_data()
-                .unwrap()
-                .as_ptr_range(),
-            verify
-        );
+        assert_eq!(query.into_data().unwrap().as_ptr_range(), verify);
     }
 
     #[test]
@@ -169,13 +139,7 @@ mod tests {
         let query = QueryKvPair::parse(raw_query, true).unwrap();
         assert_eq!(query.key.as_ref().unwrap(), "a");
         assert_eq!(query.val, None);
-        assert_eq!(
-            query
-                .into_data()
-                .unwrap()
-                .as_ptr_range(),
-            verify
-        );
+        assert_eq!(query.into_data().unwrap().as_ptr_range(), verify);
     }
 
     #[test]
@@ -185,13 +149,7 @@ mod tests {
         let query = QueryKvPair::parse(raw_query, true).unwrap();
         assert_eq!(query.key, None);
         assert_eq!(query.val.as_ref().unwrap(), "b");
-        assert_eq!(
-            query
-                .into_data()
-                .unwrap()
-                .as_ptr_range(),
-            verify
-        );
+        assert_eq!(query.into_data().unwrap().as_ptr_range(), verify);
     }
 
     #[test]
@@ -201,13 +159,7 @@ mod tests {
         let query = QueryKvPair::parse(raw_query, true).unwrap();
         assert_eq!(query.key, None);
         assert_eq!(query.val.as_ref().unwrap(), "a");
-        assert_eq!(
-            query
-                .into_data()
-                .unwrap()
-                .as_ptr_range(),
-            verify
-        );
+        assert_eq!(query.into_data().unwrap().as_ptr_range(), verify);
     }
 
     #[test]
@@ -217,13 +169,7 @@ mod tests {
         let query = QueryKvPair::parse(raw, false).unwrap();
         assert!(query.key.is_none());
         assert!(query.val.is_none());
-        assert_eq!(
-            query
-                .into_data()
-                .unwrap()
-                .as_ptr_range(),
-            verify
-        );
+        assert_eq!(query.into_data().unwrap().as_ptr_range(), verify);
     }
 
     #[test]
@@ -233,12 +179,6 @@ mod tests {
         let query = QueryKvPair::parse(raw, false).unwrap();
         assert_eq!(query.key.as_ref().unwrap(), "a");
         assert_eq!(query.val.as_ref().unwrap(), "b=c");
-        assert_eq!(
-            query
-                .into_data()
-                .unwrap()
-                .as_ptr_range(),
-            verify
-        );
+        assert_eq!(query.into_data().unwrap().as_ptr_range(), verify);
     }
 }

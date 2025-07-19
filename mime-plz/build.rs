@@ -109,10 +109,6 @@ fn unique_across_vectors(vectors: Vec<Vec<&str>>) -> Vec<Vec<&str>> {
     let mut seen = HashSet::new();
     vectors
         .into_iter()
-        .map(|vec| {
-            vec.into_iter()
-                .filter(|&item| seen.insert(item))
-                .collect()
-        })
+        .map(|vec| vec.into_iter().filter(|&item| seen.insert(item)).collect())
         .collect()
 }

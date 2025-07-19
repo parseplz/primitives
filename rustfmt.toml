@@ -1,4 +1,4 @@
-chain_width = 40
+chain_width = 79
 edition = "2021"
 max_width = 79
 reorder_imports = true

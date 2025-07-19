@@ -23,10 +23,7 @@ impl Uri {
         let mut uri = Uri::default();
 
         // fragment
-        if let Some(index) = input
-            .iter()
-            .position(|&c| c == FRAGMENT)
-        {
+        if let Some(index) = input.iter().position(|&c| c == FRAGMENT) {
             uri.fragment = Some(input.split_off(index));
         }
 
@@ -80,13 +77,7 @@ mod tests {
         let verify = buf.as_ptr_range();
         let uri = Uri::parse(buf);
         assert_eq!(uri.path, "/");
-        let kv_pair = uri
-            .query
-            .as_ref()
-            .unwrap()
-            .kv_pair
-            .as_ref()
-            .unwrap();
+        let kv_pair = uri.query.as_ref().unwrap().kv_pair.as_ref().unwrap();
         assert_eq!(kv_pair[0].key, None);
         assert_eq!(kv_pair[0].val, Some("query".into()));
         assert_eq!(uri.into_data().as_ptr_range(), verify);
@@ -98,13 +89,7 @@ mod tests {
         let verify = buf.as_ptr_range();
         let uri = Uri::parse(buf);
         assert_eq!(uri.path, "/");
-        let kv_pair = uri
-            .query
-            .as_ref()
-            .unwrap()
-            .kv_pair
-            .as_ref()
-            .unwrap();
+        let kv_pair = uri.query.as_ref().unwrap().kv_pair.as_ref().unwrap();
         assert_eq!(kv_pair[0].key, Some("key".into()));
         assert_eq!(kv_pair[0].val, None);
         assert_eq!(uri.into_data().as_ptr_range(), verify);
@@ -116,13 +101,7 @@ mod tests {
         let verify = buf.as_ptr_range();
         let uri = Uri::parse(buf);
         assert_eq!(uri.path, "/");
-        let kv_pair = uri
-            .query
-            .as_ref()
-            .unwrap()
-            .kv_pair
-            .as_ref()
-            .unwrap();
+        let kv_pair = uri.query.as_ref().unwrap().kv_pair.as_ref().unwrap();
         assert_eq!(kv_pair[0].key, Some("key".into()));
         assert_eq!(kv_pair[0].val, Some("value".into()));
         assert_eq!(uri.into_data().as_ptr_range(), verify);
@@ -134,13 +113,7 @@ mod tests {
         let verify = buf.as_ptr_range();
         let uri = Uri::parse(buf);
         assert_eq!(uri.path, "/");
-        let kv_pair = uri
-            .query
-            .as_ref()
-            .unwrap()
-            .kv_pair
-            .as_ref()
-            .unwrap();
+        let kv_pair = uri.query.as_ref().unwrap().kv_pair.as_ref().unwrap();
         assert_eq!(kv_pair[0].key, Some("a".into()));
         assert_eq!(kv_pair[0].val, Some("b".into()));
         assert_eq!(kv_pair[1].key, Some("c".into()));
@@ -156,13 +129,7 @@ mod tests {
         let verify = buf.as_ptr_range();
         let uri = Uri::parse(buf);
         assert_eq!(uri.path, "/");
-        let kv_pair = uri
-            .query
-            .as_ref()
-            .unwrap()
-            .kv_pair
-            .as_ref()
-            .unwrap();
+        let kv_pair = uri.query.as_ref().unwrap().kv_pair.as_ref().unwrap();
         assert_eq!(kv_pair[0].key, Some("a".into()));
         assert_eq!(kv_pair[0].val, Some("b".into()));
         assert_eq!(uri.into_data().as_ptr_range(), verify);
@@ -174,13 +141,7 @@ mod tests {
         let verify = buf.as_ptr_range();
         let uri = Uri::parse(buf);
         assert_eq!(uri.path, "/");
-        let kv_pair = uri
-            .query
-            .as_ref()
-            .unwrap()
-            .kv_pair
-            .as_ref()
-            .unwrap();
+        let kv_pair = uri.query.as_ref().unwrap().kv_pair.as_ref().unwrap();
         assert_eq!(kv_pair[0].key, Some("a".into()));
         assert_eq!(kv_pair[0].val, Some("b".into()));
         assert_eq!(kv_pair[1].key, None);
@@ -197,13 +158,7 @@ mod tests {
         let verify = buf.as_ptr_range();
         let uri = Uri::parse(buf);
         assert_eq!(uri.path, "/");
-        let kv_pair = uri
-            .query
-            .as_ref()
-            .unwrap()
-            .kv_pair
-            .as_ref()
-            .unwrap();
+        let kv_pair = uri.query.as_ref().unwrap().kv_pair.as_ref().unwrap();
         assert_eq!(kv_pair[0].key, Some("a".into()));
         assert_eq!(kv_pair[0].val, Some("b".into()));
         assert_eq!(kv_pair[1].key, None);
@@ -219,13 +174,7 @@ mod tests {
         let verify = buf.as_ptr_range();
         let uri = Uri::parse(buf);
         assert_eq!(uri.path, "/");
-        let kv_pair = uri
-            .query
-            .as_ref()
-            .unwrap()
-            .kv_pair
-            .as_ref()
-            .unwrap();
+        let kv_pair = uri.query.as_ref().unwrap().kv_pair.as_ref().unwrap();
         assert_eq!(kv_pair[0].key, None);
         assert_eq!(kv_pair[0].val, Some("value".into()));
         assert_eq!(kv_pair[1].key, Some("key".into()));
@@ -240,13 +189,7 @@ mod tests {
         let verify = buf.as_ptr_range();
         let uri = Uri::parse(buf);
         assert_eq!(uri.path, "/");
-        let kv_pair = uri
-            .query
-            .as_ref()
-            .unwrap()
-            .kv_pair
-            .as_ref()
-            .unwrap();
+        let kv_pair = uri.query.as_ref().unwrap().kv_pair.as_ref().unwrap();
         assert_eq!(kv_pair[0].key, None);
         assert_eq!(kv_pair[0].val, Some("value".into()));
         assert_eq!(kv_pair[1].key, Some("key".into()));
@@ -260,13 +203,7 @@ mod tests {
         let verify = buf.as_ptr_range();
         let uri = Uri::parse(buf);
         assert_eq!(uri.path, "/");
-        let kv_pair = uri
-            .query
-            .as_ref()
-            .unwrap()
-            .kv_pair
-            .as_ref()
-            .unwrap();
+        let kv_pair = uri.query.as_ref().unwrap().kv_pair.as_ref().unwrap();
         assert_eq!(kv_pair[0].key, Some("a".into()));
         assert_eq!(kv_pair[0].val, Some("b".into()));
         assert_eq!(uri.into_data().as_ptr_range(), verify);
@@ -278,13 +215,7 @@ mod tests {
         let verify = buf.as_ptr_range();
         let uri = Uri::parse(buf);
         assert_eq!(uri.path, "/");
-        let kv_pair = uri
-            .query
-            .as_ref()
-            .unwrap()
-            .kv_pair
-            .as_ref()
-            .unwrap();
+        let kv_pair = uri.query.as_ref().unwrap().kv_pair.as_ref().unwrap();
         assert_eq!(kv_pair[0].key, Some("a".into()));
         assert_eq!(kv_pair[0].val, Some("b".into()));
         assert_eq!(kv_pair[1].key, Some("c".into()));

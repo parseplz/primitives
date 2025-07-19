@@ -24,9 +24,7 @@ impl From<BytesMut> for HeaderMap {
             input
         } else {
             // 2. If not valid, convert to valid utf8 string
-            String::from_utf8_lossy(&input)
-                .as_bytes()
-                .into()
+            String::from_utf8_lossy(&input).as_bytes().into()
         };
         let crlf = input.split_off(input.len() - 2);
         let mut header_vec = Vec::new();

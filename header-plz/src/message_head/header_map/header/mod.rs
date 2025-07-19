@@ -27,15 +27,10 @@ impl Header {
     }
 
     pub fn change_key(&mut self, key: &str) {
-        let ows = self
-            .key
-            .last()
-            .map(|b| *b == SP as u8)
-            .unwrap_or(false);
+        let ows = self.key.last().map(|b| *b == SP as u8).unwrap_or(false);
         reuse_or_swap(key.len() + ows as usize + 1, &mut self.key, key);
         if ows {
-            self.key
-                .extend_from_slice(HEADER_FS.as_bytes());
+            self.key.extend_from_slice(HEADER_FS.as_bytes());
         } else {
             self.key.put_u8(COLON as u8);
         }
@@ -43,26 +38,17 @@ impl Header {
 
     pub fn change_value(&mut self, value: &str) {
         reuse_or_swap(value.len() + 2, &mut self.value, value);
-        self.value
-            .extend_from_slice(CRLF.as_bytes());
+        self.value.extend_from_slice(CRLF.as_bytes());
     }
 
     // new() method checked whether it is a valid str
     // safe to unwrap
     pub fn key_as_str(&self) -> &str {
-        str::from_utf8(&self.key)
-            .unwrap()
-            .split(COLON)
-            .nth(0)
-            .unwrap()
+        str::from_utf8(&self.key).unwrap().split(COLON).nth(0).unwrap()
     }
 
     pub fn value_as_str(&self) -> &str {
-        str::from_utf8(&self.value)
-            .unwrap()
-            .split(CRLF)
-            .nth(0)
-            .unwrap()
+        str::from_utf8(&self.value).unwrap().split(CRLF).nth(0).unwrap()
     }
 
     pub fn len(&self) -> usize {

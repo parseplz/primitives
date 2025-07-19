@@ -17,13 +17,9 @@ impl From<&HeaderMap> for BodyHeader {
     #[inline(always)]
     fn from(header_map: &HeaderMap) -> BodyHeader {
         let mut bh = BodyHeader::default();
-        header_map
-            .headers()
-            .iter()
-            .enumerate()
-            .for_each(|(index, header)| {
-                parse_body_headers(&mut bh, index, header)
-            });
+        header_map.headers().iter().enumerate().for_each(|(index, header)| {
+            parse_body_headers(&mut bh, index, header)
+        });
 
         // if TransferType is Unknown, and if content_encoding or transfer_encoding
         // or content_type is present, then set TransferType to Close
@@ -45,17 +41,13 @@ pub fn parse_body_headers(bh: &mut BodyHeader, index: usize, header: &Header) {
         bh.update_transfer_type(transfer_type);
     } else if key.eq_ignore_ascii_case(TRANSFER_ENCODING) {
         let einfo = EncodingInfo::from((index, header.value_as_str()));
-        bh.transfer_encoding
-            .get_or_insert_with(Vec::new)
-            .push(einfo);
+        bh.transfer_encoding.get_or_insert_with(Vec::new).push(einfo);
         if bh.chunked_te_position().is_some() {
             bh.transfer_type = Some(TransferType::Chunked)
         }
     } else if key.eq_ignore_ascii_case(CONTENT_ENCODING) {
         let einfo = EncodingInfo::from((index, header.value_as_str()));
-        bh.content_encoding
-            .get_or_insert_with(Vec::new)
-            .push(einfo);
+        bh.content_encoding.get_or_insert_with(Vec::new).push(einfo);
     } else if key.eq_ignore_ascii_case(CONTENT_TYPE) {
         if let Some((main_type, _)) = header.value_as_str().split_once('/') {
             bh.content_type = Some(ContentType::from(main_type));

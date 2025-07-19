@@ -38,12 +38,7 @@ impl<'a> DecompressionStruct<'a> {
     }
 
     pub fn last_encoding(&self) -> &ContentEncoding {
-        self.encoding_info
-            .last()
-            .unwrap()
-            .encodings()
-            .last()
-            .unwrap()
+        self.encoding_info.last().unwrap().encodings().last().unwrap()
     }
 
     pub fn pop_last_encoding(&mut self) -> ContentEncoding {
@@ -72,6 +67,10 @@ impl<'a> DecompressionStruct<'a> {
         }
     }
 
+    pub fn len(&self) -> usize {
+        self.main.len() + self.extra.as_ref().map(|e| e.len()).unwrap_or(0)
+    }
+
     pub fn last_compression_index(&self) -> usize {
         let (last, rest) = self.encoding_info.split_last().unwrap();
         let target_encs = if !last.encodings().is_empty() {
@@ -90,15 +89,6 @@ impl<'a> DecompressionStruct<'a> {
 
     pub fn is_extra_compressed(&self) -> bool {
         is_compressed(self.extra(), self.last_encoding())
-    }
-
-    pub fn len(&self) -> usize {
-        self.main.len()
-            + self
-                .extra
-                .as_ref()
-                .map(|e| e.len())
-                .unwrap_or(0)
     }
 
     pub fn try_decompress_extra(
@@ -408,6 +398,7 @@ mod tests {
         assert_eq!(dstruct.len(), 20);
     }
 
+    // last_compression_index
     #[test]
     fn test_dstruct_last_compression_index_no_value() {
         let mut encoding_info = vec![EncodingInfo::new(0, vec![])];

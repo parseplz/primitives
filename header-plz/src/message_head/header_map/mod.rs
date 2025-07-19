@@ -79,8 +79,7 @@ impl HeaderMap {
         let (key, val) = Header::split_header(to_find_hdr);
         self.find_position_all(|h| {
             h.key_as_str().eq_ignore_ascii_case(key)
-                && h.value_as_str()
-                    .eq_ignore_ascii_case(val)
+                && h.value_as_str().eq_ignore_ascii_case(val)
         })
     }
 
@@ -88,8 +87,7 @@ impl HeaderMap {
         let (key, val) = Header::split_header(to_find_hdr);
         self.find_position(|h| {
             h.key_as_str().eq_ignore_ascii_case(key)
-                && h.value_as_str()
-                    .eq_ignore_ascii_case(val)
+                && h.value_as_str().eq_ignore_ascii_case(val)
         })
     }
 
@@ -259,12 +257,8 @@ impl HeaderMap {
             }
         }
 
-        self.headers[pos]
-            .value_as_mut()
-            .truncate(index);
-        self.headers[pos]
-            .value_as_mut()
-            .extend_from_slice(CRLF.as_bytes());
+        self.headers[pos].value_as_mut().truncate(index);
+        self.headers[pos].value_as_mut().extend_from_slice(CRLF.as_bytes());
     }
 
     // ---------- value
@@ -280,20 +274,13 @@ impl HeaderMap {
     // common
     pub fn has_key_and_value(&self, key: &str, value: &str) -> Option<usize> {
         self.headers.iter().position(|header| {
-            header
-                .key_as_str()
-                .eq_ignore_ascii_case(key)
-                && header
-                    .value_as_str()
-                    .eq_ignore_ascii_case(value)
+            header.key_as_str().eq_ignore_ascii_case(key)
+                && header.value_as_str().eq_ignore_ascii_case(value)
         })
     }
 
     pub fn len(&self) -> usize {
-        self.headers
-            .iter()
-            .fold(0, |total, entry| total + entry.len())
-            + 2
+        self.headers.iter().fold(0, |total, entry| total + entry.len()) + 2
     }
 }
 

@@ -35,18 +35,12 @@ mod test {
     #[test]
     fn test_get_content_type() {
         assert_eq!(
-            EXTENSION_MAP
-                .get("png")
-                .copied()
-                .unwrap(),
+            EXTENSION_MAP.get("png").copied().unwrap(),
             ContentType::Image
         );
 
         assert_eq!(
-            EXTENSION_MAP
-                .get("mp4")
-                .copied()
-                .unwrap(),
+            EXTENSION_MAP.get("mp4").copied().unwrap(),
             ContentType::Video
         );
 
