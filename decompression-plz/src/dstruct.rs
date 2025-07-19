@@ -114,35 +114,44 @@ impl<'a> DecompressionStruct<'a> {
         let last_encoding = self.pop_last_encoding();
         let mut chained = Cursor::new(self.main.as_ref())
             .chain(Cursor::new(self.extra.as_ref().unwrap().as_ref()));
-        dbg!(&chained);
-        let _ =
-            decompress_single(&mut chained, &mut self.writer, &last_encoding)
+
+        match last_encoding {
+            ContentEncoding::Deflate => {
+                let mut reader = flate2::read::ZlibDecoder::new(chained);
+                std::io::copy(&mut reader, &mut self.writer)?;
+                if reader.total_in() != self.len() as u64 {
+                    return Err(MultiDecompressError::deflate_corrupt());
+                }
+            }
+            _ => {
+                decompress_single(
+                    &mut chained,
+                    &mut self.writer,
+                    &last_encoding,
+                )
                 .map_err(|e| {
                     MultiDecompressError::new(
                         MultiDecompressErrorReason::Corrupt,
                         e,
                     )
                 })?;
-        let (main, extra) = chained.get_ref();
-        dbg!(main.position());
-        dbg!(extra.position());
+                let (_, extra_curs) = chained.get_ref();
+                if extra_curs.position() == 0 {
+                    return Err(MultiDecompressError::extra_raw());
+                }
+            }
+        };
 
-        let output = self.writer.get_mut().split();
-        //dbg!(&output);
-        //dbg!(&self.encoding_info);
-        //dbg!(&self.writer);
-        if self.is_encodings_empty() {
-            dbg!("empty");
-            Ok(output)
-        } else {
-            let result = decompress_multi(
+        let mut output = self.writer.get_mut().split();
+        if !self.is_encodings_empty() {
+            output = decompress_multi(
                 &output,
                 &mut self.writer,
                 &self.encoding_info,
             )?;
-            self.push_last_encoding(last_encoding);
-            Ok(result)
         }
+        self.push_last_encoding(last_encoding);
+        Ok(output)
     }
 }
 
