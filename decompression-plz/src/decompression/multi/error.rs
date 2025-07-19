@@ -19,6 +19,22 @@ impl MultiDecompressError {
             error,
         }
     }
+
+    pub fn deflate_corrupt() -> Self {
+        let e = std::io::Error::from(std::io::ErrorKind::InvalidData);
+        MultiDecompressError::new(
+            MultiDecompressErrorReason::Corrupt,
+            DecompressError::Deflate(e),
+        )
+    }
+
+    pub fn extra_raw() -> Self {
+        let e = std::io::Error::from(std::io::ErrorKind::InvalidData);
+        MultiDecompressError::new(
+            MultiDecompressErrorReason::ExtraRaw,
+            DecompressError::Copy(e),
+        )
+    }
 }
 
 impl From<std::io::Error> for MultiDecompressError {
@@ -42,4 +58,6 @@ pub enum MultiDecompressErrorReason {
     },
     #[error("Copy")]
     Copy,
+    #[error("ExtraRaw")]
+    ExtraRaw,
 }
