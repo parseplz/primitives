@@ -17,3 +17,6 @@ zstd = "0.13.3"
 thiserror = { workspace = true }
 bytes = { workspace = true }
 tracing = { workspace = true }
+
+[dev.dependencies]
+tracing-subscriber = { workspace = true }
