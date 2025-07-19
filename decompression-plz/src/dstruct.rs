@@ -72,6 +72,15 @@ impl<'a> DecompressionStruct<'a> {
         }
     }
 
+    pub fn last_compression_index(&self) -> usize {
+        self.encoding_info
+            .last()
+            .unwrap()
+            .encodings()
+            .len()
+            .saturating_sub(1)
+    }
+
     pub fn extra(&self) -> &[u8] {
         self.extra.as_ref().unwrap().as_ref()
     }
@@ -132,12 +141,31 @@ impl<'a> DecompressionStruct<'a> {
                 &output,
                 &mut self.writer,
                 &self.encoding_info,
-            )?;
+            )
+            .map_err(|e| {
+                self.push_last_encoding(last_encoding.clone());
+                if e.is_corrupt() {
+                    let header_index = self.encoding_info.len();
+                    let compression_index = self.last_compression_index();
+                    let partial_error = e.from_corrupt_to_partial(
+                        output,
+                        header_index,
+                        compression_index,
+                    );
+                    return partial_error;
+                }
+                e
+            })?;
         }
         self.push_last_encoding(last_encoding);
         Ok(output)
     }
 
+    // Errors:
+    //      1. Copy
+    //      2. Corrupt - Deflate
+    //      3. Corrupt - Others
+    //      4. ExtraRaw
     fn try_decompress_chain(
         mut input: std::io::Chain<Cursor<&[u8]>, Cursor<&[u8]>>,
         mut writer: &mut Writer<&mut BytesMut>,
