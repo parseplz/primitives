@@ -36,6 +36,29 @@ impl MultiDecompressError {
             DecompressError::Copy(e),
         )
     }
+
+    pub fn reason(&self) -> &MultiDecompressErrorReason {
+        &self.reason
+    }
+
+    pub fn is_corrupt(&self) -> bool {
+        matches!(self.reason, MultiDecompressErrorReason::Corrupt)
+    }
+
+    pub fn from_corrupt_to_partial(
+        mut self,
+        partial_body: BytesMut,
+        header_index: usize,
+        compression_index: usize,
+    ) -> Self {
+        let reason = MultiDecompressErrorReason::Partial {
+            partial_body,
+            header_index,
+            compression_index,
+        };
+        self.reason = reason;
+        self
+    }
 }
 
 impl From<std::io::Error> for MultiDecompressError {
@@ -44,6 +67,12 @@ impl From<std::io::Error> for MultiDecompressError {
             MultiDecompressErrorReason::Copy,
             DecompressError::Copy(e),
         )
+    }
+}
+
+impl From<MultiDecompressError> for DecompressError {
+    fn from(e: MultiDecompressError) -> Self {
+        e.error
     }
 }
 
