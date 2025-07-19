@@ -16,3 +16,4 @@ zstd = "0.13.3"
 # Workspace
 thiserror = { workspace = true }
 bytes = { workspace = true }
+tracing = { workspace = true }
