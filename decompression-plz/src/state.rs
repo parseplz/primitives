@@ -66,7 +66,7 @@ pub enum State<'a> {
     ExtraPlusMainTry(DecompressionStruct<'a>),
     ExtraRawMainTry(DecompressionStruct<'a>),
     // End
-    EndExtraRawMainDone(DecompressionStruct<'a>),
+    EndExtraRawMainDone(DecompressionStruct<'a>, BytesMut),
     EndMainPlusExtra(BytesMut),
     EndExtraMainSeparate(BytesMut, BytesMut),
 }
@@ -77,12 +77,12 @@ impl std::fmt::Debug for State<'_> {
             State::MainOnly(_) => write!(f, "MainOnly"),
             State::EndMainOnly(_) => write!(f, "EndMainOnly"),
             State::ExtraTry(_) => write!(f, "ExtraTry"),
-            State::ExtraDoneMainTry(_, _) => write!(f, "ExtraDoneMainTry"),
+            State::ExtraDoneMainTry(..) => write!(f, "ExtraDoneMainTry"),
             State::ExtraPlusMainTry(_) => write!(f, "ExtraPlusMainTry"),
             State::ExtraRawMainTry(_) => write!(f, "ExtraRawMainTry"),
-            State::EndExtraRawMainDone(_) => write!(f, "EndExtraRawMainDone"),
+            State::EndExtraRawMainDone(..) => write!(f, "EndExtraRawMainDone"),
             State::EndMainPlusExtra(_) => write!(f, "EndMainPlusExtra"),
-            State::EndExtraMainSeparate(_, _) => {
+            State::EndExtraMainSeparate(..) => {
                 write!(f, "EndExtraMainSeparate")
             }
         }
@@ -160,13 +160,14 @@ impl<'a> State<'a> {
              */
             State::ExtraRawMainTry(mut decompression_struct) => {
                 match decompression_struct.try_decompress_main() {
-                    Ok(main_decompressed) => {
-                        State::EndExtraRawMainDone(decompression_struct)
-                    }
+                    Ok(main_decompressed) => State::EndExtraRawMainDone(
+                        decompression_struct,
+                        main_decompressed,
+                    ),
                     Err(e) => return Err(e),
                 }
             }
-            State::EndExtraRawMainDone(decompression_struct) => todo!(),
+            State::EndExtraRawMainDone(..) => todo!(),
             State::EndMainOnly(_)
             | State::EndMainPlusExtra(_)
             | State::EndExtraMainSeparate(..) => {
