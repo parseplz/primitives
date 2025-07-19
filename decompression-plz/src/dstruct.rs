@@ -71,26 +71,21 @@ impl<'a> DecompressionStruct<'a> {
         }
     }
 
-    /*
-    pub fn is_encodings_empty(&self) -> bool {
-        let mut iter = self.encoding_info.iter().rev();
-        if iter
-            .next()
-            .unwrap()
-            .encodings()
-            .is_empty()
-        {
-            return iter.next().is_none();
-        }
-        false
-    }*/
-
     pub fn extra(&self) -> &[u8] {
         self.extra.as_ref().unwrap().as_ref()
     }
 
     pub fn is_extra_compressed(&self) -> bool {
         is_compressed(self.extra(), self.last_encoding())
+    }
+
+    pub fn len(&self) -> usize {
+        self.main.len()
+            + self
+                .extra
+                .as_ref()
+                .map(|e| e.len())
+                .unwrap_or(0)
     }
 
     pub fn try_decompress_extra(
