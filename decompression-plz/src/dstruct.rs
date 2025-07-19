@@ -152,12 +152,12 @@ impl<'a> DecompressionStruct<'a> {
             let mut reader = flate2::read::ZlibDecoder::new(input);
             std::io::copy(&mut reader, &mut writer)?;
             if reader.total_in() != len {
-                return Err(MultiDecompressError::deflate_corrupt());
+                return Err(MultiDecompressError::extra_raw());
             }
             return Ok(());
         }
         decompress_single(&mut input, &mut writer, &content_encoding)
-            .map_err(MultiDecompressError::corrupt)?;
+            .map_err(|_| MultiDecompressError::extra_raw())?;
         if let (_, extra_curs) = input.get_ref()
             && extra_curs.position() == 0
         {
@@ -175,8 +175,9 @@ impl<'a> DecompressionStruct<'a> {
             .map_err(|e| {
                 self.push_last_encoding(last_encoding);
                 if e.is_corrupt() {
-                    let header_index = self.encoding_info.len();
-                    let compression_index = self.last_compression_index();
+                    // when index = 0
+                    let header_index = self.encoding_info.len() - 1;
+                    let compression_index = self.last_compression_index() - 1;
                     let partial_error = e.from_corrupt_to_partial(
                         input,
                         header_index,
@@ -191,8 +192,13 @@ impl<'a> DecompressionStruct<'a> {
 
 #[cfg(test)]
 mod tests {
-    use crate::tests::{
-        all_encoding_info_multi_header, all_encoding_info_single_header,
+    use crate::{
+        decompression::single::error::DecompressError,
+        tests::{
+            INPUT, all_encoding_info_multi_header,
+            all_encoding_info_single_header, compress_brotli,
+            compress_deflate, compress_gzip, compress_zstd,
+        },
     };
 
     use super::*;
@@ -469,5 +475,133 @@ mod tests {
             (&mut buf).writer(),
         );
         assert_eq!(dstruct.last_compression_index(), 2);
+    }
+
+    // Main + Extra - errors
+    // try_decompress_chain
+    #[test]
+    fn test_dstruct_decompress_main_plus_extra_error_extra_raw_deflate() {
+        let mut compressed = compress_deflate(INPUT);
+        let mut encoding_info =
+            vec![EncodingInfo::new(0, vec![ContentEncoding::Deflate])];
+        let mut to_check_encoding_info = encoding_info.clone();
+        let mut buf = BytesMut::new();
+        let mut dstruct = DecompressionStruct::new(
+            compressed.as_ref(),
+            Some(&INPUT),
+            &mut encoding_info,
+            (&mut buf).writer(),
+        );
+
+        let result = dstruct.try_decompress_main_plus_extra();
+        if let Err(e) = result {
+            assert_eq!(e.reason, MultiDecompressErrorReason::ExtraRaw);
+            assert!(matches!(e.error, DecompressError::Copy(_)));
+            assert_eq!(dstruct.encoding_info, to_check_encoding_info);
+        } else {
+            panic!();
+        }
+    }
+
+    #[test]
+    fn test_dstruct_decompress_main_plus_extra_error_extra_raw_brotli() {
+        let mut compressed = compress_brotli(INPUT);
+        let mut encoding_info =
+            vec![EncodingInfo::new(0, vec![ContentEncoding::Brotli])];
+        let to_check_encoding_info = encoding_info.clone();
+        let mut buf = BytesMut::new();
+        let mut dstruct = DecompressionStruct::new(
+            compressed.as_ref(),
+            Some(&INPUT),
+            &mut encoding_info,
+            (&mut buf).writer(),
+        );
+        let result = dstruct.try_decompress_main_plus_extra();
+        if let Err(e) = result {
+            assert_eq!(e.reason, MultiDecompressErrorReason::ExtraRaw);
+            assert!(matches!(e.error, DecompressError::Copy(_)));
+            assert_eq!(dstruct.encoding_info, to_check_encoding_info);
+        } else {
+            panic!();
+        }
+    }
+
+    #[test]
+    fn test_dstruct_decompress_main_plus_extra_error_extra_raw_gzip() {
+        let mut compressed = compress_gzip(INPUT);
+        let mut encoding_info =
+            vec![EncodingInfo::new(0, vec![ContentEncoding::Gzip])];
+        let to_check_encoding_info = encoding_info.clone();
+        let mut buf = BytesMut::new();
+        let mut dstruct = DecompressionStruct::new(
+            compressed.as_ref(),
+            Some(&INPUT),
+            &mut encoding_info,
+            (&mut buf).writer(),
+        );
+        let result = dstruct.try_decompress_main_plus_extra();
+        if let Err(e) = result {
+            assert_eq!(e.reason, MultiDecompressErrorReason::ExtraRaw);
+            assert!(matches!(e.error, DecompressError::Copy(_)));
+            assert_eq!(dstruct.encoding_info, to_check_encoding_info);
+        } else {
+            panic!();
+        }
+    }
+
+    #[test]
+    fn test_dstruct_decompress_main_plus_extra_error_extra_raw_zstd() {
+        let mut compressed = compress_zstd(INPUT);
+        let mut encoding_info =
+            vec![EncodingInfo::new(0, vec![ContentEncoding::Zstd])];
+        let to_check_encoding_info = encoding_info.clone();
+        let mut buf = BytesMut::new();
+        let mut dstruct = DecompressionStruct::new(
+            compressed.as_ref(),
+            Some(&INPUT),
+            &mut encoding_info,
+            (&mut buf).writer(),
+        );
+        let result = dstruct.try_decompress_main_plus_extra();
+        if let Err(e) = result {
+            assert_eq!(e.reason, MultiDecompressErrorReason::ExtraRaw);
+            assert!(matches!(e.error, DecompressError::Copy(_)));
+            assert_eq!(dstruct.encoding_info, to_check_encoding_info);
+        } else {
+            panic!();
+        }
+    }
+
+    // try_decompress_chain
+    #[test]
+    fn test_dstruct_decompress_main_plus_extra_partial_error_two_values() {
+        let mut compressed = compress_brotli(INPUT);
+        let (first, second) = compressed.split_at(compressed.len() / 2);
+        let mut encoding_info = vec![EncodingInfo::new(
+            0,
+            vec![ContentEncoding::Deflate, ContentEncoding::Brotli],
+        )];
+        let to_check_encoding_info = encoding_info.clone();
+        let mut buf = BytesMut::new();
+        let mut dstruct = DecompressionStruct::new(
+            first.as_ref(),
+            Some(&second),
+            &mut encoding_info,
+            (&mut buf).writer(),
+        );
+        let result = dstruct.try_decompress_main_plus_extra();
+        if let Err(MultiDecompressError {
+            reason,
+            error,
+        }) = result
+        {
+            dbg!(reason);
+            dbg!(error);
+            //assert_eq!(e.reason, MultiDecompressErrorReason::ExtraRaw);
+            //assert!(matches!(e.error, DecompressError::Copy(_)));
+            //assert_eq!(dstruct.encoding_info, to_check_encoding_info);
+        } else {
+            panic!();
+        }
     }
 }
