@@ -158,11 +158,11 @@ impl<'a> State<'a> {
         Ok(next_state)
     }
 
-    fn ended(&self) -> bool {
+    fn is_ended(&self) -> bool {
         matches!(self, Self::EndMainOnly(_))
-            || matches!(self, Self::EndExtraRawMainDone(..))
-            || matches!(self, Self::EndExtraMainSeparate(..))
             || matches!(self, Self::EndMainPlusExtra(_))
+            || matches!(self, Self::EndExtraMainSeparate(..))
+            || matches!(self, Self::EndExtraRawMainDone(..))
     }
 }
 
@@ -187,7 +187,7 @@ pub fn runner<'a>(
     let mut state = State::start(main, extra, encodings, buf.writer());
     loop {
         state = state.try_next()?;
-        if state.ended() {
+        if state.is_ended() {
             return Ok(state);
         }
     }
@@ -211,7 +211,9 @@ mod tests {
             State::start(main, extra, encoding_info, (&mut buf).writer());
         assert!(matches!(state, State::MainOnly(_)));
 
-        match state.try_next().unwrap() {
+        state = state.try_next().unwrap();
+        assert!(state.is_ended());
+        match state {
             State::EndMainOnly(out) => {
                 assert_eq!(out, "hello world");
             }
@@ -262,8 +264,9 @@ mod tests {
 
         state = state.try_next().unwrap();
         assert!(matches!(state, State::ExtraPlusMainTry(_)));
-
-        match state.try_next().unwrap() {
+        state = state.try_next().unwrap();
+        assert!(state.is_ended());
+        match state {
             State::EndMainPlusExtra(val) => assert_eq!(val, "hello world"),
             _ => panic!(),
         }
@@ -305,7 +308,10 @@ mod tests {
             matches!(state, State::ExtraDoneMainTry(_, ref result) if result == INPUT)
         );
 
-        match state.try_next().unwrap() {
+        state = state.try_next().unwrap();
+        assert!(state.is_ended());
+
+        match state {
             State::EndExtraMainSeparate(main, extra) => {
                 assert_eq!(main, INPUT);
                 assert_eq!(extra, INPUT);
@@ -353,7 +359,7 @@ mod tests {
         state = state.try_next().unwrap();
         assert!(matches!(state, State::ExtraRawMainTry(_)));
         state = state.try_next().unwrap();
-        dbg!(&state);
+        assert!(state.is_ended());
         if let State::EndExtraRawMainDone(dstruct, result) = state {
             assert_eq!(result, INPUT);
             assert_eq!(dstruct.extra.unwrap(), b"extra");
