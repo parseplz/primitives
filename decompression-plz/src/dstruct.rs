@@ -1,9 +1,10 @@
-use std::io::{Cursor, Read};
+use std::io::{Cursor, Read, Write};
 
 use bytes::{BufMut, BytesMut, buf::Writer};
 use header_plz::body_headers::{
     content_encoding::ContentEncoding, encoding_info::EncodingInfo,
 };
+use tracing::{instrument, trace};
 
 use crate::decompression::{
     magic_bytes::is_compressed,
@@ -114,34 +115,17 @@ impl<'a> DecompressionStruct<'a> {
         let last_encoding = self.pop_last_encoding();
         let mut chained = Cursor::new(self.main.as_ref())
             .chain(Cursor::new(self.extra.as_ref().unwrap().as_ref()));
-
-        match last_encoding {
-            ContentEncoding::Deflate => {
-                let mut reader = flate2::read::ZlibDecoder::new(chained);
-                std::io::copy(&mut reader, &mut self.writer)?;
-                if reader.total_in() != self.len() as u64 {
-                    return Err(MultiDecompressError::deflate_corrupt());
-                }
-            }
-            _ => {
-                decompress_single(
-                    &mut chained,
-                    &mut self.writer,
-                    &last_encoding,
-                )
-                .map_err(|e| {
-                    MultiDecompressError::new(
-                        MultiDecompressErrorReason::Corrupt,
-                        e,
-                    )
-                })?;
-                let (_, extra_curs) = chained.get_ref();
-                if extra_curs.position() == 0 {
-                    return Err(MultiDecompressError::extra_raw());
-                }
-            }
-        };
-
+        let len = self.len() as u64;
+        let result = Self::decompress_chain(
+            chained,
+            &mut self.writer,
+            &last_encoding,
+            len,
+        );
+        if result.is_err() {
+            self.push_last_encoding(last_encoding);
+            return Err(result.unwrap_err());
+        }
         let mut output = self.writer.get_mut().split();
         if !self.is_encodings_empty() {
             output = decompress_multi(
@@ -152,6 +136,30 @@ impl<'a> DecompressionStruct<'a> {
         }
         self.push_last_encoding(last_encoding);
         Ok(output)
+    }
+
+    fn decompress_chain(
+        mut input: std::io::Chain<Cursor<&[u8]>, Cursor<&[u8]>>,
+        mut writer: &mut Writer<&mut BytesMut>,
+        content_encoding: &ContentEncoding,
+        len: u64,
+    ) -> Result<(), MultiDecompressError> {
+        if let ContentEncoding::Deflate = content_encoding {
+            let mut reader = flate2::read::ZlibDecoder::new(input);
+            std::io::copy(&mut reader, &mut writer)?;
+            if reader.total_in() != len {
+                return Err(MultiDecompressError::deflate_corrupt());
+            }
+            return Ok(());
+        }
+        decompress_single(&mut input, &mut writer, &content_encoding)
+            .map_err(MultiDecompressError::corrupt)?;
+        if let (_, extra_curs) = input.get_ref()
+            && extra_curs.position() == 0
+        {
+            return Err(MultiDecompressError::extra_raw());
+        }
+        Ok(())
     }
 }
 
