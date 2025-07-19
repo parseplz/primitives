@@ -76,6 +76,7 @@ impl From<MultiDecompressError> for DecompressError {
     }
 }
 
+#[cfg_attr(test, derive(PartialEq, Eq))]
 #[derive(Debug, Error)]
 pub enum MultiDecompressErrorReason {
     #[error("Corrupt")]
