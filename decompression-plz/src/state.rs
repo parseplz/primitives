@@ -12,26 +12,7 @@ use header_plz::body_headers::{
 };
 
 /*
-1. Main
-    true    => Main_decompressed + Extra_decompressed
-    false   => Err()
-
-2. Extra
-    true    => Main
-    false   => Main + Extra
-
-3. Main + Extra
-    true    => Main_and_Extra_decompressed
-    false   => Err()
-*/
-
-// 1. Try decompressing extra
-// 2. If success, try decompressing main
-// 2. If failed, try decompressing main + extra
-// 3. If failed, try decompressing main
-
-/*
-1. Extra part of Main. ie. compresssed together
+1. (Main + Extra) - compressed ie. compresssed together
 
     Compression | Result
     ------------|----------
@@ -46,13 +27,13 @@ use header_plz::body_headers::{
     gzip        | no error + main decompressed + extra no read
     zstd        | error + main read + extra read
 
-3. Main - compressed + Extra - compressed = separately compressed
+3. (Main - compressed) + (Extra - compressed) = compressed separately
 
     Compression | Result
     ------------|----------
-    brotli      | error + main decompressed + extra no read
-    deflate     | error + main decompressed + extra read
-    gzip        | error + main decompressed + extra no read
+    brotli      | main decompressed + extra no read
+    deflate     | main decompressed + extra read
+    gzip        | main decompressed + extra no read
     zstd        | success
 */
 
