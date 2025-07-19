@@ -148,8 +148,8 @@ impl<'a> State<'a> {
                     Err(e) => return Err(e),
                 }
             }
-            State::EndExtraRawMainDone(..) => todo!(),
             State::EndMainOnly(_)
+            | State::EndExtraRawMainDone(..)
             | State::EndMainPlusExtra(_)
             | State::EndExtraMainSeparate(..) => {
                 panic!("already ended")
@@ -160,6 +160,7 @@ impl<'a> State<'a> {
 
     fn ended(&self) -> bool {
         matches!(self, Self::EndMainOnly(_))
+            || matches!(self, Self::EndExtraRawMainDone(..))
             || matches!(self, Self::EndExtraMainSeparate(..))
             || matches!(self, Self::EndMainPlusExtra(_))
     }
