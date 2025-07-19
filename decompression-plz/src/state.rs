@@ -369,18 +369,38 @@ mod tests {
         state = state.try_next().unwrap();
         assert!(matches!(state, State::ExtraPlusMainTry(_)));
         state = state.try_next().unwrap();
+        assert!(matches!(state, State::ExtraRawMainTry(_)));
+        state = state.try_next().unwrap();
         dbg!(&state);
-        if let State::EndMainPlusExtra(main) = state {
-            dbg!(&main);
-            assert_eq!(main, "hello world");
+        if let State::EndExtraRawMainDone(dstruct, result) = state {
+            assert_eq!(result, INPUT);
+            assert_eq!(dstruct.extra.unwrap(), b"extra");
         }
-        // assert!(matches!(state, State::ExtraRawMainTry(_)));
+    }
+
+    fn build_single_compression(encoding: ContentEncoding) {
+        let main = single_compression(&encoding);
+        let mut info = vec![EncodingInfo::new(0, vec![encoding])];
+        assert_main_compressed_extra_raw_flow(&mut info, &main, b"extra");
     }
 
     #[test]
-    fn test_state_main_compressed_exra_raw_single_compression() {
-        let mut info = vec![EncodingInfo::new(0, vec![ContentEncoding::Gzip])];
-        let main = compress_gzip(b"Hello ");
-        assert_main_compressed_extra_raw_flow(&mut info, &main, b"world");
+    fn test_state_main_compressed_exra_raw_single_compression_gzip() {
+        build_single_compression(ContentEncoding::Gzip);
+    }
+
+    #[test]
+    fn test_state_main_compressed_exra_raw_single_compression_brotli() {
+        build_single_compression(ContentEncoding::Brotli);
+    }
+
+    #[test]
+    fn test_state_main_compressed_exra_raw_single_compression_deflate() {
+        build_single_compression(ContentEncoding::Deflate);
+    }
+
+    #[test]
+    fn test_state_main_compressed_exra_raw_single_compression_zstd() {
+        build_single_compression(ContentEncoding::Zstd);
     }
 }
