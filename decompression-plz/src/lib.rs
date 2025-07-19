@@ -68,6 +68,16 @@ pub mod tests {
         compress_zstd(&gzip_compressed)
     }
 
+    pub fn single_compression(encoding: &ContentEncoding) -> Vec<u8> {
+        match encoding {
+            ContentEncoding::Brotli => compress_brotli(INPUT),
+            ContentEncoding::Deflate => compress_deflate(INPUT),
+            ContentEncoding::Gzip => compress_gzip(INPUT),
+            ContentEncoding::Zstd => compress_zstd(INPUT),
+            _ => panic!(),
+        }
+    }
+
     pub fn all_encoding_info_multi_header() -> Vec<EncodingInfo> {
         vec![
             EncodingInfo::new(0, vec![ContentEncoding::Brotli]),
