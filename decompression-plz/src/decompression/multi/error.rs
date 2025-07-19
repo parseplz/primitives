@@ -20,12 +20,13 @@ impl MultiDecompressError {
         }
     }
 
+    pub fn corrupt(e: DecompressError) -> Self {
+        MultiDecompressError::new(MultiDecompressErrorReason::Corrupt, e)
+    }
+
     pub fn deflate_corrupt() -> Self {
         let e = std::io::Error::from(std::io::ErrorKind::InvalidData);
-        MultiDecompressError::new(
-            MultiDecompressErrorReason::Corrupt,
-            DecompressError::Deflate(e),
-        )
+        Self::corrupt(DecompressError::Deflate(e))
     }
 
     pub fn extra_raw() -> Self {
