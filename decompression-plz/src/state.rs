@@ -349,11 +349,10 @@ mod tests {
     fn assert_main_compressed_extra_raw_flow(
         enc_info: &mut Vec<EncodingInfo>,
         main: &[u8],
-        extra: &[u8],
     ) {
         let mut buf = BytesMut::new();
         let mut state =
-            State::start(main, Some(extra), enc_info, (&mut buf).writer());
+            State::start(main, Some(b"extra"), enc_info, (&mut buf).writer());
         state = state.try_next().unwrap();
         assert!(matches!(state, State::ExtraPlusMainTry(_)));
         state = state.try_next().unwrap();
@@ -369,7 +368,7 @@ mod tests {
     fn build_single_compression(encoding: ContentEncoding) {
         let main = single_compression(&encoding);
         let mut info = vec![EncodingInfo::new(0, vec![encoding])];
-        assert_main_compressed_extra_raw_flow(&mut info, &main, b"extra");
+        assert_main_compressed_extra_raw_flow(&mut info, &main);
     }
 
     #[test]
@@ -390,5 +389,19 @@ mod tests {
     #[test]
     fn test_state_main_compressed_exra_raw_single_compression_zstd() {
         build_single_compression(ContentEncoding::Zstd);
+    }
+
+    #[test]
+    fn test_state_main_compressed_exra_raw_multi_compression_single_header() {
+        let mut info = all_encoding_info_single_header();
+        let main = all_compressed_data();
+        assert_main_compressed_extra_raw_flow(&mut info, &main);
+    }
+
+    #[test]
+    fn test_state_main_compressed_exra_raw_multi_compression_multi_header() {
+        let mut info = all_encoding_info_multi_header();
+        let main = all_compressed_data();
+        assert_main_compressed_extra_raw_flow(&mut info, &main);
     }
 }
