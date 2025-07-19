@@ -331,4 +331,44 @@ mod tests {
         );
         assert!(!dstruct.is_encodings_empty());
     }
+
+    // len()
+    #[test]
+    fn test_dstruct_len_empty() {
+        let mut encoding_info = vec![];
+        let mut buf = BytesMut::new();
+        let dstruct = DecompressionStruct::new(
+            &[],
+            None,
+            &mut encoding_info,
+            (&mut buf).writer(),
+        );
+        assert_eq!(dstruct.len(), 0);
+    }
+
+    #[test]
+    fn test_dstruct_len_only_main() {
+        let mut encoding_info = vec![];
+        let mut buf = BytesMut::new();
+        let dstruct = DecompressionStruct::new(
+            &[1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+            None,
+            &mut encoding_info,
+            (&mut buf).writer(),
+        );
+        assert_eq!(dstruct.len(), 10);
+    }
+
+    #[test]
+    fn test_dstruct_len_main_and_extra() {
+        let mut encoding_info = vec![];
+        let mut buf = BytesMut::new();
+        let dstruct = DecompressionStruct::new(
+            &[1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+            Some(&[11, 12, 13, 14, 15, 16, 17, 18, 19, 20]),
+            &mut encoding_info,
+            (&mut buf).writer(),
+        );
+        assert_eq!(dstruct.len(), 20);
+    }
 }
