@@ -73,12 +73,15 @@ impl<'a> DecompressionStruct<'a> {
     }
 
     pub fn last_compression_index(&self) -> usize {
-        self.encoding_info
-            .last()
-            .unwrap()
-            .encodings()
-            .len()
-            .saturating_sub(1)
+        let (last, rest) = self.encoding_info.split_last().unwrap();
+        let target_encs = if !last.encodings().is_empty() {
+            last.encodings()
+        } else if let Some(last_before) = rest.last() {
+            last_before.encodings()
+        } else {
+            &[]
+        };
+        target_encs.len()
     }
 
     pub fn extra(&self) -> &[u8] {
@@ -403,5 +406,77 @@ mod tests {
             (&mut buf).writer(),
         );
         assert_eq!(dstruct.len(), 20);
+    }
+
+    #[test]
+    fn test_dstruct_last_compression_index_no_value() {
+        let mut encoding_info = vec![EncodingInfo::new(0, vec![])];
+        let mut buf = BytesMut::new();
+        let dstruct = DecompressionStruct::new(
+            &[],
+            None,
+            &mut encoding_info,
+            (&mut buf).writer(),
+        );
+        assert_eq!(dstruct.last_compression_index(), 0);
+    }
+
+    #[test]
+    fn test_dstruct_last_compression_index_sigle_value() {
+        let mut encoding_info =
+            vec![EncodingInfo::new(0, vec![ContentEncoding::Gzip])];
+        let mut buf = BytesMut::new();
+        let dstruct = DecompressionStruct::new(
+            &[],
+            None,
+            &mut encoding_info,
+            (&mut buf).writer(),
+        );
+        assert_eq!(dstruct.last_compression_index(), 1);
+    }
+
+    #[test]
+    fn test_dstruct_last_compression_index_multi_value_single_header() {
+        let mut encoding_info = all_encoding_info_single_header();
+        let mut buf = BytesMut::new();
+        let dstruct = DecompressionStruct::new(
+            &[],
+            None,
+            &mut encoding_info,
+            (&mut buf).writer(),
+        );
+        assert_eq!(dstruct.last_compression_index(), 5);
+    }
+
+    #[test]
+    fn test_dstruct_last_compression_index_multi_value_multi_header() {
+        let mut encoding_info = all_encoding_info_multi_header();
+        let mut buf = BytesMut::new();
+        let dstruct = DecompressionStruct::new(
+            &[],
+            None,
+            &mut encoding_info,
+            (&mut buf).writer(),
+        );
+        assert_eq!(dstruct.last_compression_index(), 1);
+    }
+
+    #[test]
+    fn test_dstruct_last_compression_index_last_empty() {
+        let mut encoding_info = vec![
+            EncodingInfo::new(
+                0,
+                vec![ContentEncoding::Gzip, ContentEncoding::Brotli],
+            ),
+            EncodingInfo::new(1, vec![]),
+        ];
+        let mut buf = BytesMut::new();
+        let dstruct = DecompressionStruct::new(
+            &[],
+            None,
+            &mut encoding_info,
+            (&mut buf).writer(),
+        );
+        assert_eq!(dstruct.last_compression_index(), 2);
     }
 }
