@@ -116,7 +116,7 @@ impl<'a> DecompressionStruct<'a> {
         let mut chained = Cursor::new(self.main.as_ref())
             .chain(Cursor::new(self.extra.as_ref().unwrap().as_ref()));
         let len = self.len() as u64;
-        let result = Self::decompress_chain(
+        let result = Self::try_decompress_chain(
             chained,
             &mut self.writer,
             &last_encoding,
@@ -138,7 +138,7 @@ impl<'a> DecompressionStruct<'a> {
         Ok(output)
     }
 
-    fn decompress_chain(
+    fn try_decompress_chain(
         mut input: std::io::Chain<Cursor<&[u8]>, Cursor<&[u8]>>,
         mut writer: &mut Writer<&mut BytesMut>,
         content_encoding: &ContentEncoding,
