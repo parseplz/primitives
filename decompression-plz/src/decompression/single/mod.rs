@@ -22,10 +22,9 @@ where
         }
         ContentEncoding::Deflate => decompress_deflate(input, writer),
         ContentEncoding::Gzip => decompress_gzip(input, writer),
-        ContentEncoding::Identity => {
+        ContentEncoding::Identity | ContentEncoding::Chunked => {
             copy(&mut input, &mut writer).map_err(DecompressError::Identity)
         }
-        ContentEncoding::Chunked => Ok(0),
         ContentEncoding::Unknown(e) => {
             Err(DecompressError::Unknown(e.to_string()))
         }
@@ -169,7 +168,7 @@ pub mod tests {
     #[test]
     fn test_basic_chunked() {
         let result = test_decompress(INPUT, ContentEncoding::Chunked);
-        assert_eq!(result.as_ref(), b"");
+        assert_eq!(result.as_ref(), INPUT);
     }
 
     #[test]
