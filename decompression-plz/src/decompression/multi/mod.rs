@@ -1,7 +1,9 @@
 use std::io::Read;
 
 use bytes::{BytesMut, buf::Writer};
-use header_plz::body_headers::encoding_info::EncodingInfo;
+use header_plz::body_headers::{
+    content_encoding::ContentEncoding, encoding_info::EncodingInfo,
+};
 
 use crate::{
     decompression::single::decompress_single,
@@ -27,6 +29,12 @@ where
             encoding_info.encodings().iter().rev().enumerate()
         {
             let curs = std::io::Cursor::new(&mut input);
+            if matches!(
+                encoding,
+                ContentEncoding::Identity | ContentEncoding::Chunked
+            ) {
+                continue;
+            }
             let result = decompress_single(curs, &mut writer, encoding);
             match result {
                 Ok(_) => {
