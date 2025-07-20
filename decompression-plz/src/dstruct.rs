@@ -76,6 +76,7 @@ impl<'a> DecompressionStruct<'a> {
         if !last.encodings().is_empty() {
             (0, last.encodings().len() - 1)
         } else if let Some(last_before) = rest.last() {
+            // always contains a encoding
             (1, last_before.encodings().len() - 1)
         } else {
             (0, 0)
@@ -437,7 +438,7 @@ mod tests {
     // Main + Extra - errors
     // try_decompress_chain
     #[test]
-    fn test_dstruct_decompress_main_plus_extra_error_extra_raw_all() {
+    fn test_dstruct_d_main_plus_extra_err_extra_raw_all() {
         for &(compress_fn, ref encoding) in &[
             (
                 compress_deflate as fn(&[u8]) -> Vec<u8>,
@@ -468,7 +469,7 @@ mod tests {
     }
 
     // try_decompress_remaining
-    fn assert_dstruct_decompress_main_plus_extra_partial_error(
+    fn assert_dstruct_d_main_plus_extra_partial_error(
         main: &[u8],
         extra: Option<&[u8]>,
         mut encoding_info: Vec<EncodingInfo>,
@@ -502,14 +503,15 @@ mod tests {
     }
 
     #[test]
-    fn test_dstruct_decompress_main_plus_extra_partial_error_two_values() {
+    fn test_dstruct_d_main_plus_extra_partial_err_corrupt_to_partial_two_values()
+     {
         let compressed = compress_brotli(INPUT);
         let (first, second) = compressed.split_at(compressed.len() / 2);
         let encoding_info = vec![EncodingInfo::new(
             0,
             vec![ContentEncoding::Deflate, ContentEncoding::Brotli],
         )];
-        assert_dstruct_decompress_main_plus_extra_partial_error(
+        assert_dstruct_d_main_plus_extra_partial_error(
             &first,
             Some(&second),
             encoding_info,
@@ -519,7 +521,8 @@ mod tests {
     }
 
     #[test]
-    fn test_dstruct_decompress_main_plus_extra_partial_error_three_values() {
+    fn test_dstruct_d_main_plus_extra_partial_err_corrupt_to_partial_three_values()
+     {
         let compressed = compress_brotli(INPUT);
         let (first, second) = compressed.split_at(compressed.len() / 2);
         let encoding_info = vec![EncodingInfo::new(
@@ -530,7 +533,7 @@ mod tests {
                 ContentEncoding::Brotli,
             ],
         )];
-        assert_dstruct_decompress_main_plus_extra_partial_error(
+        assert_dstruct_d_main_plus_extra_partial_error(
             &first,
             Some(&second),
             encoding_info,
@@ -540,11 +543,12 @@ mod tests {
     }
 
     #[test]
-    fn test_dstruct_decompress_main_plus_extra_partial_error_single_header() {
+    fn test_dstruct_d_main_plus_extra_partial_err_corrupt_to_partial_single_header()
+     {
         let compressed = compress_zstd(INPUT);
         let (first, second) = compressed.split_at(compressed.len() / 2);
         let encoding_info = all_encoding_info_single_header();
-        assert_dstruct_decompress_main_plus_extra_partial_error(
+        assert_dstruct_d_main_plus_extra_partial_error(
             &first,
             Some(&second),
             encoding_info,
@@ -554,11 +558,12 @@ mod tests {
     }
 
     #[test]
-    fn test_dstruct_decompress_main_plus_extra_partial_error_multi_header() {
+    fn test_dstruct_d_main_plus_extra_partial_err_corrupt_to_partial_multi_header()
+     {
         let compressed = compress_zstd(INPUT);
         let (first, second) = compressed.split_at(compressed.len() / 2);
         let encoding_info = all_encoding_info_multi_header();
-        assert_dstruct_decompress_main_plus_extra_partial_error(
+        assert_dstruct_d_main_plus_extra_partial_error(
             &first,
             Some(&second),
             encoding_info,
