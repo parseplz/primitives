@@ -3,7 +3,11 @@
 use bytes::BytesMut;
 use header_plz::body_headers::BodyHeader;
 
-use crate::state::runner;
+use crate::{
+    content_length::add_body_and_update_cl,
+    decompression::multi::error::MultiDecompressErrorReason, state::runner,
+};
+mod content_length;
 pub mod decompression;
 pub mod dstruct;
 pub mod dtraits;
@@ -31,7 +35,21 @@ where
             Ok(state) => {
                 (body, extra_body) = state.into();
             }
-            Err(e) => todo!(),
+            Err(e) => {
+                eprintln!("{:?}", e);
+                match e.reason {
+                    MultiDecompressErrorReason::Partial {
+                        partial_body,
+                        header_index,
+                        compression_index,
+                    } => {
+                        todo!()
+                    }
+                    _ => {
+                        return Ok(());
+                    }
+                }
+            }
         }
     }
 
@@ -45,9 +63,26 @@ where
             Ok(state) => {
                 (body, extra_body) = state.into();
             }
-            Err(e) => todo!(),
+            Err(e) => {
+                eprintln!("{:?}", e);
+                match e.reason {
+                    MultiDecompressErrorReason::Partial {
+                        partial_body,
+                        header_index,
+                        compression_index,
+                    } => {
+                        todo!()
+                    }
+                    _ => {
+                        return Ok(());
+                    }
+                }
+            }
         }
     }
+
+    //
+    add_body_and_update_cl(&mut message, body, body_headers);
     Ok(())
 }
 

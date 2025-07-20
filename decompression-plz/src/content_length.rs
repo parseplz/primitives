@@ -31,4 +31,3 @@ where
         None => message.add_header(CONTENT_LENGTH, len_string.as_str()),
     }
 }
-

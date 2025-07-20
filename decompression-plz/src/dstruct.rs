@@ -178,7 +178,6 @@ impl<'a> DecompressionStruct<'a> {
         decompress_multi(&input, &mut self.writer, iter).map_err(|e| {
             self.push_last_encoding(last_encoding);
             if e.is_corrupt() {
-                // when index = 0
                 let header_index = self.encoding_info.len() - 1;
                 let compression_index = self.last_compression_index() - 1;
                 let partial_error = e.from_corrupt_to_partial(
