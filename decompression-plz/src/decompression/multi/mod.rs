@@ -11,16 +11,18 @@ use crate::{
 pub mod error;
 use error::*;
 
-pub fn decompress_multi(
+pub fn decompress_multi<'a, T>(
     mut compressed: &[u8],
     mut writer: &mut Writer<&mut BytesMut>,
-    encoding_info: &[EncodingInfo],
-) -> Result<BytesMut, MultiDecompressError> {
+    encoding_info: T,
+) -> Result<BytesMut, MultiDecompressError>
+where
+    T: Iterator<Item = &'a EncodingInfo> + std::iter::DoubleEndedIterator,
+{
     let mut input: &[u8] = compressed;
     let mut output: BytesMut = writer.get_mut().split();
 
-    for (header_index, encoding_info) in encoding_info.iter().rev().enumerate()
-    {
+    for (header_index, encoding_info) in encoding_info.rev().enumerate() {
         for (compression_index, encoding) in
             encoding_info.encodings().iter().rev().enumerate()
         {
@@ -77,7 +79,8 @@ mod tests {
             ],
         )];
         let result =
-            decompress_multi(&input, &mut writer, &einfo_list).unwrap();
+            decompress_multi(&input, &mut writer, &mut einfo_list.iter())
+                .unwrap();
         assert_eq!(result, INPUT);
     }
 
@@ -95,7 +98,8 @@ mod tests {
         ];
 
         let result =
-            decompress_multi(&input, &mut writer, &einfo_list).unwrap();
+            decompress_multi(&input, &mut writer, &mut einfo_list.iter())
+                .unwrap();
         assert_eq!(result, INPUT);
     }
 
@@ -120,7 +124,8 @@ mod tests {
         ];
 
         let result =
-            decompress_multi(&input, &mut writer, &einfo_list).unwrap();
+            decompress_multi(&input, &mut writer, &mut einfo_list.iter())
+                .unwrap();
         assert_eq!(result, INPUT);
     }
 
@@ -134,7 +139,8 @@ mod tests {
             vec![ContentEncoding::Deflate, ContentEncoding::Brotli],
         )];
         let result =
-            decompress_multi(&input, &mut writer, &einfo_list).unwrap_err();
+            decompress_multi(&input, &mut writer, &mut einfo_list.iter())
+                .unwrap_err();
         if let MultiDecompressErrorReason::Partial {
             partial_body,
             header_index,
@@ -164,7 +170,8 @@ mod tests {
             ],
         )];
         let result =
-            decompress_multi(&input, &mut writer, &einfo_list).unwrap_err();
+            decompress_multi(&input, &mut writer, &mut einfo_list.iter())
+                .unwrap_err();
         if let MultiDecompressErrorReason::Partial {
             partial_body,
             header_index,
@@ -187,7 +194,8 @@ mod tests {
             EncodingInfo::new(4, vec![ContentEncoding::Brotli]),
         ];
         let result =
-            decompress_multi(&input, &mut writer, &einfo_list).unwrap_err();
+            decompress_multi(&input, &mut writer, &mut einfo_list.iter())
+                .unwrap_err();
         if let MultiDecompressErrorReason::Partial {
             partial_body,
             header_index,
@@ -214,7 +222,8 @@ mod tests {
             EncodingInfo::new(5, vec![ContentEncoding::Identity]),
         ];
         let result =
-            decompress_multi(&input, &mut writer, &einfo_list).unwrap_err();
+            decompress_multi(&input, &mut writer, &mut einfo_list.iter())
+                .unwrap_err();
         if let MultiDecompressErrorReason::Partial {
             partial_body,
             header_index,
@@ -234,7 +243,8 @@ mod tests {
         let einfo_list =
             vec![EncodingInfo::new(0, vec![ContentEncoding::Zstd])];
         let result =
-            decompress_multi(INPUT, &mut writer, &einfo_list).unwrap_err();
+            decompress_multi(INPUT, &mut writer, &mut einfo_list.iter())
+                .unwrap_err();
         assert!(matches!(result.reason, MultiDecompressErrorReason::Corrupt));
     }
 
@@ -248,7 +258,8 @@ mod tests {
         ];
 
         let result =
-            decompress_multi(INPUT, &mut writer, &einfo_list).unwrap_err();
+            decompress_multi(INPUT, &mut writer, &mut einfo_list.iter())
+                .unwrap_err();
         assert!(matches!(result.reason, MultiDecompressErrorReason::Corrupt));
     }
 }

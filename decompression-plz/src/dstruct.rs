@@ -97,7 +97,7 @@ impl<'a> DecompressionStruct<'a> {
         decompress_multi(
             self.extra.as_ref().unwrap().as_ref(),
             &mut self.writer,
-            &self.encoding_info,
+            &mut self.encoding_info.iter(),
         )
     }
 
@@ -107,7 +107,7 @@ impl<'a> DecompressionStruct<'a> {
         decompress_multi(
             self.main.as_ref(),
             &mut self.writer,
-            &self.encoding_info,
+            &mut self.encoding_info.iter(),
         )
     }
 
@@ -171,22 +171,25 @@ impl<'a> DecompressionStruct<'a> {
         mut input: BytesMut,
         last_encoding: ContentEncoding,
     ) -> Result<BytesMut, MultiDecompressError> {
-        decompress_multi(&input, &mut self.writer, &self.encoding_info)
-            .map_err(|e| {
-                self.push_last_encoding(last_encoding);
-                if e.is_corrupt() {
-                    // when index = 0
-                    let header_index = self.encoding_info.len() - 1;
-                    let compression_index = self.last_compression_index() - 1;
-                    let partial_error = e.from_corrupt_to_partial(
-                        input,
-                        header_index,
-                        compression_index,
-                    );
-                    return partial_error;
-                }
-                e
-            })
+        let iter = &mut self
+            .encoding_info
+            .iter()
+            .filter(|einfo| !einfo.encodings().is_empty());
+        decompress_multi(&input, &mut self.writer, iter).map_err(|e| {
+            self.push_last_encoding(last_encoding);
+            if e.is_corrupt() {
+                // when index = 0
+                let header_index = self.encoding_info.len() - 1;
+                let compression_index = self.last_compression_index() - 1;
+                let partial_error = e.from_corrupt_to_partial(
+                    input,
+                    header_index,
+                    compression_index,
+                );
+                return partial_error;
+            }
+            e
+        })
     }
 }
 
