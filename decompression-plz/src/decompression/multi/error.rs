@@ -45,6 +45,10 @@ impl MultiDecompressError {
         matches!(self.reason, MultiDecompressErrorReason::Corrupt)
     }
 
+    pub fn is_unknown_encoding(&self) -> bool {
+        matches!(self.error, DecompressError::Unknown(_))
+    }
+
     pub fn from_corrupt_to_partial(
         mut self,
         partial_body: BytesMut,
