@@ -71,16 +71,15 @@ impl<'a> DecompressionStruct<'a> {
         self.main.len() + self.extra.as_ref().map(|e| e.len()).unwrap_or(0)
     }
 
-    pub fn last_compression_index(&self) -> usize {
+    pub fn last_header_compression_index(&self) -> (usize, usize) {
         let (last, rest) = self.encoding_info.split_last().unwrap();
-        let target_encs = if !last.encodings().is_empty() {
-            last.encodings()
+        if !last.encodings().is_empty() {
+            (0, last.encodings().len() - 1)
         } else if let Some(last_before) = rest.last() {
-            last_before.encodings()
+            (1, last_before.encodings().len() - 1)
         } else {
-            &[]
-        };
-        target_encs.len()
+            (0, 0)
+        }
     }
 
     pub fn extra(&self) -> &[u8] {
@@ -137,11 +136,6 @@ impl<'a> DecompressionStruct<'a> {
         }
     }
 
-    // Errors:
-    //      1. Copy
-    //      2. Corrupt - Deflate
-    //      3. Corrupt - Others
-    //      4. ExtraRaw
     fn try_decompress_chain(
         mut input: std::io::Chain<Cursor<&[u8]>, Cursor<&[u8]>>,
         mut writer: &mut Writer<&mut BytesMut>,
@@ -176,18 +170,19 @@ impl<'a> DecompressionStruct<'a> {
             .iter()
             .filter(|einfo| !einfo.encodings().is_empty());
         decompress_multi(&input, &mut self.writer, iter).map_err(|e| {
-            self.push_last_encoding(last_encoding);
-            if e.is_corrupt() {
-                let header_index = self.encoding_info.len() - 1;
-                let compression_index = self.last_compression_index() - 1;
-                let partial_error = e.from_corrupt_to_partial(
+            let new_err = if e.is_corrupt() {
+                let (header_index, compression_index) =
+                    self.last_header_compression_index();
+                e.from_corrupt_to_partial(
                     input,
                     header_index,
                     compression_index,
-                );
-                return partial_error;
-            }
-            e
+                )
+            } else {
+                e
+            };
+            self.push_last_encoding(last_encoding);
+            new_err
         })
     }
 }
