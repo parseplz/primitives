@@ -13,10 +13,12 @@ use crate::{
     encoding_type::EncodingType,
 };
 mod content_length;
+mod decode_struct;
 pub mod decompression;
 pub mod dtraits;
 mod encoding_type;
 mod error;
+mod state;
 
 pub fn decompress<T>(
     mut message: T,
@@ -29,26 +31,8 @@ where
     let mut body = message.get_body().into_bytes().unwrap();
     let mut body_headers = message.body_headers_as_mut().take();
 
-    apply_encoding(
-        &mut message,
-        EncodingType::TransferEncoding,
-        body_headers.as_mut(),
-        &body,
-        extra_body.as_deref(),
-        buf,
-    );
-
-    apply_encoding(
-        &mut message,
-        EncodingType::ContentEncoding,
-        body_headers.as_mut(),
-        &body,
-        extra_body.as_deref(),
-        buf,
-    );
-
     //
-    add_body_and_update_cl(&mut message, body, body_headers);
+    add_body_and_update_cl(&mut message, body);
     Ok(())
 }
 

@@ -4,20 +4,18 @@ use header_plz::{body_headers::BodyHeader, const_headers::CONTENT_LENGTH};
 
 use crate::dtraits::DecompressTrait;
 
-pub fn add_body_and_update_cl<T>(
-    message: &mut T,
-    body: BytesMut,
-    body_headers: Option<BodyHeader>,
-) where
+pub fn add_body_and_update_cl<T>(message: &mut T, body: BytesMut)
+where
     T: DecompressTrait,
 {
     if !body.is_empty() {
         update_content_length(message, body.len());
     }
 
-    if let Some(bh) = body_headers {
-        message.body_headers_as_mut().replace(bh);
-    }
+    //if let Some(bh) = body_headers {
+    //    message.body_headers_as_mut().replace(bh);
+    //}
+
     message.set_body(Body::Raw(body));
 }
 
