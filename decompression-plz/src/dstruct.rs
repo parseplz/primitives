@@ -71,15 +71,22 @@ impl<'a> DecompressionStruct<'a> {
         self.main.len() + self.extra.as_ref().map(|e| e.len()).unwrap_or(0)
     }
 
+    /* pre - last encoding in last_encoding_info is popped
+     *
+     * last_encoding_info is empty
+     *          - vec![ vec![..], vec![] ]
+     *          - (1, 0)
+     *
+     * last_encoding_info not empty
+     *          - vec![ vec![..], vec![..] ]
+     *          - (0, 1)
+     */
     pub fn last_header_compression_index(&self) -> (usize, usize) {
         let (last, rest) = self.encoding_info.split_last().unwrap();
-        if !last.encodings().is_empty() {
-            (0, last.encodings().len() - 1)
-        } else if let Some(last_before) = rest.last() {
-            // always contains a encoding
-            (1, last_before.encodings().len() - 1)
+        if last.encodings().is_empty() {
+            (1, 0)
         } else {
-            (0, 0)
+            (0, 1)
         }
     }
 
@@ -166,25 +173,24 @@ impl<'a> DecompressionStruct<'a> {
         mut input: BytesMut,
         last_encoding: ContentEncoding,
     ) -> Result<BytesMut, MultiDecompressError> {
-        let iter = &mut self
-            .encoding_info
-            .iter()
-            .filter(|einfo| !einfo.encodings().is_empty());
-        decompress_multi(&input, &mut self.writer, iter).map_err(|e| {
-            let new_err = if e.is_corrupt() {
-                let (header_index, compression_index) =
-                    self.last_header_compression_index();
-                e.from_corrupt_to_partial(
-                    input,
-                    header_index,
-                    compression_index,
-                )
-            } else {
-                e
-            };
-            self.push_last_encoding(last_encoding);
-            new_err
-        })
+        let iter = &mut self.encoding_info.iter();
+        let result =
+            decompress_multi(&input, &mut self.writer, iter).map_err(|e| {
+                let new_err = if e.is_corrupt() {
+                    let (header_index, mut compression_index) =
+                        self.last_header_compression_index();
+                    e.from_corrupt_to_partial(
+                        input,
+                        header_index,
+                        compression_index,
+                    )
+                } else {
+                    e
+                };
+                new_err
+            });
+        self.push_last_encoding(last_encoding);
+        result
     }
 }
 
@@ -202,6 +208,7 @@ mod tests {
     use super::*;
 
     // last_encoding() + pop_last_encoding()
+    #[track_caller]
     fn assert_last_encoding(
         initial: Vec<EncodingInfo>,
         expected_last: ContentEncoding,
@@ -238,6 +245,7 @@ mod tests {
     }
 
     // push_last_encoding
+    #[track_caller]
     fn assert_push_last_encoding(
         initial: Vec<EncodingInfo>,
         push: ContentEncoding,
@@ -315,6 +323,7 @@ mod tests {
     }
 
     // is_encodings_empty
+    #[track_caller]
     fn assert_encodings_empty(
         mut encoding_info: Vec<EncodingInfo>,
         expect: bool,
@@ -352,6 +361,7 @@ mod tests {
     }
 
     // len()
+    #[track_caller]
     fn assert_len(main: &[u8], extra: Option<&[u8]>, expected: usize) {
         let mut encoding_info = Vec::new();
         let mut buf = BytesMut::new();
@@ -361,7 +371,7 @@ mod tests {
             &mut encoding_info,
             (&mut buf).writer(),
         );
-        assert_eq!(dstruct.len(), expected,);
+        assert_eq!(dstruct.len(), expected);
     }
 
     #[test]
@@ -380,6 +390,7 @@ mod tests {
     }
 
     // last_header_compression_index
+    #[track_caller]
     fn assert_last_header_compression_index(
         mut encoding_info: Vec<EncodingInfo>,
         expected: (usize, usize),
@@ -399,28 +410,22 @@ mod tests {
     }
 
     #[test]
-    fn test_dstruct_last_header_compression_index_no_value() {
-        let mut encoding_info = vec![EncodingInfo::new(0, vec![])];
-        assert_last_header_compression_index(encoding_info, (0, 0));
-    }
-
-    #[test]
     fn test_dstruct_last_header_compression_index_sigle_value() {
         let mut encoding_info =
             vec![EncodingInfo::new(0, vec![ContentEncoding::Gzip])];
-        assert_last_header_compression_index(encoding_info, (0, 0));
+        assert_last_header_compression_index(encoding_info, (0, 1));
     }
 
     #[test]
     fn test_dstruct_last_header_compression_index_multi_value_single_header() {
         let mut encoding_info = all_encoding_info_single_header();
-        assert_last_header_compression_index(encoding_info, (0, 4));
+        assert_last_header_compression_index(encoding_info, (0, 1));
     }
 
     #[test]
     fn test_dstruct_last_header_compression_index_multi_value_multi_header() {
         let mut encoding_info = all_encoding_info_multi_header();
-        assert_last_header_compression_index(encoding_info, (0, 0));
+        assert_last_header_compression_index(encoding_info, (0, 1));
     }
 
     #[test]
@@ -432,13 +437,12 @@ mod tests {
             ),
             EncodingInfo::new(1, vec![]),
         ];
-        assert_last_header_compression_index(encoding_info, (1, 1));
+        assert_last_header_compression_index(encoding_info, (1, 0));
     }
 
-    // Main + Extra - errors
-    // try_decompress_chain
+    // try_decompress_chain_errors
     #[test]
-    fn test_dstruct_d_main_plus_extra_err_extra_raw_all() {
+    fn test_dstruct_d_main_extra_err_extra_raw_all() {
         for &(compress_fn, ref encoding) in &[
             (
                 compress_deflate as fn(&[u8]) -> Vec<u8>,
@@ -469,7 +473,8 @@ mod tests {
     }
 
     // try_decompress_remaining
-    fn assert_dstruct_d_main_plus_extra_partial_err(
+    #[track_caller]
+    fn assert_dstruct_d_main_extra_partial_err(
         main: &[u8],
         extra: Option<&[u8]>,
         mut encoding_info: Vec<EncodingInfo>,
@@ -504,26 +509,25 @@ mod tests {
 
     // Corrupt error to Partial
     #[test]
-    fn test_dstruct_d_main_plus_extra_partial_err_corrupt_to_partial_two_values()
-     {
+    fn test_dstruct_d_main_extra_partial_err_corrupt_to_partial_two_values() {
         let compressed = compress_brotli(INPUT);
         let (first, second) = compressed.split_at(compressed.len() / 2);
         let encoding_info = vec![EncodingInfo::new(
             0,
             vec![ContentEncoding::Deflate, ContentEncoding::Brotli],
         )];
-        assert_dstruct_d_main_plus_extra_partial_err(
+        assert_dstruct_d_main_extra_partial_err(
             &first,
             Some(&second),
             encoding_info,
             0,
-            0,
+            1,
         );
     }
 
     #[test]
-    fn test_dstruct_d_main_plus_extra_partial_err_corrupt_to_partial_three_values()
-     {
+    fn test_dstruct_d_main_extra_partial_err_corrupt_to_partial_three_values()
+    {
         let compressed = compress_brotli(INPUT);
         let (first, second) = compressed.split_at(compressed.len() / 2);
         let encoding_info = vec![EncodingInfo::new(
@@ -534,7 +538,7 @@ mod tests {
                 ContentEncoding::Brotli,
             ],
         )];
-        assert_dstruct_d_main_plus_extra_partial_err(
+        assert_dstruct_d_main_extra_partial_err(
             &first,
             Some(&second),
             encoding_info,
@@ -544,27 +548,27 @@ mod tests {
     }
 
     #[test]
-    fn test_dstruct_d_main_plus_extra_partial_err_corrupt_to_partial_single_header()
-     {
+    fn test_dstruct_d_main_extra_partial_err_corrupt_to_partial_single_header()
+    {
         let compressed = compress_zstd(INPUT);
         let (first, second) = compressed.split_at(compressed.len() / 2);
         let encoding_info = all_encoding_info_single_header();
-        assert_dstruct_d_main_plus_extra_partial_err(
+        assert_dstruct_d_main_extra_partial_err(
             &first,
             Some(&second),
             encoding_info,
             0,
-            3,
+            1,
         );
     }
 
     #[test]
-    fn test_dstruct_d_main_plus_extra_partial_err_corrupt_to_partial_multi_header()
-     {
+    fn test_dstruct_d_main_extra_partial_err_corrupt_to_partial_multi_header()
+    {
         let compressed = compress_zstd(INPUT);
         let (first, second) = compressed.split_at(compressed.len() / 2);
         let encoding_info = all_encoding_info_multi_header();
-        assert_dstruct_d_main_plus_extra_partial_err(
+        assert_dstruct_d_main_extra_partial_err(
             &first,
             Some(&second),
             encoding_info,
@@ -580,7 +584,7 @@ mod tests {
     }
 
     #[test]
-    fn test_dstruct_d_main_plus_extra_partial_err_partial_three_values() {
+    fn test_dstruct_d_main_extra_partial_err_partial_three_values() {
         let compressed = compress_gzip_zstd();
         let (first, second) = compressed.split_at(compressed.len() / 2);
         let encoding_info = vec![EncodingInfo::new(
@@ -591,7 +595,7 @@ mod tests {
                 ContentEncoding::Zstd,
             ],
         )];
-        assert_dstruct_d_main_plus_extra_partial_err(
+        assert_dstruct_d_main_extra_partial_err(
             &first,
             Some(&second),
             encoding_info,
@@ -601,11 +605,11 @@ mod tests {
     }
 
     #[test]
-    fn test_dstruct_d_main_plus_extra_partial_err_partial_single_header() {
+    fn test_dstruct_d_main_extra_partial_err_partial_single_header() {
         let compressed = compress_gzip_zstd();
         let (first, second) = compressed.split_at(compressed.len() / 2);
         let encoding_info = all_encoding_info_single_header();
-        assert_dstruct_d_main_plus_extra_partial_err(
+        assert_dstruct_d_main_extra_partial_err(
             &first,
             Some(&second),
             encoding_info,
@@ -615,22 +619,21 @@ mod tests {
     }
 
     #[test]
-    fn test_dstruct_d_main_plus_extra_partial_err_partial_multi_header() {
+    fn test_dstruct_d_main_extra_partial_err_partial_multi_header() {
         let compressed = compress_gzip_zstd();
         let (first, second) = compressed.split_at(compressed.len() / 2);
         let encoding_info = all_encoding_info_multi_header();
-        assert_dstruct_d_main_plus_extra_partial_err(
+        assert_dstruct_d_main_extra_partial_err(
             &first,
             Some(&second),
             encoding_info,
-            2,
+            3,
             0,
         );
     }
 
     #[test]
-    fn test_dstruct_d_main_plus_extra_partial_err_partial_multi_header_mixed()
-    {
+    fn test_dstruct_d_main_extra_partial_err_partial_multi_header_mixed() {
         let compressed = compress_gzip_zstd();
         let (first, second) = compressed.split_at(compressed.len() / 2);
         let encoding_info = vec![
@@ -642,18 +645,17 @@ mod tests {
             ),
             EncodingInfo::new(3, vec![ContentEncoding::Zstd]),
         ];
-        assert_dstruct_d_main_plus_extra_partial_err(
+        assert_dstruct_d_main_extra_partial_err(
             &first,
             Some(&second),
             encoding_info,
-            1,
+            2,
             0,
         );
     }
 
     #[test]
-    fn test_dstruct_d_main_plus_extra_partial_err_partial_multi_header_mixed_two()
-     {
+    fn test_dstruct_d_main_extra_partial_err_partial_multi_header_mixed_two() {
         let compressed = compress_gzip_zstd();
         let (first, second) = compressed.split_at(compressed.len() / 2);
         let encoding_info = vec![
@@ -668,11 +670,11 @@ mod tests {
             ),
             EncodingInfo::new(3, vec![ContentEncoding::Zstd]),
         ];
-        assert_dstruct_d_main_plus_extra_partial_err(
+        assert_dstruct_d_main_extra_partial_err(
             &first,
             Some(&second),
             encoding_info,
-            0,
+            1,
             2,
         );
     }

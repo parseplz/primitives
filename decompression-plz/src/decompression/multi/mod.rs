@@ -33,6 +33,7 @@ where
                 encoding,
                 ContentEncoding::Identity | ContentEncoding::Chunked
             ) {
+                dbg!(compression_index);
                 continue;
             }
             let result = decompress_single(curs, &mut writer, encoding);
