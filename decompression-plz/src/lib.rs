@@ -10,13 +10,11 @@ use crate::{
         state::runner,
     },
     dtraits::DecompressTrait,
-    encoding_type::EncodingType,
 };
 mod content_length;
 mod decode_struct;
 pub mod decompression;
 pub mod dtraits;
-mod encoding_type;
 mod error;
 mod state;
 
@@ -33,26 +31,6 @@ where
 
     //
     add_body_and_update_cl(&mut message, body);
-    Ok(())
-}
-
-fn apply_encoding<T>(
-    message: &mut T,
-    encoding_type: EncodingType,
-    body_headers: Option<&mut BodyHeader>,
-    body: &[u8],
-    extra_body: Option<&[u8]>,
-    buf: &mut BytesMut,
-) -> Result<(), MultiDecompressError>
-where
-    T: DecompressTrait,
-{
-    if let Some(einfo_list) = encoding_type.encoding_info(body_headers) {
-        match runner(&body, extra_body.as_deref(), einfo_list, buf) {
-            Ok(_) => todo!(),
-            Err(_) => todo!(),
-        }
-    };
     Ok(())
 }
 

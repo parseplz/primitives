@@ -6,7 +6,6 @@ use crate::{
     decode_struct::DecodeStruct,
     decompression::{multi::error::MultiDecompressError, state::runner},
     dtraits::DecompressTrait,
-    encoding_type::EncodingType,
 };
 
 pub enum DecodeState<'a, T> {
