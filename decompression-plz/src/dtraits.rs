@@ -25,8 +25,6 @@ pub trait DecompressTrait {
 
     fn set_body(&mut self, body: Body);
 
-    //
-    //
     //fn remove_header_on_position(&mut self, position: usize); // depends - header_map_as_mut
     //
     //fn update_header_value_on_position(

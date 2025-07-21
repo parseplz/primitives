@@ -1,16 +1,22 @@
 #![allow(warnings, unused)]
 
 use bytes::BytesMut;
-use header_plz::body_headers::BodyHeader;
+use header_plz::body_headers::{BodyHeader, encoding_info::EncodingInfo};
 
 use crate::{
     content_length::add_body_and_update_cl,
-    decompression::multi::error::MultiDecompressErrorReason, state::runner,
+    decompression::multi::error::{
+        MultiDecompressError, MultiDecompressErrorReason,
+    },
+    dtraits::DecompressTrait,
+    encoding_type::EncodingType,
+    state::runner,
 };
 mod content_length;
 pub mod decompression;
 pub mod dstruct;
 pub mod dtraits;
+mod encoding_type;
 mod error;
 mod state;
 
@@ -20,69 +26,51 @@ pub fn decompress<T>(
     buf: &mut BytesMut,
 ) -> Result<(), error::DecompressErrorStruct>
 where
-    T: dtraits::DecompressTrait,
+    T: DecompressTrait,
 {
     let mut body = message.get_body().into_bytes().unwrap();
     let mut body_headers = message.body_headers_as_mut().take();
 
-    //
-    if let Some(BodyHeader {
-        transfer_encoding: Some(einfo_list),
-        ..
-    }) = body_headers.as_mut()
-    {
-        match runner(&body, extra_body.as_deref(), einfo_list, buf) {
-            Ok(state) => {
-                (body, extra_body) = state.into();
-            }
-            Err(e) => {
-                eprintln!("{:?}", e);
-                match e.reason {
-                    MultiDecompressErrorReason::Partial {
-                        partial_body,
-                        header_index,
-                        compression_index,
-                    } => {
-                        todo!()
-                    }
-                    _ => {
-                        return Ok(());
-                    }
-                }
-            }
-        }
-    }
+    apply_encoding(
+        &mut message,
+        EncodingType::TransferEncoding,
+        body_headers.as_mut(),
+        &body,
+        extra_body.as_deref(),
+        buf,
+    );
 
-    //
-    if let Some(BodyHeader {
-        content_encoding: Some(einfo_list),
-        ..
-    }) = body_headers.as_mut()
-    {
-        match runner(&body, extra_body.as_deref(), einfo_list, buf) {
-            Ok(state) => {
-                (body, extra_body) = state.into();
-            }
-            Err(e) => {
-                eprintln!("{:?}", e);
-                match e.reason {
-                    MultiDecompressErrorReason::Partial {
-                        partial_body,
-                        header_index,
-                        compression_index,
-                    } => {
-                        todo!()
-                    }
-                    _ => {
-                        return Ok(());
-                    }
-                }
-            }
-        }
-    }
+    apply_encoding(
+        &mut message,
+        EncodingType::ContentEncoding,
+        body_headers.as_mut(),
+        &body,
+        extra_body.as_deref(),
+        buf,
+    );
 
     //
     add_body_and_update_cl(&mut message, body, body_headers);
+    Ok(())
+}
+
+fn apply_encoding<T>(
+    message: &mut T,
+    encoding_type: EncodingType,
+    body_headers: Option<&mut BodyHeader>,
+    body: &[u8],
+    extra_body: Option<&[u8]>,
+    buf: &mut BytesMut,
+) -> Result<(), MultiDecompressError>
+where
+    T: DecompressTrait,
+{
+    if let Some(einfo_list) = encoding_type.encoding_info(body_headers) {
+        match runner(&body, extra_body.as_deref(), einfo_list, buf) {
+            Ok(_) => todo!(),
+            Err(_) => todo!(),
+        }
+    };
     Ok(())
 }
 
