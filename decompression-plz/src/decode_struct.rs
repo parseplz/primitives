@@ -1,5 +1,6 @@
 use bytes::BytesMut;
 use header_plz::body_headers::BodyHeader;
+use header_plz::body_headers::content_encoding::ContentEncoding;
 use header_plz::body_headers::encoding_info::EncodingInfo;
 
 use crate::decompression::multi::error::MultiDecompressError;
@@ -48,6 +49,27 @@ where
             .is_some()
     }
 
+    pub fn is_chunked_te_only(&self) -> bool {
+        self.body_headers
+            .as_ref()
+            .and_then(|bh| Some(bh.is_chunked_te_only()))
+            .unwrap_or(false)
+    }
+
+    pub fn is_identity_te_only(&self) -> bool {
+        self.body_headers
+            .as_ref()
+            .and_then(|bh| Some(bh.is_identity_te_only()))
+            .unwrap_or(false)
+    }
+
+    pub fn is_identity_ce_only(&self) -> bool {
+        self.body_headers
+            .as_ref()
+            .and_then(|bh| Some(bh.is_identity_ce_only()))
+            .unwrap_or(false)
+    }
+
     pub fn transfer_encoding(&mut self) -> Vec<EncodingInfo> {
         self.body_headers.as_mut().unwrap().transfer_encoding.take().unwrap()
     }
@@ -58,6 +80,10 @@ where
 
     pub fn extra_body_is_some(&self) -> bool {
         self.extra_body.is_some()
+    }
+
+    pub fn extra_body_is_none(&self) -> bool {
+        self.extra_body.is_none()
     }
 
     pub fn take_main_body(&mut self) -> BytesMut {
