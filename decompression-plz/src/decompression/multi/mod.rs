@@ -29,12 +29,6 @@ where
             encoding_info.encodings().iter().rev().enumerate()
         {
             let curs = std::io::Cursor::new(&mut input);
-            if matches!(
-                encoding,
-                ContentEncoding::Identity | ContentEncoding::Chunked
-            ) {
-                continue;
-            }
             let result = decompress_single(curs, &mut writer, encoding);
             match result {
                 Ok(_) => {

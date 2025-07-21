@@ -222,13 +222,28 @@ mod tests {
     }
 
     #[test]
-    fn test_state_main_only_single_compression() {
+    fn test_state_main_only_single_compression_brotli() {
         let mut info =
             vec![EncodingInfo::new(0, vec![ContentEncoding::Brotli])];
         let compressed = compress_brotli(INPUT);
         assert_main_only_finish_flow(&compressed, None, &mut info);
     }
 
+    #[test]
+    fn test_state_main_only_single_compression_chunked() {
+        let mut info =
+            vec![EncodingInfo::new(0, vec![ContentEncoding::Chunked])];
+        assert_main_only_finish_flow(INPUT, None, &mut info);
+    }
+
+    #[test]
+    fn test_state_main_only_single_compression_identity() {
+        let mut info =
+            vec![EncodingInfo::new(0, vec![ContentEncoding::Identity])];
+        assert_main_only_finish_flow(INPUT, None, &mut info);
+    }
+
+    #[test]
     #[test]
     fn test_state_main_only_multi_compression_single_header() {
         let mut info = all_encoding_info_single_header();
