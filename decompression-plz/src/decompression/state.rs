@@ -1,9 +1,9 @@
 use crate::{
     decompression::{
+        dstruct::DecompressionStruct,
         magic_bytes::is_compressed,
         multi::{decompress_multi, error::MultiDecompressError},
     },
-    dstruct::DecompressionStruct,
     error::DecompressErrorStruct,
 };
 use bytes::{BufMut, BytesMut, buf::Writer};

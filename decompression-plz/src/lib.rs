@@ -5,20 +5,18 @@ use header_plz::body_headers::{BodyHeader, encoding_info::EncodingInfo};
 
 use crate::{
     content_length::add_body_and_update_cl,
-    decompression::multi::error::{
-        MultiDecompressError, MultiDecompressErrorReason,
+    decompression::{
+        multi::error::{MultiDecompressError, MultiDecompressErrorReason},
+        state::runner,
     },
     dtraits::DecompressTrait,
     encoding_type::EncodingType,
-    state::runner,
 };
 mod content_length;
 pub mod decompression;
-pub mod dstruct;
 pub mod dtraits;
 mod encoding_type;
 mod error;
-mod state;
 
 pub fn decompress<T>(
     mut message: T,

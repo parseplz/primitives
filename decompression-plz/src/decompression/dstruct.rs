@@ -1,6 +1,6 @@
 use std::io::{Cursor, Read, Write};
 
-use bytes::{BufMut, BytesMut, buf::Writer};
+use bytes::{buf::Writer, BufMut, BytesMut};
 use header_plz::body_headers::{
     content_encoding::ContentEncoding, encoding_info::EncodingInfo,
 };
@@ -199,9 +199,9 @@ mod tests {
     use crate::{
         decompression::single::error::DecompressError,
         tests::{
-            INPUT, all_encoding_info_multi_header,
-            all_encoding_info_single_header, compress_brotli,
-            compress_deflate, compress_gzip, compress_zstd,
+            all_encoding_info_multi_header, all_encoding_info_single_header,
+            compress_brotli, compress_deflate, compress_gzip, compress_zstd,
+            INPUT,
         },
     };
 
