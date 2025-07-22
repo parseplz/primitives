@@ -5,8 +5,8 @@ edition = "2024"
 
 [dependencies]
 # Primitives
-header-plz = "0.0.24"
-body-plz = "0.0.29"
+header-plz = "0.0.25"
+body-plz = "0.0.30"
 
 # Compression
 brotli = "8.0.0"
