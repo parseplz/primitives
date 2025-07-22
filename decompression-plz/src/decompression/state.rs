@@ -1,10 +1,7 @@
-use crate::{
-    decompression::{
-        dstruct::DecompressionStruct,
-        magic_bytes::is_compressed,
-        multi::{decompress_multi, error::MultiDecompressError},
-    },
-    error::DecompressErrorStruct,
+use crate::decompression::{
+    dstruct::DecompressionStruct,
+    magic_bytes::is_compressed,
+    multi::{decompress_multi, error::MultiDecompressError},
 };
 use bytes::{BufMut, BytesMut, buf::Writer};
 use header_plz::body_headers::{

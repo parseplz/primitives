@@ -5,10 +5,7 @@ use header_plz::body_headers::{
     content_encoding::ContentEncoding, encoding_info::EncodingInfo,
 };
 
-use crate::{
-    decompression::single::decompress_single,
-    error::{DecompressErrorStruct, Reason},
-};
+use crate::decompression::single::decompress_single;
 
 pub mod error;
 use error::*;

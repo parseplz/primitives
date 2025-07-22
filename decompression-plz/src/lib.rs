@@ -15,14 +15,13 @@ mod content_length;
 mod decode_struct;
 pub mod decompression;
 pub mod dtraits;
-mod error;
 mod state;
 
 pub fn decompress<T>(
     mut message: T,
     mut extra_body: Option<BytesMut>,
     buf: &mut BytesMut,
-) -> Result<(), error::DecompressErrorStruct>
+) -> Result<(), MultiDecompressError>
 where
     T: DecompressTrait,
 {
