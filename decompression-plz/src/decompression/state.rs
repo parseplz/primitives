@@ -144,7 +144,6 @@ impl<'a> DecompressionState<'a> {
                             main_plus_extra_decompressed,
                         )
                     }
-                    // what if partially decompressed
                     Err(_) => DecompressionState::ExtraRawMainTry(
                         decompression_struct,
                     ),
