@@ -452,4 +452,33 @@ mod tests {
         let main = all_compressed_data();
         assert_main_compressed_extra_raw_flow(&mut info, &main);
     }
+
+    // State => BytesMut + Option<BytesMut>
+    #[test]
+    fn test_state_to_bytes_EndMainOnly() {
+        let state = DecompressionState::EndMainOnly(BytesMut::from(INPUT));
+        let (main, extra) = state.into();
+        assert_eq!(main, INPUT);
+        assert!(extra.is_none());
+    }
+
+    #[test]
+    fn test_state_to_bytes_EndMainPlusExtra() {
+        let state =
+            DecompressionState::EndMainPlusExtra(BytesMut::from(INPUT));
+        let (main, extra) = state.into();
+        assert_eq!(main, INPUT);
+        assert!(extra.is_none());
+    }
+
+    #[test]
+    fn test_state_to_bytes_EndExtraMainSeparate() {
+        let state = DecompressionState::EndExtraMainSeparate(
+            BytesMut::from(INPUT),
+            BytesMut::from(INPUT),
+        );
+        let (main, extra) = state.into();
+        assert_eq!(main, INPUT);
+        assert_eq!(extra.unwrap(), INPUT);
+    }
 }
