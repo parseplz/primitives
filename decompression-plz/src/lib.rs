@@ -7,9 +7,10 @@ use crate::{
     content_length::add_body_and_update_cl,
     decompression::{
         multi::error::{MultiDecompressError, MultiDecompressErrorReason},
-        state::runner,
+        state::decompression_runner,
     },
     dtraits::DecompressTrait,
+    state::DecodeState,
 };
 mod content_length;
 mod decode_struct;
@@ -21,16 +22,23 @@ pub fn decompress<T>(
     mut message: T,
     mut extra_body: Option<BytesMut>,
     buf: &mut BytesMut,
-) -> Result<(), MultiDecompressError>
+)
+//-> Result<(), MultiDecompressError>
 where
     T: DecompressTrait,
 {
     let mut body = message.get_body().into_bytes().unwrap();
     let mut body_headers = message.body_headers_as_mut().take();
 
-    //
-    add_body_and_update_cl(&mut message, body);
-    Ok(())
+    let mut state = DecodeState::init(&mut message, extra_body, buf);
+    loop {
+        state = state.try_next();
+        if state.is_ended() {
+            break;
+        }
+    }
+
+    // Ok(())
 }
 
 // helper function for tests

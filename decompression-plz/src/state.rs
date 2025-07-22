@@ -35,7 +35,7 @@ where
         Self::Start(decode_struct)
     }
 
-    fn try_next(self) -> Self {
+    pub fn try_next(self) -> Self {
         match self {
             DecodeState::Start(mut decode_struct) => {
                 if decode_struct.transfer_encoding_is_some() {
@@ -91,14 +91,14 @@ where
                 if let Some(extra) = decode_struct.take_extra_body() {
                     body.unsplit(extra);
                 }
-                add_body_and_update_cl(&mut decode_struct.message, body);
+                add_body_and_update_cl(decode_struct.message, body);
                 Self::End
             }
             DecodeState::End => Self::End,
         }
     }
 
-    fn is_ended(&self) -> bool {
+    pub fn is_ended(&self) -> bool {
         matches!(self, DecodeState::End)
     }
 }
@@ -110,7 +110,7 @@ fn apply_encoding<T>(
 where
     T: DecompressTrait,
 {
-    match runner(
+    match decompression_runner(
         &decode_struct.body,
         decode_struct.extra_body.as_deref(),
         encoding_info,
