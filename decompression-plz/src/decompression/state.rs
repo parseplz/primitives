@@ -199,7 +199,7 @@ impl<'a> From<DecompressionState<'a>> for (BytesMut, Option<BytesMut>) {
     }
 }
 
-pub fn runner<'a>(
+pub fn decompression_runner<'a>(
     main: &'a [u8],
     extra: Option<&'a [u8]>,
     encodings: &'a mut [EncodingInfo],
