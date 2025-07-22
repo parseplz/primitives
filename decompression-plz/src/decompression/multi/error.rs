@@ -96,3 +96,9 @@ pub enum MultiDecompressErrorReason {
     #[error("ExtraRaw")]
     ExtraRaw,
 }
+
+impl MultiDecompressErrorReason {
+    pub fn is_partial(&self) -> bool {
+        matches!(self, MultiDecompressErrorReason::Partial { .. })
+    }
+}
