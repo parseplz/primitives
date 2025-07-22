@@ -186,7 +186,8 @@ impl<'a> From<DecompressionState<'a>> for (BytesMut, Option<BytesMut>) {
     fn from(state: DecompressionState) -> Self {
         match state {
             DecompressionState::EndMainOnly(main)
-            | DecompressionState::EndMainPlusExtra(main) => (main, None),
+            | DecompressionState::EndMainPlusExtra(main)
+            | DecompressionState::EndExtraRawMainDone(_, main) => (main, None),
             DecompressionState::EndExtraMainSeparate(main, extra) => {
                 (main, Some(extra))
             }
@@ -466,6 +467,20 @@ mod tests {
     fn test_state_to_bytes_EndMainPlusExtra() {
         let state =
             DecompressionState::EndMainPlusExtra(BytesMut::from(INPUT));
+        let (main, extra) = state.into();
+        assert_eq!(main, INPUT);
+        assert!(extra.is_none());
+    }
+
+    #[test]
+    fn test_state_to_bytes_EndExtraRawMainDone() {
+        let mut buf = BytesMut::new();
+        let mut dstruct =
+            DecompressionStruct::new(&[], None, &mut [], (&mut buf).writer());
+        let state = DecompressionState::EndExtraRawMainDone(
+            dstruct,
+            BytesMut::from(INPUT),
+        );
         let (main, extra) = state.into();
         assert_eq!(main, INPUT);
         assert!(extra.is_none());
