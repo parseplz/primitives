@@ -1,12 +1,8 @@
 use crate::decompression::{
-    dstruct::DecompressionStruct,
-    magic_bytes::is_compressed,
-    multi::{decompress_multi, error::MultiDecompressError},
+    dstruct::DecompressionStruct, multi::error::MultiDecompressError,
 };
 use bytes::{BufMut, BytesMut, buf::Writer};
-use header_plz::body_headers::{
-    content_encoding::ContentEncoding, encoding_info::EncodingInfo,
-};
+use header_plz::body_headers::encoding_info::EncodingInfo;
 
 /*
 1. (Main + Extra) - compressed ie. compresssed together
@@ -219,6 +215,7 @@ pub fn decompression_runner<'a>(
 mod tests {
     use super::*;
     use bytes::BytesMut;
+    use header_plz::body_headers::content_encoding::ContentEncoding;
 
     use crate::tests::*;
 
@@ -269,7 +266,6 @@ mod tests {
         assert_main_only_finish_flow(INPUT, None, &mut info);
     }
 
-    #[test]
     #[test]
     fn test_state_main_only_multi_compression_single_header() {
         let mut info = all_encoding_info_single_header();

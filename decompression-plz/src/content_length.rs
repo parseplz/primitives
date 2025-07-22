@@ -1,6 +1,6 @@
 use body_plz::variants::Body;
 use bytes::BytesMut;
-use header_plz::{body_headers::BodyHeader, const_headers::CONTENT_LENGTH};
+use header_plz::const_headers::CONTENT_LENGTH;
 
 use crate::dtraits::DecompressTrait;
 

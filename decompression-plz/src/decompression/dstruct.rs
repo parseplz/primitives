@@ -1,17 +1,13 @@
-use std::io::{Cursor, Read, Write};
+use std::io::{Cursor, Read};
 
-use bytes::{BufMut, BytesMut, buf::Writer};
+use bytes::{BytesMut, buf::Writer};
 use header_plz::body_headers::{
     content_encoding::ContentEncoding, encoding_info::EncodingInfo,
 };
-use tracing::{instrument, trace};
 
 use crate::decompression::{
     magic_bytes::is_compressed,
-    multi::{
-        decompress_multi,
-        error::{MultiDecompressError, MultiDecompressErrorReason},
-    },
+    multi::{decompress_multi, error::MultiDecompressError},
     single::decompress_single,
 };
 
@@ -60,9 +56,7 @@ impl<'a> DecompressionStruct<'a> {
 
     pub fn is_encodings_empty(&self) -> bool {
         match self.encoding_info.split_last() {
-            Some((last, rest)) if rest.is_empty() => {
-                last.encodings().is_empty()
-            }
+            Some((last, [])) => last.encodings().is_empty(),
             _ => false,
         }
     }
@@ -82,7 +76,7 @@ impl<'a> DecompressionStruct<'a> {
      *          - (0, 1)
      */
     pub fn last_header_compression_index(&self) -> (usize, usize) {
-        let (last, rest) = self.encoding_info.split_last().unwrap();
+        let (last, _) = self.encoding_info.split_last().unwrap();
         if last.encodings().is_empty() {
             (1, 0)
         } else {
@@ -91,7 +85,7 @@ impl<'a> DecompressionStruct<'a> {
     }
 
     pub fn extra(&self) -> &[u8] {
-        self.extra.as_ref().unwrap().as_ref()
+        self.extra.as_ref().unwrap()
     }
 
     pub fn is_extra_compressed(&self) -> bool {
@@ -102,7 +96,7 @@ impl<'a> DecompressionStruct<'a> {
         &mut self,
     ) -> Result<BytesMut, MultiDecompressError> {
         decompress_multi(
-            self.extra.as_ref().unwrap().as_ref(),
+            self.extra.as_ref().unwrap(),
             &mut self.writer,
             &mut self.encoding_info.iter(),
         )
@@ -112,7 +106,7 @@ impl<'a> DecompressionStruct<'a> {
         &mut self,
     ) -> Result<BytesMut, MultiDecompressError> {
         decompress_multi(
-            self.main.as_ref(),
+            self.main,
             &mut self.writer,
             &mut self.encoding_info.iter(),
         )
@@ -122,8 +116,8 @@ impl<'a> DecompressionStruct<'a> {
         &mut self,
     ) -> Result<BytesMut, MultiDecompressError> {
         let last_encoding = self.pop_last_encoding();
-        let mut chained = Cursor::new(self.main.as_ref())
-            .chain(Cursor::new(self.extra.as_ref().unwrap().as_ref()));
+        let chained =
+            Cursor::new(self.main).chain(Cursor::new(self.extra.unwrap()));
         let len = self.len() as u64;
         let result = Self::try_decompress_chain(
             chained,
@@ -135,7 +129,7 @@ impl<'a> DecompressionStruct<'a> {
             self.push_last_encoding(last_encoding);
             return Err(result.unwrap_err());
         }
-        let mut output = self.writer.get_mut().split();
+        let output = self.writer.get_mut().split();
         if !self.is_encodings_empty() {
             self.try_decompress_chain_remaining(output, last_encoding)
         } else {
@@ -158,7 +152,7 @@ impl<'a> DecompressionStruct<'a> {
             }
             return Ok(());
         }
-        decompress_single(&mut input, &mut writer, &content_encoding)
+        decompress_single(&mut input, &mut writer, content_encoding)
             .map_err(|_| MultiDecompressError::extra_raw())?;
         if let (_, extra_curs) = input.get_ref()
             && extra_curs.position() == 0
@@ -170,14 +164,14 @@ impl<'a> DecompressionStruct<'a> {
 
     fn try_decompress_chain_remaining(
         &mut self,
-        mut input: BytesMut,
+        input: BytesMut,
         last_encoding: ContentEncoding,
     ) -> Result<BytesMut, MultiDecompressError> {
         let iter = &mut self.encoding_info.iter();
         let result =
             decompress_multi(&input, &mut self.writer, iter).map_err(|e| {
-                let new_err = if e.is_corrupt() {
-                    let (header_index, mut compression_index) =
+                if e.is_corrupt() {
+                    let (header_index, compression_index) =
                         self.last_header_compression_index();
                     e.from_corrupt_to_partial(
                         input,
@@ -186,8 +180,7 @@ impl<'a> DecompressionStruct<'a> {
                     )
                 } else {
                     e
-                };
-                new_err
+                }
             });
         self.push_last_encoding(last_encoding);
         result
@@ -196,6 +189,9 @@ impl<'a> DecompressionStruct<'a> {
 
 #[cfg(test)]
 mod tests {
+    use bytes::BufMut;
+
+    use crate::decompression::multi::error::MultiDecompressErrorReason;
     use crate::{
         decompression::single::error::DecompressError,
         tests::{

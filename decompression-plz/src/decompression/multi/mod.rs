@@ -1,9 +1,6 @@
-use std::io::Read;
 
 use bytes::{BytesMut, buf::Writer};
-use header_plz::body_headers::{
-    content_encoding::ContentEncoding, encoding_info::EncodingInfo,
-};
+use header_plz::body_headers::encoding_info::EncodingInfo;
 
 use crate::decompression::single::decompress_single;
 
@@ -11,7 +8,7 @@ pub mod error;
 use error::*;
 
 pub fn decompress_multi<'a, T>(
-    mut compressed: &[u8],
+    compressed: &[u8],
     mut writer: &mut Writer<&mut BytesMut>,
     encoding_info: T,
 ) -> Result<BytesMut, MultiDecompressError>

@@ -8,8 +8,7 @@ use crate::{
     content_length::add_body_and_update_cl,
     decode_struct::DecodeStruct,
     decompression::{
-        multi::error::{MultiDecompressError, MultiDecompressErrorReason},
-        state::decompression_runner,
+        multi::error::MultiDecompressErrorReason, state::decompression_runner,
     },
     dtraits::DecompressTrait,
 };
@@ -28,10 +27,10 @@ where
 {
     pub fn init(
         message: &'a mut T,
-        mut extra_body: Option<BytesMut>,
+        extra_body: Option<BytesMut>,
         buf: &'a mut BytesMut,
     ) -> Self {
-        let mut decode_struct = DecodeStruct::new(message, extra_body, buf);
+        let decode_struct = DecodeStruct::new(message, extra_body, buf);
         Self::Start(decode_struct)
     }
 
@@ -44,12 +43,10 @@ where
                 } else if decode_struct.content_encoding_is_some() {
                     let encodings = decode_struct.content_encoding();
                     Self::ContentEncoding(decode_struct, encodings)
+                } else if decode_struct.extra_body_is_some() {
+                    Self::UpdateContentLength(decode_struct)
                 } else {
-                    if decode_struct.extra_body_is_some() {
-                        Self::UpdateContentLength(decode_struct)
-                    } else {
-                        Self::End
-                    }
+                    Self::End
                 }
             }
             DecodeState::TransferEncoding(
@@ -63,7 +60,7 @@ where
                     }
                     Ok(()) => Self::UpdateContentLength(decode_struct),
                     Err(e) => {
-                        // TODO: removed chunked TE
+                        // TODO: remove chunked TE
                         error!("{}", e);
                         if e.is_partial() {
                             Self::UpdateContentLength(decode_struct)
@@ -105,7 +102,7 @@ where
 
 fn apply_encoding<T>(
     decode_struct: &mut DecodeStruct<T>,
-    encoding_info: &mut Vec<EncodingInfo>,
+    encoding_info: &mut [EncodingInfo],
 ) -> Result<(), MultiDecompressErrorReason>
 where
     T: DecompressTrait,
@@ -118,7 +115,12 @@ where
     ) {
         Ok(state) => {
             (decode_struct.body, decode_struct.extra_body) = state.into();
-            // TODO: remove applied headers
+            let iter = encoding_info.iter().map(|einfo| einfo.header_index);
+            // remove applied headers
+            decode_struct
+                .message
+                .header_map_as_mut()
+                .remove_header_multiple_positions(iter);
             Ok(())
         }
         Err(mut e) => {

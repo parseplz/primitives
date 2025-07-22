@@ -1,10 +1,7 @@
 use bytes::BytesMut;
 use header_plz::body_headers::BodyHeader;
-use header_plz::body_headers::content_encoding::ContentEncoding;
 use header_plz::body_headers::encoding_info::EncodingInfo;
 
-use crate::decompression::multi::error::MultiDecompressError;
-use crate::decompression::state::decompression_runner;
 use crate::dtraits::DecompressTrait;
 
 pub struct DecodeStruct<'a, T> {
@@ -20,12 +17,12 @@ where
     T: DecompressTrait,
 {
     pub fn new(
-        mut message: &'a mut T,
-        mut extra_body: Option<BytesMut>,
+        message: &'a mut T,
+        extra_body: Option<BytesMut>,
         buf: &'a mut BytesMut,
     ) -> Self {
-        let mut body = message.get_body().into_bytes().unwrap();
-        let mut body_headers = message.body_headers_as_mut().take();
+        let body = message.get_body().into_bytes().unwrap();
+        let body_headers = message.body_headers_as_mut().take();
         Self {
             message,
             body_headers,
@@ -51,22 +48,19 @@ where
 
     pub fn is_chunked_te_only(&self) -> bool {
         self.body_headers
-            .as_ref()
-            .and_then(|bh| Some(bh.is_chunked_te_only()))
+            .as_ref().map(|bh| bh.is_chunked_te_only())
             .unwrap_or(false)
     }
 
     pub fn is_identity_te_only(&self) -> bool {
         self.body_headers
-            .as_ref()
-            .and_then(|bh| Some(bh.is_identity_te_only()))
+            .as_ref().map(|bh| bh.is_identity_te_only())
             .unwrap_or(false)
     }
 
     pub fn is_identity_ce_only(&self) -> bool {
         self.body_headers
-            .as_ref()
-            .and_then(|bh| Some(bh.is_identity_ce_only()))
+            .as_ref().map(|bh| bh.is_identity_ce_only())
             .unwrap_or(false)
     }
 
