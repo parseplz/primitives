@@ -9,7 +9,7 @@ use crate::{
     decode_struct::DecodeStruct,
     decompression::{
         multi::error::{MultiDecompressError, MultiDecompressErrorReason},
-        state::runner,
+        state::decompression_runner,
     },
     dtraits::DecompressTrait,
 };
@@ -26,8 +26,8 @@ impl<'a, T> DecodeState<'a, T>
 where
     T: DecompressTrait + 'a,
 {
-    fn init(
-        mut message: T,
+    pub fn init(
+        message: &'a mut T,
         mut extra_body: Option<BytesMut>,
         buf: &'a mut BytesMut,
     ) -> Self {

@@ -4,11 +4,11 @@ use header_plz::body_headers::content_encoding::ContentEncoding;
 use header_plz::body_headers::encoding_info::EncodingInfo;
 
 use crate::decompression::multi::error::MultiDecompressError;
-use crate::decompression::state::runner;
+use crate::decompression::state::decompression_runner;
 use crate::dtraits::DecompressTrait;
 
 pub struct DecodeStruct<'a, T> {
-    pub message: T,
+    pub message: &'a mut T,
     pub body: BytesMut,
     pub extra_body: Option<BytesMut>,
     body_headers: Option<BodyHeader>,
@@ -20,7 +20,7 @@ where
     T: DecompressTrait,
 {
     pub fn new(
-        mut message: T,
+        mut message: &'a mut T,
         mut extra_body: Option<BytesMut>,
         buf: &'a mut BytesMut,
     ) -> Self {
