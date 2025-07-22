@@ -1,10 +1,16 @@
+use std::cmp::Ordering;
+
 use bytes::BytesMut;
 use header_plz::body_headers::encoding_info::EncodingInfo;
+use tracing::error;
 
 use crate::{
     content_length::add_body_and_update_cl,
     decode_struct::DecodeStruct,
-    decompression::{multi::error::MultiDecompressError, state::runner},
+    decompression::{
+        multi::error::{MultiDecompressError, MultiDecompressErrorReason},
+        state::runner,
+    },
     dtraits::DecompressTrait,
 };
 
@@ -50,22 +56,34 @@ where
                 mut decode_struct,
                 mut encoding_infos,
             ) => {
-                let result =
-                    apply_encoding(&mut decode_struct, &mut encoding_infos);
-                if decode_struct.content_encoding_is_some() {
-                    let encodings = decode_struct.content_encoding();
-                    Self::ContentEncoding(decode_struct, encodings)
-                } else {
-                    Self::UpdateContentLength(decode_struct)
+                match apply_encoding(&mut decode_struct, &mut encoding_infos) {
+                    Ok(()) if decode_struct.content_encoding_is_some() => {
+                        let encodings = decode_struct.content_encoding();
+                        Self::ContentEncoding(decode_struct, encodings)
+                    }
+                    Ok(()) => Self::UpdateContentLength(decode_struct),
+                    Err(e) => {
+                        // TODO: removed chunked TE
+                        error!("{}", e);
+                        if e.is_partial() {
+                            Self::UpdateContentLength(decode_struct)
+                        } else {
+                            Self::End
+                        }
+                    }
                 }
             }
             DecodeState::ContentEncoding(
                 mut decode_struct,
                 mut encoding_infos,
             ) => {
-                let result =
-                    apply_encoding(&mut decode_struct, &mut encoding_infos);
-
+                match apply_encoding(&mut decode_struct, &mut encoding_infos) {
+                    Err(e) if !e.is_partial() => {
+                        error!("{}", e);
+                        return Self::End;
+                    }
+                    _ => {}
+                }
                 Self::UpdateContentLength(decode_struct)
             }
             DecodeState::UpdateContentLength(mut decode_struct) => {
@@ -88,7 +106,7 @@ where
 fn apply_encoding<T>(
     decode_struct: &mut DecodeStruct<T>,
     encoding_info: &mut Vec<EncodingInfo>,
-) -> Result<(), MultiDecompressError>
+) -> Result<(), MultiDecompressErrorReason>
 where
     T: DecompressTrait,
 {
@@ -99,11 +117,45 @@ where
         decode_struct.buf,
     ) {
         Ok(state) => {
-            let (main, extra) = state.into();
-            decode_struct.body = main;
-            decode_struct.extra_body = extra;
+            (decode_struct.body, decode_struct.extra_body) = state.into();
+            // TODO: remove applied headers
             Ok(())
         }
-        Err(e) => todo!(),
+        Err(mut e) => {
+            if let MultiDecompressErrorReason::Partial {
+                ref mut partial_body,
+                header_index,
+                compression_index,
+            } = e.reason
+            {
+                decode_struct.body = partial_body.split();
+                decode_struct.extra_body = None;
+                for einfo in encoding_info.iter().rev() {
+                    match einfo.header_index.cmp(&header_index) {
+                        Ordering::Less | Ordering::Equal => {
+                            let last_failed = einfo
+                                .encodings()
+                                .iter()
+                                .rev()
+                                .nth(compression_index)
+                                .unwrap();
+                            decode_struct
+                                .message
+                                .truncate_header_value_on_position(
+                                    einfo.header_index,
+                                    last_failed,
+                                );
+                            break;
+                        }
+                        Ordering::Greater => {
+                            decode_struct
+                                .message
+                                .remove_header_on_position(einfo.header_index);
+                        }
+                    }
+                }
+            }
+            Err(e.reason)
+        }
     }
 }
