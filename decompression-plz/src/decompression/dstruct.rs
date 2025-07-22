@@ -120,7 +120,7 @@ impl<'a> DecompressionStruct<'a> {
         let chained =
             Cursor::new(self.main).chain(Cursor::new(self.extra.unwrap()));
         let len = self.len() as u64;
-        let result = Self::try_decompress_chain(
+        let result = Self::try_decompress_chain_first(
             chained,
             &mut self.writer,
             &last_encoding,
@@ -132,14 +132,14 @@ impl<'a> DecompressionStruct<'a> {
         }
         let output = self.writer.get_mut().split();
         if !self.is_encodings_empty() {
-            self.try_decompress_chain_remaining(output, last_encoding)
+            self.try_decompress_chain_continue(output, last_encoding)
         } else {
             self.push_last_encoding(last_encoding);
             Ok(output)
         }
     }
 
-    fn try_decompress_chain(
+    fn try_decompress_chain_first(
         mut input: std::io::Chain<Cursor<&[u8]>, Cursor<&[u8]>>,
         mut writer: &mut Writer<&mut BytesMut>,
         content_encoding: &ContentEncoding,
@@ -162,7 +162,7 @@ impl<'a> DecompressionStruct<'a> {
         Ok(())
     }
 
-    fn try_decompress_chain_remaining(
+    fn try_decompress_chain_continue(
         &mut self,
         input: BytesMut,
         last_encoding: ContentEncoding,
@@ -468,7 +468,7 @@ mod tests {
         }
     }
 
-    // try_decompress_remaining
+    // try_decompress_continue
     #[track_caller]
     fn assert_dstruct_d_main_extra_partial_err(
         main: &[u8],

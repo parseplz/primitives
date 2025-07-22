@@ -1,4 +1,3 @@
-
 pub mod magic_bytes;
 
 pub mod dstruct;
