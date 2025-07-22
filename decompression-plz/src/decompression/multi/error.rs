@@ -29,14 +29,6 @@ impl MultiDecompressError {
         Self::corrupt(DecompressError::Deflate(e))
     }
 
-    pub fn extra_raw() -> Self {
-        let e = std::io::Error::from(std::io::ErrorKind::InvalidData);
-        MultiDecompressError::new(
-            MultiDecompressErrorReason::ExtraRaw,
-            DecompressError::Copy(e),
-        )
-    }
-
     pub fn reason(&self) -> &MultiDecompressErrorReason {
         &self.reason
     }
@@ -80,6 +72,12 @@ impl From<MultiDecompressError> for DecompressError {
     }
 }
 
+impl From<DecompressError> for MultiDecompressError {
+    fn from(e: DecompressError) -> Self {
+        MultiDecompressError::new(MultiDecompressErrorReason::Corrupt, e)
+    }
+}
+
 #[cfg_attr(test, derive(PartialEq, Eq))]
 #[derive(Debug, Error)]
 pub enum MultiDecompressErrorReason {
@@ -93,8 +91,6 @@ pub enum MultiDecompressErrorReason {
     },
     #[error("Copy")]
     Copy,
-    #[error("ExtraRaw")]
-    ExtraRaw,
 }
 
 impl MultiDecompressErrorReason {

@@ -8,7 +8,7 @@ use header_plz::body_headers::{
 use crate::decompression::{
     magic_bytes::is_compressed,
     multi::{decompress_multi, error::MultiDecompressError},
-    single::decompress_single,
+    single::{decompress_single, error::DecompressError},
 };
 
 pub struct DecompressionStruct<'a> {
@@ -128,7 +128,7 @@ impl<'a> DecompressionStruct<'a> {
         );
         if let Err(e) = result {
             self.push_last_encoding(last_encoding);
-            return Err(e);
+            return Err(e.into());
         }
         let output = self.writer.get_mut().split();
         if !self.is_encodings_empty() {
@@ -144,20 +144,22 @@ impl<'a> DecompressionStruct<'a> {
         mut writer: &mut Writer<&mut BytesMut>,
         content_encoding: &ContentEncoding,
         len: u64,
-    ) -> Result<(), MultiDecompressError> {
+    ) -> Result<(), DecompressError> {
         if let ContentEncoding::Deflate = content_encoding {
             let mut reader = flate2::read::ZlibDecoder::new(input);
-            std::io::copy(&mut reader, &mut writer)?;
+            std::io::copy(&mut reader, &mut writer)
+                .map_err(DecompressError::Copy)?;
             if reader.total_in() != len {
-                return Err(MultiDecompressError::extra_raw());
+                return Err(DecompressError::deflate());
             }
             return Ok(());
         }
-        decompress_single(&mut input, &mut writer, content_encoding)
-            .map_err(|_| MultiDecompressError::extra_raw())?;
+        // others
+        decompress_single(&mut input, &mut writer, content_encoding)?;
         let (_, extra_curs) = input.get_ref();
+        // brotli
         if extra_curs.position() == 0 {
-            return Err(MultiDecompressError::extra_raw());
+            return Err(DecompressError::extra_raw(content_encoding.clone()));
         }
         Ok(())
     }
@@ -462,8 +464,16 @@ mod tests {
 
             let err = ds.try_decompress_main_plus_extra().unwrap_err();
 
-            assert_eq!(err.reason, MultiDecompressErrorReason::ExtraRaw);
-            assert!(matches!(err.error, DecompressError::Copy(_)));
+            assert_eq!(err.reason, MultiDecompressErrorReason::Corrupt);
+            match encoding {
+                ContentEncoding::Zstd => {
+                    assert!(matches!(err.error, DecompressError::Zstd(_)))
+                }
+                _ => {
+                    assert!(matches!(err.error, DecompressError::ExtraRaw(_)))
+                }
+            }
+
             assert_eq!(ds.encoding_info, original_info);
         }
     }

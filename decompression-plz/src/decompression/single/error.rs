@@ -1,3 +1,4 @@
+use header_plz::body_headers::content_encoding::ContentEncoding;
 use std::io::Error;
 use thiserror::Error;
 
@@ -18,4 +19,17 @@ pub enum DecompressError {
     Identity(Error),
     #[error("unknown| {0}")]
     Unknown(String),
+
+    #[error("extra raw")]
+    ExtraRaw(ContentEncoding),
+}
+
+impl DecompressError {
+    pub fn deflate() -> Self {
+        DecompressError::ExtraRaw(ContentEncoding::Deflate)
+    }
+
+    pub fn extra_raw(encoding: ContentEncoding) -> Self {
+        DecompressError::ExtraRaw(encoding)
+    }
 }
