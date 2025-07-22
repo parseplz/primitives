@@ -119,9 +119,9 @@ impl HeaderMap {
     }
 
     // ----- remove
-    pub fn remove_header_all_positions(&mut self, positions: Vec<usize>) {
-        for index in positions.into_iter().rev() {
-            self.headers[index].clear();
+    pub fn remove_header_multiple_positions(&mut self, positions: &[usize]) {
+        for index in positions.iter() {
+            self.headers[*index].clear();
         }
     }
 
@@ -130,7 +130,7 @@ impl HeaderMap {
         let mut result = false;
         if let Some(positions) = self.header_position_all(to_remove) {
             result = true;
-            self.remove_header_all_positions(positions);
+            self.remove_header_multiple_positions(&positions);
         }
         result
     }
@@ -222,7 +222,7 @@ impl HeaderMap {
         let mut result = false;
         if let Some(positions) = self.header_key_position_all(key) {
             result = true;
-            self.remove_header_all_positions(positions);
+            self.remove_header_multiple_positions(&positions);
         }
         result
     }
