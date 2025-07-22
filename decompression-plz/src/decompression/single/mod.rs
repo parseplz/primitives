@@ -90,11 +90,8 @@ where
 #[cfg(test)]
 pub mod tests {
     use bytes::{BufMut, BytesMut};
-    use flate2::Compression;
-    use header_plz::body_headers::{
-        content_encoding::ContentEncoding, encoding_info::EncodingInfo,
-    };
-    use std::io::{Read, Write};
+
+    use header_plz::body_headers::content_encoding::ContentEncoding;
 
     use crate::{
         decompression::single::{decompress_single, error::DecompressError},
@@ -115,9 +112,8 @@ pub mod tests {
             ContentEncoding::Identity
             | ContentEncoding::Unknown(_)
             | ContentEncoding::Chunked => data.to_vec(),
-            _ => panic!(),
         };
-        let mut buf = BytesMut::new();
+        let buf = BytesMut::new();
         let mut writer = buf.writer();
         decompress_single(
             compressed.as_slice(),
@@ -173,7 +169,7 @@ pub mod tests {
 
     #[test]
     fn test_basic_unknown() {
-        let mut buf = BytesMut::new();
+        let buf = BytesMut::new();
         let mut writer = buf.writer();
         let result = decompress_single(
             INPUT,

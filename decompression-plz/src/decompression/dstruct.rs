@@ -61,6 +61,7 @@ impl<'a> DecompressionStruct<'a> {
         }
     }
 
+    #[allow(clippy::len_without_is_empty)]
     pub fn len(&self) -> usize {
         self.main.len() + self.extra.as_ref().map(|e| e.len()).unwrap_or(0)
     }
@@ -125,9 +126,9 @@ impl<'a> DecompressionStruct<'a> {
             &last_encoding,
             len,
         );
-        if result.is_err() {
+        if let Err(e) = result {
             self.push_last_encoding(last_encoding);
-            return Err(result.unwrap_err());
+            return Err(e);
         }
         let output = self.writer.get_mut().split();
         if !self.is_encodings_empty() {
@@ -154,9 +155,8 @@ impl<'a> DecompressionStruct<'a> {
         }
         decompress_single(&mut input, &mut writer, content_encoding)
             .map_err(|_| MultiDecompressError::extra_raw())?;
-        if let (_, extra_curs) = input.get_ref()
-            && extra_curs.position() == 0
-        {
+        let (_, extra_curs) = input.get_ref();
+        if extra_curs.position() == 0 {
             return Err(MultiDecompressError::extra_raw());
         }
         Ok(())
@@ -223,20 +223,20 @@ mod tests {
 
     #[test]
     fn test_dstruct_last_encoding_single_value() {
-        let mut encoding_info =
+        let encoding_info =
             vec![EncodingInfo::new(0, vec![ContentEncoding::Gzip])];
         assert_last_encoding(encoding_info, ContentEncoding::Gzip);
     }
 
     #[test]
     fn test_dstruct_last_encoding_single_header() {
-        let mut encoding_info = all_encoding_info_single_header();
+        let encoding_info = all_encoding_info_single_header();
         assert_last_encoding(encoding_info, ContentEncoding::Zstd);
     }
 
     #[test]
     fn test_dstruct_last_encoding_multi_header() {
-        let mut encoding_info = all_encoding_info_multi_header();
+        let encoding_info = all_encoding_info_multi_header();
         assert_last_encoding(encoding_info, ContentEncoding::Zstd);
     }
 
@@ -261,7 +261,7 @@ mod tests {
 
     #[test]
     fn test_dstruct_push_last_encoding_single_value() {
-        let mut encoding_info =
+        let encoding_info =
             vec![EncodingInfo::new(0, vec![ContentEncoding::Gzip])];
         let to_verify = vec![EncodingInfo::new(
             0,
@@ -277,7 +277,7 @@ mod tests {
 
     #[test]
     fn test_push_last_encoding_single_header() {
-        let mut encoding_info = all_encoding_info_single_header();
+        let encoding_info = all_encoding_info_single_header();
         let to_verify = vec![EncodingInfo::new(
             0,
             vec![
@@ -299,7 +299,7 @@ mod tests {
 
     #[test]
     fn test_push_last_encoding_multi_header() {
-        let mut encoding_info = all_encoding_info_multi_header();
+        let encoding_info = all_encoding_info_multi_header();
         let to_verify = vec![
             EncodingInfo::new(0, vec![ContentEncoding::Brotli]),
             EncodingInfo::new(1, vec![ContentEncoding::Deflate]),
@@ -336,20 +336,20 @@ mod tests {
 
     #[test]
     fn test_dstruct_is_encodings_empty_true_single_value() {
-        let mut encoding_info = vec![EncodingInfo::new(0, vec![])];
+        let encoding_info = vec![EncodingInfo::new(0, vec![])];
         assert_encodings_empty(encoding_info, true);
     }
 
     #[test]
     fn test_dstruct_is_encodings_empty_false_single_value() {
-        let mut encoding_info =
+        let encoding_info =
             vec![EncodingInfo::new(0, vec![ContentEncoding::Gzip])];
         assert_encodings_empty(encoding_info, false);
     }
 
     #[test]
     fn test_dstruct_is_encodings_empty_false_last_encoding_empty() {
-        let mut encoding_info = vec![
+        let encoding_info = vec![
             EncodingInfo::new(0, vec![ContentEncoding::Gzip]),
             EncodingInfo::new(1, vec![]),
         ];
@@ -407,26 +407,26 @@ mod tests {
 
     #[test]
     fn test_dstruct_last_header_compression_index_sigle_value() {
-        let mut encoding_info =
+        let encoding_info =
             vec![EncodingInfo::new(0, vec![ContentEncoding::Gzip])];
         assert_last_header_compression_index(encoding_info, (0, 1));
     }
 
     #[test]
     fn test_dstruct_last_header_compression_index_multi_value_single_header() {
-        let mut encoding_info = all_encoding_info_single_header();
+        let encoding_info = all_encoding_info_single_header();
         assert_last_header_compression_index(encoding_info, (0, 1));
     }
 
     #[test]
     fn test_dstruct_last_header_compression_index_multi_value_multi_header() {
-        let mut encoding_info = all_encoding_info_multi_header();
+        let encoding_info = all_encoding_info_multi_header();
         assert_last_header_compression_index(encoding_info, (0, 1));
     }
 
     #[test]
     fn test_dstruct_last_header_compression_index_last_empty() {
-        let mut encoding_info = vec![
+        let encoding_info = vec![
             EncodingInfo::new(
                 0,
                 vec![ContentEncoding::Gzip, ContentEncoding::Brotli],
@@ -455,7 +455,7 @@ mod tests {
             let mut buf = BytesMut::new();
             let mut ds = DecompressionStruct::new(
                 compressed.as_ref(),
-                Some(&INPUT),
+                Some(INPUT),
                 &mut encoding_info,
                 (&mut buf).writer(),
             );
@@ -513,8 +513,8 @@ mod tests {
             vec![ContentEncoding::Deflate, ContentEncoding::Brotli],
         )];
         assert_dstruct_d_main_extra_partial_err(
-            &first,
-            Some(&second),
+            first,
+            Some(second),
             encoding_info,
             0,
             1,
@@ -535,8 +535,8 @@ mod tests {
             ],
         )];
         assert_dstruct_d_main_extra_partial_err(
-            &first,
-            Some(&second),
+            first,
+            Some(second),
             encoding_info,
             0,
             1,
@@ -550,8 +550,8 @@ mod tests {
         let (first, second) = compressed.split_at(compressed.len() / 2);
         let encoding_info = all_encoding_info_single_header();
         assert_dstruct_d_main_extra_partial_err(
-            &first,
-            Some(&second),
+            first,
+            Some(second),
             encoding_info,
             0,
             1,
@@ -565,8 +565,8 @@ mod tests {
         let (first, second) = compressed.split_at(compressed.len() / 2);
         let encoding_info = all_encoding_info_multi_header();
         assert_dstruct_d_main_extra_partial_err(
-            &first,
-            Some(&second),
+            first,
+            Some(second),
             encoding_info,
             1,
             0,
@@ -592,8 +592,8 @@ mod tests {
             ],
         )];
         assert_dstruct_d_main_extra_partial_err(
-            &first,
-            Some(&second),
+            first,
+            Some(second),
             encoding_info,
             0,
             1,
@@ -606,8 +606,8 @@ mod tests {
         let (first, second) = compressed.split_at(compressed.len() / 2);
         let encoding_info = all_encoding_info_single_header();
         assert_dstruct_d_main_extra_partial_err(
-            &first,
-            Some(&second),
+            first,
+            Some(second),
             encoding_info,
             0,
             2,
@@ -620,8 +620,8 @@ mod tests {
         let (first, second) = compressed.split_at(compressed.len() / 2);
         let encoding_info = all_encoding_info_multi_header();
         assert_dstruct_d_main_extra_partial_err(
-            &first,
-            Some(&second),
+            first,
+            Some(second),
             encoding_info,
             3,
             0,
@@ -642,8 +642,8 @@ mod tests {
             EncodingInfo::new(3, vec![ContentEncoding::Zstd]),
         ];
         assert_dstruct_d_main_extra_partial_err(
-            &first,
-            Some(&second),
+            first,
+            Some(second),
             encoding_info,
             2,
             0,
@@ -667,8 +667,8 @@ mod tests {
             EncodingInfo::new(3, vec![ContentEncoding::Zstd]),
         ];
         assert_dstruct_d_main_extra_partial_err(
-            &first,
-            Some(&second),
+            first,
+            Some(second),
             encoding_info,
             1,
             2,

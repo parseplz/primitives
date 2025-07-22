@@ -55,7 +55,7 @@ where
 mod tests {
 
     use super::*;
-    use crate::{decompression::single::tests::*, tests::*};
+    use crate::tests::*;
     use bytes::BufMut;
     use header_plz::body_headers::content_encoding::ContentEncoding;
 
@@ -64,7 +64,7 @@ mod tests {
         let input = all_compressed_data();
         let mut buf = BytesMut::new();
         let mut writer = (&mut buf).writer();
-        let einfo_list = vec![EncodingInfo::new(
+        let einfo_list = [EncodingInfo::new(
             0,
             vec![
                 ContentEncoding::Brotli,
@@ -85,13 +85,11 @@ mod tests {
         let input = all_compressed_data();
         let mut buf = BytesMut::new();
         let mut writer = (&mut buf).writer();
-        let einfo_list = vec![
-            EncodingInfo::new(0, vec![ContentEncoding::Brotli]),
+        let einfo_list = [EncodingInfo::new(0, vec![ContentEncoding::Brotli]),
             EncodingInfo::new(1, vec![ContentEncoding::Deflate]),
             EncodingInfo::new(2, vec![ContentEncoding::Gzip]),
             EncodingInfo::new(3, vec![ContentEncoding::Zstd]),
-            EncodingInfo::new(4, vec![ContentEncoding::Identity]),
-        ];
+            EncodingInfo::new(4, vec![ContentEncoding::Identity])];
 
         let result =
             decompress_multi(&input, &mut writer, &mut einfo_list.iter())
@@ -104,8 +102,7 @@ mod tests {
         let input = all_compressed_data();
         let mut buf = BytesMut::new();
         let mut writer = (&mut buf).writer();
-        let einfo_list = vec![
-            EncodingInfo::new(
+        let einfo_list = [EncodingInfo::new(
                 0,
                 vec![ContentEncoding::Brotli, ContentEncoding::Deflate],
             ),
@@ -116,8 +113,7 @@ mod tests {
             EncodingInfo::new(
                 3,
                 vec![ContentEncoding::Zstd, ContentEncoding::Identity],
-            ),
-        ];
+            )];
 
         let result =
             decompress_multi(&input, &mut writer, &mut einfo_list.iter())
@@ -130,7 +126,7 @@ mod tests {
         let input = compress_brotli(INPUT);
         let mut buf = BytesMut::new();
         let mut writer = (&mut buf).writer();
-        let einfo_list = vec![EncodingInfo::new(
+        let einfo_list = [EncodingInfo::new(
             0,
             vec![ContentEncoding::Deflate, ContentEncoding::Brotli],
         )];
@@ -154,7 +150,7 @@ mod tests {
         let input = all_compressed_data();
         let mut buf = BytesMut::new();
         let mut writer = (&mut buf).writer();
-        let einfo_list = vec![EncodingInfo::new(
+        let einfo_list = [EncodingInfo::new(
             0,
             vec![
                 ContentEncoding::Compress,
@@ -185,10 +181,8 @@ mod tests {
         let input = compress_brotli(INPUT);
         let mut buf = BytesMut::new();
         let mut writer = (&mut buf).writer();
-        let einfo_list = vec![
-            EncodingInfo::new(0, vec![ContentEncoding::Zstd]),
-            EncodingInfo::new(4, vec![ContentEncoding::Brotli]),
-        ];
+        let einfo_list = [EncodingInfo::new(0, vec![ContentEncoding::Zstd]),
+            EncodingInfo::new(4, vec![ContentEncoding::Brotli])];
         let result =
             decompress_multi(&input, &mut writer, &mut einfo_list.iter())
                 .unwrap_err();
@@ -209,14 +203,12 @@ mod tests {
         let input = all_compressed_data();
         let mut buf = BytesMut::new();
         let mut writer = (&mut buf).writer();
-        let einfo_list = vec![
-            EncodingInfo::new(0, vec![ContentEncoding::Brotli]),
+        let einfo_list = [EncodingInfo::new(0, vec![ContentEncoding::Brotli]),
             EncodingInfo::new(1, vec![ContentEncoding::Brotli]),
             EncodingInfo::new(2, vec![ContentEncoding::Deflate]),
             EncodingInfo::new(3, vec![ContentEncoding::Gzip]),
             EncodingInfo::new(4, vec![ContentEncoding::Zstd]),
-            EncodingInfo::new(5, vec![ContentEncoding::Identity]),
-        ];
+            EncodingInfo::new(5, vec![ContentEncoding::Identity])];
         let result =
             decompress_multi(&input, &mut writer, &mut einfo_list.iter())
                 .unwrap_err();
@@ -237,7 +229,7 @@ mod tests {
         let mut buf = BytesMut::new();
         let mut writer = (&mut buf).writer();
         let einfo_list =
-            vec![EncodingInfo::new(0, vec![ContentEncoding::Zstd])];
+            [EncodingInfo::new(0, vec![ContentEncoding::Zstd])];
         let result =
             decompress_multi(INPUT, &mut writer, &mut einfo_list.iter())
                 .unwrap_err();
@@ -248,10 +240,8 @@ mod tests {
     fn test_decompress_multi_error_corrupt_multi_header() {
         let mut buf = BytesMut::new();
         let mut writer = (&mut buf).writer();
-        let mut einfo_list = vec![
-            EncodingInfo::new(0, vec![ContentEncoding::Zstd]),
-            EncodingInfo::new(4, vec![ContentEncoding::Brotli]),
-        ];
+        let einfo_list = [EncodingInfo::new(0, vec![ContentEncoding::Zstd]),
+            EncodingInfo::new(4, vec![ContentEncoding::Brotli])];
 
         let result =
             decompress_multi(INPUT, &mut writer, &mut einfo_list.iter())

@@ -48,19 +48,22 @@ where
 
     pub fn is_chunked_te_only(&self) -> bool {
         self.body_headers
-            .as_ref().map(|bh| bh.is_chunked_te_only())
+            .as_ref()
+            .map(|bh| bh.is_chunked_te_only())
             .unwrap_or(false)
     }
 
     pub fn is_identity_te_only(&self) -> bool {
         self.body_headers
-            .as_ref().map(|bh| bh.is_identity_te_only())
+            .as_ref()
+            .map(|bh| bh.is_identity_te_only())
             .unwrap_or(false)
     }
 
     pub fn is_identity_ce_only(&self) -> bool {
         self.body_headers
-            .as_ref().map(|bh| bh.is_identity_ce_only())
+            .as_ref()
+            .map(|bh| bh.is_identity_ce_only())
             .unwrap_or(false)
     }
 

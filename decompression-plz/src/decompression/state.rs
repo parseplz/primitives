@@ -223,7 +223,7 @@ mod tests {
     fn assert_main_only_finish_flow(
         main: &[u8],
         extra: Option<&[u8]>,
-        encoding_info: &mut Vec<EncodingInfo>,
+        encoding_info: &mut [EncodingInfo],
     ) {
         let mut buf = BytesMut::new();
         let mut state = DecompressionState::start(
@@ -284,7 +284,7 @@ mod tests {
 
     // Main + Extra - compressed together
     fn assert_main_plus_extra_flow(
-        enc_info: &mut Vec<EncodingInfo>,
+        enc_info: &mut [EncodingInfo],
         compressed: &[u8],
     ) {
         let mid = compressed.len() / 2;
@@ -335,7 +335,7 @@ mod tests {
 
     // Main - separate + Extra - separate
     fn assert_main_separate_extra_separate_flow(
-        enc_info: &mut Vec<EncodingInfo>,
+        enc_info: &mut [EncodingInfo],
         main: &[u8],
         extra: &[u8],
     ) {
@@ -390,7 +390,7 @@ mod tests {
 
     // Main - compressed + Extra - raw
     fn assert_main_compressed_extra_raw_flow(
-        enc_info: &mut Vec<EncodingInfo>,
+        enc_info: &mut [EncodingInfo],
         main: &[u8],
     ) {
         let mut buf = BytesMut::new();
