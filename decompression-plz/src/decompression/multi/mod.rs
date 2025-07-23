@@ -37,7 +37,7 @@ where
                     } else {
                         writer.get_mut().clear();
                         std::io::copy(&mut input, writer)
-                            .map_err(DecompressError::Copy)?;
+                            .map_err(DecompressError::PartialCopy)?;
                         output = writer.get_mut().split();
                         MultiDecompressErrorReason::Partial {
                             partial_body: output,

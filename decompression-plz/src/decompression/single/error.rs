@@ -4,9 +4,8 @@ use thiserror::Error;
 
 #[derive(Debug, Error)]
 pub enum DecompressError {
-    // Error when copying partial decompressed data
     #[error("copy| {0}")]
-    Copy(Error),
+    PartialCopy(Error),
     #[error("brotli| {0}")]
     Brotli(Error),
     #[error("deflate| {0}")]
