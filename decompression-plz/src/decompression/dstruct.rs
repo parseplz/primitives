@@ -8,7 +8,7 @@ use header_plz::body_headers::{
 use crate::decompression::{
     magic_bytes::is_compressed,
     multi::{decompress_multi, error::MultiDecompressError},
-    single::{decompress_single, error::DecompressError},
+    single::{decompress_deflate, decompress_single, error::DecompressError},
 };
 
 pub struct DecompressionStruct<'a> {
@@ -152,7 +152,7 @@ impl<'a> DecompressionStruct<'a> {
         if let ContentEncoding::Deflate = content_encoding {
             let mut reader = flate2::read::ZlibDecoder::new(input);
             std::io::copy(&mut reader, &mut writer)
-                .map_err(DecompressError::Copy)?;
+                .map_err(DecompressError::Deflate)?;
             if reader.total_in() != len {
                 return Err(DecompressError::deflate());
             }
@@ -474,7 +474,7 @@ mod tests {
                     assert!(matches!(err.error, DecompressError::Zstd(_)))
                 }
                 _ => {
-                    todo!()
+                    //todo!()
                     //assert!(matches!(err.error, DecompressError::ExtraRaw(_)))
                 }
             }
