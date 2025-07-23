@@ -21,15 +21,6 @@ impl MultiDecompressError {
         }
     }
 
-    pub fn corrupt(e: DecompressError) -> Self {
-        MultiDecompressError::new(MultiDecompressErrorReason::Corrupt, e)
-    }
-
-    pub fn deflate_corrupt() -> Self {
-        let e = std::io::Error::from(std::io::ErrorKind::InvalidData);
-        Self::corrupt(DecompressError::Deflate(e))
-    }
-
     pub fn reason(&self) -> &MultiDecompressErrorReason {
         &self.reason
     }
@@ -58,21 +49,6 @@ impl MultiDecompressError {
     }
 }
 
-impl From<std::io::Error> for MultiDecompressError {
-    fn from(e: std::io::Error) -> Self {
-        MultiDecompressError::new(
-            MultiDecompressErrorReason::Copy,
-            DecompressError::Copy(e),
-        )
-    }
-}
-
-impl From<MultiDecompressError> for DecompressError {
-    fn from(e: MultiDecompressError) -> Self {
-        e.error
-    }
-}
-
 impl From<DecompressError> for MultiDecompressError {
     fn from(e: DecompressError) -> Self {
         MultiDecompressError::new(MultiDecompressErrorReason::Corrupt, e)
@@ -90,10 +66,6 @@ pub enum MultiDecompressErrorReason {
         header_index: usize,
         compression_index: usize,
     },
-    #[error("Copy")]
-    Copy,
-    #[error("extra raw| {:#?}", .0)]
-    ExtraRaw(ContentEncoding),
 }
 
 impl MultiDecompressErrorReason {

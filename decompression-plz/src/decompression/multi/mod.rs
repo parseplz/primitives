@@ -1,7 +1,9 @@
 use bytes::{BytesMut, buf::Writer};
 use header_plz::body_headers::encoding_info::EncodingInfo;
 
-use crate::decompression::single::decompress_single;
+use crate::decompression::single::{
+    decompress_single, error::DecompressError,
+};
 
 pub mod error;
 use error::*;
@@ -34,7 +36,8 @@ where
                         MultiDecompressErrorReason::Corrupt
                     } else {
                         writer.get_mut().clear();
-                        std::io::copy(&mut input, writer)?;
+                        std::io::copy(&mut input, writer)
+                            .map_err(DecompressError::Copy)?;
                         output = writer.get_mut().split();
                         MultiDecompressErrorReason::Partial {
                             partial_body: output,
