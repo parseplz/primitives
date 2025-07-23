@@ -2,3 +2,6 @@
 skip-clean = true
 output-dir = "./target"
 out = ["Html"]
+engine = "Llvm"
+workspace = true
+color = "Always"
