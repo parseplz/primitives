@@ -456,7 +456,7 @@ mod tests {
 
     // State => BytesMut + Option<BytesMut>
     #[test]
-    fn test_state_to_bytes_EndMainOnly() {
+    fn test_state_to_bytes_end_main_only() {
         let state = DecompressionState::EndMainOnly(BytesMut::from(INPUT));
         let (main, extra) = state.into();
         assert_eq!(main, INPUT);
@@ -464,7 +464,7 @@ mod tests {
     }
 
     #[test]
-    fn test_state_to_bytes_EndMainPlusExtra() {
+    fn test_state_to_bytes_end_main_plus_extra() {
         let state =
             DecompressionState::EndMainPlusExtra(BytesMut::from(INPUT));
         let (main, extra) = state.into();
@@ -473,9 +473,9 @@ mod tests {
     }
 
     #[test]
-    fn test_state_to_bytes_EndExtraRawMainDone() {
+    fn test_state_to_bytes_end_extra_raw_main_done() {
         let mut buf = BytesMut::new();
-        let mut dstruct =
+        let dstruct =
             DecompressionStruct::new(&[], None, &mut [], (&mut buf).writer());
         let state = DecompressionState::EndExtraRawMainDone(
             dstruct,
@@ -487,7 +487,7 @@ mod tests {
     }
 
     #[test]
-    fn test_state_to_bytes_EndExtraMainSeparate() {
+    fn test_state_to_bytes_end_extra_main_separate() {
         let state = DecompressionState::EndExtraMainSeparate(
             BytesMut::from(INPUT),
             BytesMut::from(INPUT),

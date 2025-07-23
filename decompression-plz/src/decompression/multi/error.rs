@@ -1,5 +1,4 @@
 use bytes::BytesMut;
-use header_plz::body_headers::content_encoding::ContentEncoding;
 use thiserror::Error;
 
 use crate::decompression::single::error::DecompressError;

@@ -8,7 +8,7 @@ use header_plz::body_headers::{
 use crate::decompression::{
     magic_bytes::is_compressed,
     multi::{decompress_multi, error::MultiDecompressError},
-    single::{decompress_deflate, decompress_single, error::DecompressError},
+    single::{decompress_single, error::DecompressError},
 };
 
 pub struct DecompressionStruct<'a> {
@@ -467,10 +467,10 @@ mod tests {
             );
 
             let err = ds.try_decompress_main_plus_extra().unwrap_err();
-
             assert_eq!(err.reason, MultiDecompressErrorReason::Corrupt);
-            let assert_error = DecompressError::corrupt(encoding);
-            assert!(matches!(err.error, assert_error));
+            // TODO: FIX test
+            // matches!(err.error, assert_error);
+
             assert_eq!(ds.encoding_info, original_info);
         }
     }
