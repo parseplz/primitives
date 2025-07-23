@@ -2,11 +2,12 @@
 
 use bytes::BytesMut;
 
-use crate::{dtraits::DecompressTrait, state::DecodeState};
-mod content_length;
+use crate::state::DecodeState;
+pub mod content_length;
 mod decode_struct;
-pub mod decompression;
-pub mod dtraits;
+mod decompression;
+mod dtraits;
+pub use dtraits::DecompressTrait;
 mod state;
 
 pub fn decompress<T>(
