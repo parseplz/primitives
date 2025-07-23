@@ -163,7 +163,7 @@ impl<'a> DecompressionStruct<'a> {
         let (_, extra_curs) = input.get_ref();
         // brotli
         if extra_curs.position() == 0 {
-            return Err(DecompressError::extra_raw(content_encoding.clone()));
+            return Err(DecompressError::corrupt(content_encoding));
         }
         Ok(())
     }
@@ -474,7 +474,8 @@ mod tests {
                     assert!(matches!(err.error, DecompressError::Zstd(_)))
                 }
                 _ => {
-                    assert!(matches!(err.error, DecompressError::ExtraRaw(_)))
+                    todo!()
+                    //assert!(matches!(err.error, DecompressError::ExtraRaw(_)))
                 }
             }
 

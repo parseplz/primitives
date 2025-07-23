@@ -1,4 +1,5 @@
 use bytes::BytesMut;
+use header_plz::body_headers::content_encoding::ContentEncoding;
 use thiserror::Error;
 
 use crate::decompression::single::error::DecompressError;
@@ -91,6 +92,8 @@ pub enum MultiDecompressErrorReason {
     },
     #[error("Copy")]
     Copy,
+    #[error("extra raw| {:#?}", .0)]
+    ExtraRaw(ContentEncoding),
 }
 
 impl MultiDecompressErrorReason {
