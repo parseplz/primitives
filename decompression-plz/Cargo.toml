@@ -1,6 +1,10 @@
 [package]
 name = "decompression-plz"
 version = "0.0.1"
+authors = ["darkseid", "sytten <emile@caido.io>"]
+description = "Decompression for ParsePlz ecosystem"
+repository = "https://github.com/parseplz/primitives"
+license = "MIT"
 edition = "2024"
 
 [dependencies]
