@@ -85,6 +85,10 @@ impl<'a> DecompressionStruct<'a> {
         }
     }
 
+    pub fn clear_buf(&mut self) {
+        self.writer.get_mut().clear();
+    }
+
     pub fn extra(&self) -> &[u8] {
         self.extra.as_ref().unwrap()
     }
