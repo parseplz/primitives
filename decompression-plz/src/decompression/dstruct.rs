@@ -469,16 +469,8 @@ mod tests {
             let err = ds.try_decompress_main_plus_extra().unwrap_err();
 
             assert_eq!(err.reason, MultiDecompressErrorReason::Corrupt);
-            match encoding {
-                ContentEncoding::Zstd => {
-                    assert!(matches!(err.error, DecompressError::Zstd(_)))
-                }
-                _ => {
-                    //todo!()
-                    //assert!(matches!(err.error, DecompressError::ExtraRaw(_)))
-                }
-            }
-
+            let assert_error = DecompressError::corrupt(encoding);
+            assert!(matches!(err.error, assert_error));
             assert_eq!(ds.encoding_info, original_info);
         }
     }
