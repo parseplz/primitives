@@ -53,6 +53,7 @@ where
                 mut decode_struct,
                 mut encoding_infos,
             ) => {
+                // Convert chunked to raw
                 match apply_encoding(&mut decode_struct, &mut encoding_infos) {
                     Ok(()) if decode_struct.content_encoding_is_some() => {
                         let encodings = decode_struct.content_encoding();

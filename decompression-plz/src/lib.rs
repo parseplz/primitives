@@ -3,6 +3,7 @@
 use bytes::BytesMut;
 
 use crate::state::DecodeState;
+pub mod chunked;
 pub mod content_length;
 mod decode_struct;
 mod decompress_trait;

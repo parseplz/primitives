@@ -1,7 +1,10 @@
+use body_plz::variants::Body;
 use bytes::BytesMut;
 use header_plz::body_headers::BodyHeader;
 use header_plz::body_headers::encoding_info::EncodingInfo;
+use header_plz::body_headers::transfer_types::TransferType;
 
+use crate::chunked::chunked_to_raw;
 use crate::decompress_trait::DecompressTrait;
 
 pub struct DecodeStruct<'a, T> {
@@ -29,6 +32,21 @@ where
             body,
             extra_body,
             buf,
+        }
+    }
+
+    // TODO: implement new method in BodyHeader
+    pub fn is_chunked_te(&self) -> bool {
+        self.body_headers
+            .as_ref()
+            .and_then(|bh| bh.transfer_type.as_ref())
+            .and_then(|tt| Some(tt == &TransferType::Chunked))
+            .unwrap_or(false)
+    }
+
+    pub fn chunked_to_raw(&mut self) {
+        if let Body::Chunked(_) = self.message.get_body() {
+            chunked_to_raw(self.message, &mut self.buf);
         }
     }
 
