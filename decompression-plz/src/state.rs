@@ -124,6 +124,8 @@ where
             Ok(())
         }
         Err(mut e) => {
+            // whatever the error clear the buf
+            decode_struct.buf.clear();
             if let MultiDecompressErrorReason::Partial {
                 ref mut partial_body,
                 header_index,
