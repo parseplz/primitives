@@ -3,6 +3,7 @@ use crate::decompression::{
 };
 use bytes::{BufMut, BytesMut, buf::Writer};
 use header_plz::body_headers::encoding_info::EncodingInfo;
+use tracing::error;
 
 /*
 1. (Main + Extra) - compressed ie. compresssed together
@@ -144,9 +145,12 @@ impl<'a> DecompressionState<'a> {
                             main_plus_extra_decompressed,
                         )
                     }
-                    Err(_) => DecompressionState::ExtraRawMainTry(
-                        decompression_struct,
-                    ),
+                    Err(e) => {
+                        error!("[-] decompressing main + extra| {}", e.reason);
+                        DecompressionState::ExtraRawMainTry(
+                            decompression_struct,
+                        )
+                    }
                 }
             }
             /* Main - try decompress

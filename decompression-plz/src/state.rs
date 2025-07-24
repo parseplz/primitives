@@ -7,10 +7,10 @@ use tracing::error;
 use crate::{
     content_length::add_body_and_update_cl,
     decode_struct::DecodeStruct,
+    decompress_trait::DecompressTrait,
     decompression::{
         multi::error::MultiDecompressErrorReason, state::decompression_runner,
     },
-    dtraits::DecompressTrait,
 };
 
 pub enum DecodeState<'a, T> {

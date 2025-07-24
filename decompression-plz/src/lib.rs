@@ -5,9 +5,9 @@ use bytes::BytesMut;
 use crate::state::DecodeState;
 pub mod content_length;
 mod decode_struct;
+mod decompress_trait;
 mod decompression;
-mod dtraits;
-pub use dtraits::DecompressTrait;
+pub use decompress_trait::DecompressTrait;
 mod state;
 
 pub fn decompress<T>(

@@ -470,7 +470,7 @@ mod tests {
             assert_eq!(err.reason, MultiDecompressErrorReason::Corrupt);
             // TODO: FIX test
             // matches!(err.error, assert_error);
-
+            assert!(!ds.writer.get_ref().is_empty());
             assert_eq!(ds.encoding_info, original_info);
         }
     }
@@ -507,6 +507,7 @@ mod tests {
             panic!("Expected Partial error, got: {:?}", e.reason);
         }
 
+        assert!(ds.writer.get_ref().is_empty());
         assert_eq!(ds.encoding_info, verify_encodings);
     }
 

@@ -2,7 +2,7 @@ use body_plz::variants::Body;
 use bytes::BytesMut;
 use header_plz::const_headers::CONTENT_LENGTH;
 
-use crate::dtraits::DecompressTrait;
+use crate::decompress_trait::DecompressTrait;
 
 pub fn add_body_and_update_cl<T>(message: &mut T, body: BytesMut)
 where

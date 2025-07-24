@@ -2,7 +2,7 @@ use bytes::BytesMut;
 use header_plz::body_headers::BodyHeader;
 use header_plz::body_headers::encoding_info::EncodingInfo;
 
-use crate::dtraits::DecompressTrait;
+use crate::decompress_trait::DecompressTrait;
 
 pub struct DecodeStruct<'a, T> {
     pub message: &'a mut T,
