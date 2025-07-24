@@ -11,7 +11,7 @@ pub use dtraits::DecompressTrait;
 mod state;
 
 pub fn decompress<T>(
-    mut message: T,
+    message: &mut T,
     extra_body: Option<BytesMut>,
     buf: &mut BytesMut,
 )
@@ -19,7 +19,7 @@ pub fn decompress<T>(
 where
     T: DecompressTrait,
 {
-    let mut state = DecodeState::init(&mut message, extra_body, buf);
+    let mut state = DecodeState::init(message, extra_body, buf);
     loop {
         state = state.try_next();
         if state.is_ended() {
@@ -33,11 +33,13 @@ where
 // helper function for tests
 #[cfg(test)]
 pub mod tests {
+    use bytes::BytesMut;
     use flate2::Compression;
     use header_plz::body_headers::{
         content_encoding::ContentEncoding, encoding_info::EncodingInfo,
     };
     use std::io::Write;
+
     pub const INPUT: &[u8] = b"hello world";
 
     pub fn all_compressed_data() -> Vec<u8> {
