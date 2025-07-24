@@ -279,7 +279,7 @@ checksum = "460fbee9c2c2f33933d720630a6a0bac33ba7053db5344fac858d4b8952d77d5"
 
 [[package]]
 name = "decompression-plz"
-version = "0.0.2"
+version = "0.0.3"
 dependencies = [
  "body-plz 0.0.30 (registry+https://github.com/rust-lang/crates.io-index)",
  "brotli",
