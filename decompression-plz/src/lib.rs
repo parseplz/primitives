@@ -2,12 +2,10 @@
 
 use bytes::BytesMut;
 
-use crate::{
-    decompression::multi::error::MultiDecompressErrorReason,
-    state::DecodeState,
-};
+use crate::state::DecodeState;
 pub mod chunked;
 pub mod content_length;
+pub use decompression::multi::error::MultiDecompressErrorReason;
 mod decode_struct;
 mod decompress_trait;
 mod decompression;
