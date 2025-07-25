@@ -178,27 +178,13 @@ where
 #[cfg(test)]
 mod tests {
 
+    use crate::decompress;
+    use crate::decompress_trait::DecompressTrait;
+    use body_plz::variants::Body;
     use header_plz::InfoLine;
     use header_plz::Request;
     use header_plz::body_headers::parse::ParseBodyHeaders;
     use header_plz::message_head::MessageHead;
-    use oneone_plz::oneone::OneOne;
 
     use super::*;
-
-    fn build_oneone<T>(input: &str) -> OneOne<T>
-    where
-        T: InfoLine,
-        MessageHead<T>: ParseBodyHeaders,
-    {
-        OneOne::try_from(BytesMut::from(input)).unwrap()
-    }
-
-    #[test]
-    fn test_decode_state_init() {
-        let input = "POST / HTTP/1.1\r\n\
-                   Content-Length: 11\r\n\r\n\
-                   hello world";
-        let req: OneOne<Request> = build_oneone(input);
-    }
 }

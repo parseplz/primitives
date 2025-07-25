@@ -33,12 +33,18 @@ where
 // helper function for tests
 #[cfg(test)]
 pub mod tests {
+    use body_plz::variants::Body;
     use bytes::BytesMut;
     use flate2::Compression;
-    use header_plz::body_headers::{
-        content_encoding::ContentEncoding, encoding_info::EncodingInfo,
+    use header_plz::{
+        InfoLine,
+        body_headers::{
+            content_encoding::ContentEncoding, encoding_info::EncodingInfo,
+        },
     };
     use std::io::Write;
+
+    use crate::DecompressTrait;
 
     pub const INPUT: &[u8] = b"hello world";
 

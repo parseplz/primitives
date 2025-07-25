@@ -286,23 +286,6 @@ dependencies = [
  "bytes",
  "flate2",
  "header-plz 0.0.25 (registry+https://github.com/rust-lang/crates.io-index)",
- "oneone-plz",
- "thiserror",
- "tracing",
- "zstd",
-]
-
-[[package]]
-name = "decompression-plz"
-version = "0.0.5"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7e2c66e304bc587cf1f3a82d52689032bf1f397c12f12140d1476eaf02a178d6"
-dependencies = [
- "body-plz 0.0.30 (registry+https://github.com/rust-lang/crates.io-index)",
- "brotli",
- "bytes",
- "flate2",
- "header-plz 0.0.25 (registry+https://github.com/rust-lang/crates.io-index)",
  "thiserror",
  "tracing",
  "zstd",
@@ -503,21 +486,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "42f5e15c9953c5e4ccceeb2e7382a716482c34515315f7b03532b8b4e8393d2d"
 
 [[package]]
-name = "oneone-plz"
-version = "0.0.4"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0773d302c3a6caf027d416162e083bef2bf735debd98cb5a365f033b96ccc207"
-dependencies = [
- "body-plz 0.0.30 (registry+https://github.com/rust-lang/crates.io-index)",
- "buffer-plz 0.0.3 (registry+https://github.com/rust-lang/crates.io-index)",
- "bytes",
- "decompression-plz 0.0.5 (registry+https://github.com/rust-lang/crates.io-index)",
- "header-plz 0.0.25 (registry+https://github.com/rust-lang/crates.io-index)",
- "protocol-traits-plz 0.0.4 (registry+https://github.com/rust-lang/crates.io-index)",
- "thiserror",
-]
-
-[[package]]
 name = "oorandom"
 version = "11.1.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -575,16 +543,6 @@ dependencies = [
 [[package]]
 name = "protocol-traits-plz"
 version = "0.0.4"
-dependencies = [
- "buffer-plz 0.0.3 (registry+https://github.com/rust-lang/crates.io-index)",
- "bytes",
-]
-
-[[package]]
-name = "protocol-traits-plz"
-version = "0.0.4"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9662df88cc5348cb41dde516c04ae0ed5c69a375a80ec26ad43fea3c6b10f562"
 dependencies = [
  "buffer-plz 0.0.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "bytes",
