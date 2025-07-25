@@ -30,10 +30,10 @@ where
         Self::Start(decode_struct)
     }
 
-    pub fn try_next(self) -> Self {
+    pub fn try_next(self) -> Result<Self, MultiDecompressErrorReason> {
         match self {
             DecodeState::Start(mut decode_struct) => {
-                if decode_struct.transfer_encoding_is_some() {
+                let next_state = if decode_struct.transfer_encoding_is_some() {
                     let encodings = decode_struct.transfer_encoding();
                     Self::TransferEncoding(decode_struct, encodings)
                 } else if decode_struct.content_encoding_is_some() {
@@ -43,7 +43,8 @@ where
                     Self::UpdateContentLength(decode_struct)
                 } else {
                     Self::End
-                }
+                };
+                Ok(next_state)
             }
             DecodeState::TransferEncoding(
                 mut decode_struct,
@@ -55,7 +56,10 @@ where
                     decode_struct.chunked_to_raw();
                 }
                 // TODO: check if only te is chunked
-                match apply_encoding(&mut decode_struct, &mut encoding_infos) {
+                let next_state = match apply_encoding(
+                    &mut decode_struct,
+                    &mut encoding_infos,
+                ) {
                     Ok(()) if decode_struct.content_encoding_is_some() => {
                         let encodings = decode_struct.content_encoding();
                         Self::ContentEncoding(decode_struct, encodings)
@@ -70,7 +74,8 @@ where
                             Self::End
                         }
                     }
-                }
+                };
+                Ok(next_state)
             }
             DecodeState::ContentEncoding(
                 mut decode_struct,
@@ -79,17 +84,17 @@ where
                 match apply_encoding(&mut decode_struct, &mut encoding_infos) {
                     Err(e) if !e.is_partial() => {
                         error!("{}", e);
-                        return Self::End;
+                        return Ok(Self::End);
                     }
                     _ => {}
                 }
-                Self::UpdateContentLength(decode_struct)
+                Ok(Self::UpdateContentLength(decode_struct))
             }
             DecodeState::UpdateContentLength(mut decode_struct) => {
                 decode_struct.add_body_and_update_cl();
                 Ok(Self::End)
             }
-            DecodeState::End => Self::End,
+            DecodeState::End => Ok(Self::End),
         }
     }
 
