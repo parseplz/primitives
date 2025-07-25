@@ -11,16 +11,12 @@ mod decompression;
 pub use decompress_trait::DecompressTrait;
 mod state;
 
-pub fn decompress<T>(
-    message: &mut T,
-    extra_body: Option<BytesMut>,
-    buf: &mut BytesMut,
-)
+pub fn decompress<T>(message: &mut T, buf: &mut BytesMut)
 //-> Result<(), MultiDecompressError>
 where
     T: DecompressTrait,
 {
-    let mut state = DecodeState::init(message, extra_body, buf);
+    let mut state = DecodeState::init(message, buf);
     loop {
         state = state.try_next();
         if state.is_ended() {

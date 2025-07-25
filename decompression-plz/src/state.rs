@@ -25,12 +25,8 @@ impl<'a, T> DecodeState<'a, T>
 where
     T: DecompressTrait + 'a,
 {
-    pub fn init(
-        message: &'a mut T,
-        extra_body: Option<BytesMut>,
-        buf: &'a mut BytesMut,
-    ) -> Self {
-        let decode_struct = DecodeStruct::new(message, extra_body, buf);
+    pub fn init(message: &'a mut T, buf: &'a mut BytesMut) -> Self {
+        let decode_struct = DecodeStruct::new(message, buf);
         Self::Start(decode_struct)
     }
 
@@ -54,6 +50,11 @@ where
                 mut encoding_infos,
             ) => {
                 // Convert chunked to raw
+                // http/1 only
+                if decode_struct.is_chunked_te() {
+                    decode_struct.chunked_to_raw();
+                }
+                // TODO: check if only te is chunked
                 match apply_encoding(&mut decode_struct, &mut encoding_infos) {
                     Ok(()) if decode_struct.content_encoding_is_some() => {
                         let encodings = decode_struct.content_encoding();
@@ -162,5 +163,33 @@ where
             }
             Err(e.reason)
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+
+    use header_plz::InfoLine;
+    use header_plz::Request;
+    use header_plz::body_headers::parse::ParseBodyHeaders;
+    use header_plz::message_head::MessageHead;
+    use oneone_plz::oneone::OneOne;
+
+    use super::*;
+
+    fn build_oneone<T>(input: &str) -> OneOne<T>
+    where
+        T: InfoLine,
+        MessageHead<T>: ParseBodyHeaders,
+    {
+        OneOne::try_from(BytesMut::from(input)).unwrap()
+    }
+
+    #[test]
+    fn test_decode_state_init() {
+        let input = "POST / HTTP/1.1\r\n\
+                   Content-Length: 11\r\n\r\n\
+                   hello world";
+        let req: OneOne<Request> = build_oneone(input);
     }
 }

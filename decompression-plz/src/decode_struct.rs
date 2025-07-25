@@ -19,12 +19,9 @@ impl<'a, T> DecodeStruct<'a, T>
 where
     T: DecompressTrait,
 {
-    pub fn new(
-        message: &'a mut T,
-        extra_body: Option<BytesMut>,
-        buf: &'a mut BytesMut,
-    ) -> Self {
+    pub fn new(message: &'a mut T, buf: &'a mut BytesMut) -> Self {
         let body = message.get_body().into_bytes().unwrap();
+        let extra_body = message.get_extra_body();
         let body_headers = message.body_headers_as_mut().take();
         Self {
             message,
