@@ -86,12 +86,8 @@ where
                 Self::UpdateContentLength(decode_struct)
             }
             DecodeState::UpdateContentLength(mut decode_struct) => {
-                let mut body = decode_struct.take_main_body();
-                if let Some(extra) = decode_struct.take_extra_body() {
-                    body.unsplit(extra);
-                }
-                add_body_and_update_cl(decode_struct.message, body);
-                Self::End
+                decode_struct.add_body_and_update_cl();
+                Ok(Self::End)
             }
             DecodeState::End => Self::End,
         }

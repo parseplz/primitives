@@ -5,6 +5,7 @@ use header_plz::body_headers::encoding_info::EncodingInfo;
 use header_plz::body_headers::transfer_types::TransferType;
 
 use crate::chunked::chunked_to_raw;
+use crate::content_length::add_body_and_update_cl;
 use crate::decompress_trait::DecompressTrait;
 
 pub struct DecodeStruct<'a, T> {
@@ -104,5 +105,13 @@ where
 
     pub fn take_extra_body(&mut self) -> Option<BytesMut> {
         self.extra_body.take()
+    }
+
+    pub fn add_body_and_update_cl(&mut self) {
+        let mut body = self.take_main_body();
+        if let Some(extra) = self.take_extra_body() {
+            body.unsplit(extra);
+        }
+        add_body_and_update_cl(self.message, body);
     }
 }
