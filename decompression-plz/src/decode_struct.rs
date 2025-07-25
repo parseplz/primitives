@@ -8,6 +8,8 @@ use crate::chunked::chunked_to_raw;
 use crate::content_length::add_body_and_update_cl;
 use crate::decompress_trait::DecompressTrait;
 
+#[cfg_attr(test, derive(PartialEq))]
+#[derive(Debug)]
 pub struct DecodeStruct<'a, T> {
     pub message: &'a mut T,
     pub body: BytesMut,

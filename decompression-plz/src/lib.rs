@@ -33,6 +33,7 @@ where
 // helper function for tests
 #[cfg(test)]
 pub mod tests {
+    use crate::DecompressTrait;
     use body_plz::variants::Body;
     use bytes::BytesMut;
     use flate2::Compression;
@@ -43,9 +44,6 @@ pub mod tests {
         },
     };
     use std::io::Write;
-
-    use crate::DecompressTrait;
-
     pub const INPUT: &[u8] = b"hello world";
 
     pub fn all_compressed_data() -> Vec<u8> {

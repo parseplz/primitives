@@ -13,6 +13,8 @@ use crate::{
     },
 };
 
+#[cfg_attr(test, derive(PartialEq))]
+#[derive(Debug)]
 pub enum DecodeState<'a, T> {
     Start(DecodeStruct<'a, T>),
     TransferEncoding(DecodeStruct<'a, T>, Vec<EncodingInfo>),
@@ -178,13 +180,76 @@ where
 #[cfg(test)]
 mod tests {
 
-    use crate::decompress;
-    use crate::decompress_trait::DecompressTrait;
     use body_plz::variants::Body;
-    use header_plz::InfoLine;
-    use header_plz::Request;
-    use header_plz::body_headers::parse::ParseBodyHeaders;
-    use header_plz::message_head::MessageHead;
+    use bytes::BytesMut;
+    use header_plz::{
+        HeaderMap, abnf::HEADER_DELIMITER, body_headers::BodyHeader,
+        message_head::MessageHead,
+    };
 
-    use super::*;
+    use crate::{DecompressTrait, state::DecodeState, tests::INPUT};
+
+    #[derive(Debug, PartialEq)]
+    struct TestMessage {
+        header_map: HeaderMap,
+        body_header: Option<BodyHeader>,
+        body: Option<Body>,
+        extra_body: Option<BytesMut>,
+    }
+
+    impl DecompressTrait for TestMessage {
+        fn get_body(&mut self) -> Body {
+            self.body.take().unwrap()
+        }
+
+        fn get_extra_body(&mut self) -> Option<BytesMut> {
+            self.extra_body.take()
+        }
+
+        fn set_body(&mut self, body: Body) {
+            self.body = Some(body);
+        }
+
+        fn body_headers_as_mut(&mut self) -> &mut Option<BodyHeader> {
+            &mut self.body_header
+        }
+
+        fn header_map(&self) -> &HeaderMap {
+            self.header_map()
+        }
+
+        fn header_map_as_mut(&mut self) -> &mut HeaderMap {
+            self.header_map_as_mut()
+        }
+    }
+
+    impl TestMessage {
+        fn build(
+            headers: BytesMut,
+            body: Body,
+            extra: Option<BytesMut>,
+        ) -> Self {
+            let header_map = HeaderMap::from(headers);
+            let body_header = BodyHeader::from(&header_map);
+            Self {
+                header_map,
+                body_header: Some(body_header),
+                body: Some(body),
+                extra_body: extra,
+            }
+        }
+    }
+
+    #[test]
+    fn test_decode_init_no_te_or_ce() {
+        let headers = "Host: example.com\r\n\
+                       Content-Type: text/html; charset=utf-8\r\n\
+                       Content-Length: 11\r\n\r\n";
+        let mut tm =
+            TestMessage::build(headers.into(), Body::Raw(INPUT.into()), None);
+        let mut buf = BytesMut::new();
+        let mut state = DecodeState::init(&mut tm, &mut buf);
+        state = state.try_next().unwrap();
+        assert!(matches!(state, DecodeState::End));
+    }
 }
