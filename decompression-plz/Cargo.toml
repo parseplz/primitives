@@ -23,4 +23,4 @@ thiserror = { workspace = true }
 tracing = { workspace = true }
 
 [dev-dependencies]
-oneone-plz = "0.0.3"
+oneone-plz = "0.0.4"

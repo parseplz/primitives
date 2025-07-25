@@ -53,10 +53,10 @@ where
             ) => {
                 // Convert chunked to raw
                 // http/1 only
+                // TODO: check if only te is chunked
                 if decode_struct.is_chunked_te() {
                     decode_struct.chunked_to_raw();
                 }
-                // TODO: check if only te is chunked
                 let next_state = match apply_encoding(
                     &mut decode_struct,
                     &mut encoding_infos,

@@ -279,23 +279,7 @@ checksum = "460fbee9c2c2f33933d720630a6a0bac33ba7053db5344fac858d4b8952d77d5"
 
 [[package]]
 name = "decompression-plz"
-version = "0.0.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a23622cd8f1e90ac81b14ed5a05c81acc0cafbab11c97a3b5dcb424b15569526"
-dependencies = [
- "body-plz 0.0.30 (registry+https://github.com/rust-lang/crates.io-index)",
- "brotli",
- "bytes",
- "flate2",
- "header-plz 0.0.25 (registry+https://github.com/rust-lang/crates.io-index)",
- "thiserror",
- "tracing",
- "zstd",
-]
-
-[[package]]
-name = "decompression-plz"
-version = "0.0.4"
+version = "0.0.5"
 dependencies = [
  "body-plz 0.0.30 (registry+https://github.com/rust-lang/crates.io-index)",
  "brotli",
@@ -303,6 +287,22 @@ dependencies = [
  "flate2",
  "header-plz 0.0.25 (registry+https://github.com/rust-lang/crates.io-index)",
  "oneone-plz",
+ "thiserror",
+ "tracing",
+ "zstd",
+]
+
+[[package]]
+name = "decompression-plz"
+version = "0.0.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7e2c66e304bc587cf1f3a82d52689032bf1f397c12f12140d1476eaf02a178d6"
+dependencies = [
+ "body-plz 0.0.30 (registry+https://github.com/rust-lang/crates.io-index)",
+ "brotli",
+ "bytes",
+ "flate2",
+ "header-plz 0.0.25 (registry+https://github.com/rust-lang/crates.io-index)",
  "thiserror",
  "tracing",
  "zstd",
@@ -504,14 +504,14 @@ checksum = "42f5e15c9953c5e4ccceeb2e7382a716482c34515315f7b03532b8b4e8393d2d"
 
 [[package]]
 name = "oneone-plz"
-version = "0.0.3"
+version = "0.0.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5b44c7d75d966a36c096113b20307a45dd4b9c7a1ef0b592686fb76fbe7aac20"
+checksum = "0773d302c3a6caf027d416162e083bef2bf735debd98cb5a365f033b96ccc207"
 dependencies = [
  "body-plz 0.0.30 (registry+https://github.com/rust-lang/crates.io-index)",
  "buffer-plz 0.0.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "bytes",
- "decompression-plz 0.0.3",
+ "decompression-plz 0.0.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "header-plz 0.0.25 (registry+https://github.com/rust-lang/crates.io-index)",
  "protocol-traits-plz 0.0.4 (registry+https://github.com/rust-lang/crates.io-index)",
  "thiserror",
