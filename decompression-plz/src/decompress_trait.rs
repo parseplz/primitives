@@ -1,9 +1,13 @@
 use body_plz::variants::Body;
+use bytes::BytesMut;
 use header_plz::{Header, HeaderMap, body_headers::BodyHeader};
 
 pub trait DecompressTrait {
     // Body
     fn get_body(&mut self) -> Body;
+
+    fn get_extra_body(&mut self) -> Option<BytesMut>;
+
     fn set_body(&mut self, body: Body);
 
     fn body_headers_as_mut(&mut self) -> &mut Option<BodyHeader>;
@@ -15,8 +19,7 @@ pub trait DecompressTrait {
 
     // entire header
     fn add_header(&mut self, key: &str, value: &str) {
-        let header: Header = (key, value).into();
-        self.header_map_as_mut().add_header(header);
+        self.header_map_as_mut().add_header(Header::from((key, value)));
     }
 
     fn add_multi_headers(&mut self, mut headers: Vec<Header>) {
