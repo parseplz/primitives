@@ -2,7 +2,10 @@
 
 use bytes::BytesMut;
 
-use crate::state::DecodeState;
+use crate::{
+    decompression::multi::error::MultiDecompressErrorReason,
+    state::DecodeState,
+};
 pub mod chunked;
 pub mod content_length;
 mod decode_struct;
@@ -11,20 +14,22 @@ mod decompression;
 pub use decompress_trait::DecompressTrait;
 mod state;
 
-pub fn decompress<T>(message: &mut T, buf: &mut BytesMut)
-//-> Result<(), MultiDecompressError>
+pub fn decompress<T>(
+    message: &mut T,
+    buf: &mut BytesMut,
+) -> Result<(), MultiDecompressErrorReason>
 where
     T: DecompressTrait,
 {
     let mut state = DecodeState::init(message, buf);
     loop {
-        state = state.try_next();
+        state = state.try_next()?;
         if state.is_ended() {
             break;
         }
     }
 
-    // Ok(())
+    Ok(())
 }
 
 // helper function for tests
