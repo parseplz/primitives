@@ -196,16 +196,10 @@ impl<'a> DecompressionStruct<'a> {
 #[cfg(test)]
 mod tests {
     use bytes::BufMut;
+    use tests_utils::*;
 
     use crate::decompression::multi::error::MultiDecompressErrorReason;
-    use crate::{
-        decompression::single::error::DecompressError,
-        tests::{
-            INPUT, all_encoding_info_multi_header,
-            all_encoding_info_single_header, compress_brotli,
-            compress_deflate, compress_gzip, compress_zstd,
-        },
-    };
+    use crate::decompression::single::error::DecompressError;
 
     use super::*;
 

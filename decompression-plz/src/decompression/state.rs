@@ -222,7 +222,7 @@ mod tests {
     use bytes::BytesMut;
     use header_plz::body_headers::content_encoding::ContentEncoding;
 
-    use crate::tests::*;
+    use tests_utils::*;
 
     // ----- Main
     fn assert_main_only_finish_flow(

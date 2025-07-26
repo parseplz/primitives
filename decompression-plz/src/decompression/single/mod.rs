@@ -92,10 +92,10 @@ pub mod tests {
     use bytes::{BufMut, BytesMut};
 
     use header_plz::body_headers::content_encoding::ContentEncoding;
+    use tests_utils::*;
 
-    use crate::{
-        decompression::single::{decompress_single, error::DecompressError},
-        tests::*,
+    use crate::decompression::single::{
+        decompress_single, error::DecompressError,
     };
 
     fn test_decompress(

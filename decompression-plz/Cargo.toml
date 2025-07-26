@@ -21,3 +21,7 @@ zstd = "0.13.3"
 bytes = { workspace = true }
 thiserror = { workspace = true }
 tracing = { workspace = true }
+
+
+[dev-dependencies]
+tests-utils = { path = "tests-utils" }

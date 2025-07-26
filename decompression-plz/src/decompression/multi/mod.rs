@@ -57,9 +57,9 @@ where
 mod tests {
 
     use super::*;
-    use crate::tests::*;
     use bytes::BufMut;
     use header_plz::body_headers::content_encoding::ContentEncoding;
+    use tests_utils::*;
 
     #[test]
     fn test_decompress_multi_single_header() {

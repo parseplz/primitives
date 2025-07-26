@@ -286,6 +286,7 @@ dependencies = [
  "bytes",
  "flate2",
  "header-plz 0.0.25 (registry+https://github.com/rust-lang/crates.io-index)",
+ "tests-utils",
  "thiserror",
  "tracing",
  "zstd",
@@ -680,6 +681,17 @@ dependencies = [
  "proc-macro2",
  "quote",
  "unicode-ident",
+]
+
+[[package]]
+name = "tests-utils"
+version = "0.1.0"
+dependencies = [
+ "body-plz 0.0.30 (registry+https://github.com/rust-lang/crates.io-index)",
+ "brotli",
+ "flate2",
+ "header-plz 0.0.25 (registry+https://github.com/rust-lang/crates.io-index)",
+ "zstd",
 ]
 
 [[package]]
