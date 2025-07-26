@@ -36,7 +36,7 @@ fn assert_decode_state_ce_all_single_header() {
     let f = move |s: &DecodeState<TestMessage>| {
         matches!(s, DecodeState::ContentEncoding(_, _))
     };
-    run_case_multi_compression(f, tm, VERIFY);
+    assert_case_multi_compression(f, tm, VERIFY);
 }
 
 #[test]
@@ -45,5 +45,5 @@ fn assert_decode_state_te_all_single_header() {
     let f = move |s: &DecodeState<TestMessage>| {
         matches!(s, DecodeState::TransferEncoding(_, _))
     };
-    run_case_multi_compression(f, tm, VERIFY);
+    assert_case_multi_compression(f, tm, VERIFY);
 }

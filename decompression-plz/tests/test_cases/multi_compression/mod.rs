@@ -5,7 +5,7 @@ use super::*;
 mod multi_header;
 mod single_header;
 
-fn run_case_multi_compression(
+fn assert_case_multi_compression(
     f: fn(&DecodeState<TestMessage>) -> bool,
     mut tm: TestMessage,
     verify: &str,

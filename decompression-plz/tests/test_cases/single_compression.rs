@@ -3,7 +3,7 @@ use tests_utils::single_compression;
 
 use super::*;
 
-fn run_case_single_compression(
+fn assert_case_single_compression(
     case: &Case,
     content_encoding: ContentEncoding,
 ) {
@@ -48,7 +48,7 @@ fn assert_decode_state_single_te_brotli() {
         header_name: "Transfer-Encoding",
         expected_state: |s| matches!(s, DecodeState::TransferEncoding(_, _)),
     };
-    run_case_single_compression(&case, ContentEncoding::Brotli);
+    assert_case_single_compression(&case, ContentEncoding::Brotli);
 }
 
 #[test]
@@ -57,7 +57,7 @@ fn assert_decode_state_single_te_compress() {
         header_name: "Transfer-Encoding",
         expected_state: |s| matches!(s, DecodeState::TransferEncoding(_, _)),
     };
-    run_case_single_compression(&case, ContentEncoding::Compress);
+    assert_case_single_compression(&case, ContentEncoding::Compress);
 }
 
 #[test]
@@ -66,7 +66,7 @@ fn assert_decode_state_single_te_deflate() {
         header_name: "Transfer-Encoding",
         expected_state: |s| matches!(s, DecodeState::TransferEncoding(_, _)),
     };
-    run_case_single_compression(&case, ContentEncoding::Deflate);
+    assert_case_single_compression(&case, ContentEncoding::Deflate);
 }
 
 #[test]
@@ -75,7 +75,7 @@ fn assert_decode_state_single_te_gzip() {
         header_name: "Transfer-Encoding",
         expected_state: |s| matches!(s, DecodeState::TransferEncoding(_, _)),
     };
-    run_case_single_compression(&case, ContentEncoding::Gzip);
+    assert_case_single_compression(&case, ContentEncoding::Gzip);
 }
 
 #[test]
@@ -84,7 +84,7 @@ fn assert_decode_state_single_te_identity() {
         header_name: "Transfer-Encoding",
         expected_state: |s| matches!(s, DecodeState::TransferEncoding(_, _)),
     };
-    run_case_single_compression(&case, ContentEncoding::Identity);
+    assert_case_single_compression(&case, ContentEncoding::Identity);
 }
 
 #[test]
@@ -93,7 +93,7 @@ fn assert_decode_state_single_te_zstd() {
         header_name: "Transfer-Encoding",
         expected_state: |s| matches!(s, DecodeState::TransferEncoding(_, _)),
     };
-    run_case_single_compression(&case, ContentEncoding::Zstd);
+    assert_case_single_compression(&case, ContentEncoding::Zstd);
 }
 
 // CE only
@@ -103,7 +103,7 @@ fn assert_decode_state_single_ce_brotli() {
         header_name: "Content-Encoding",
         expected_state: |s| matches!(s, DecodeState::ContentEncoding(_, _)),
     };
-    run_case_single_compression(&case, ContentEncoding::Brotli);
+    assert_case_single_compression(&case, ContentEncoding::Brotli);
 }
 
 #[test]
@@ -112,7 +112,7 @@ fn assert_decode_state_single_ce_compress() {
         header_name: "Content-Encoding",
         expected_state: |s| matches!(s, DecodeState::ContentEncoding(_, _)),
     };
-    run_case_single_compression(&case, ContentEncoding::Compress);
+    assert_case_single_compression(&case, ContentEncoding::Compress);
 }
 
 #[test]
@@ -121,7 +121,7 @@ fn assert_decode_state_single_ce_deflate() {
         header_name: "Content-Encoding",
         expected_state: |s| matches!(s, DecodeState::ContentEncoding(_, _)),
     };
-    run_case_single_compression(&case, ContentEncoding::Deflate);
+    assert_case_single_compression(&case, ContentEncoding::Deflate);
 }
 
 #[test]
@@ -130,7 +130,7 @@ fn assert_decode_state_single_ce_gzip() {
         header_name: "Content-Encoding",
         expected_state: |s| matches!(s, DecodeState::ContentEncoding(_, _)),
     };
-    run_case_single_compression(&case, ContentEncoding::Gzip);
+    assert_case_single_compression(&case, ContentEncoding::Gzip);
 }
 
 #[test]
@@ -139,7 +139,7 @@ fn assert_decode_state_single_ce_identity() {
         header_name: "Content-Encoding",
         expected_state: |s| matches!(s, DecodeState::ContentEncoding(_, _)),
     };
-    run_case_single_compression(&case, ContentEncoding::Identity);
+    assert_case_single_compression(&case, ContentEncoding::Identity);
 }
 
 #[test]
@@ -148,5 +148,5 @@ fn assert_decode_state_single_ce_zstd() {
         header_name: "Content-Encoding",
         expected_state: |s| matches!(s, DecodeState::ContentEncoding(_, _)),
     };
-    run_case_single_compression(&case, ContentEncoding::Zstd);
+    assert_case_single_compression(&case, ContentEncoding::Zstd);
 }

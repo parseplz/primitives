@@ -3,7 +3,7 @@ use body_plz::variants::Body;
 use bytes::BytesMut;
 use decompression_plz::state::DecodeState;
 
-//#[test]
+#[test]
 fn test_decode_init_no_enc() {
     let headers = "Host: example.com\r\n\
                        Content-Type: text/html; charset=utf-8\r\n\
