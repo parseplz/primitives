@@ -29,8 +29,7 @@ where
     T: DecompressTrait + 'a + std::fmt::Debug,
 {
     pub fn init(message: &'a mut T, buf: &'a mut BytesMut) -> Self {
-        let decode_struct = DecodeStruct::new(message, buf);
-        Self::Start(decode_struct)
+        Self::Start(DecodeStruct::new(message, buf))
     }
 
     pub fn try_next(self) -> Result<Self, MultiDecompressErrorReason> {
@@ -45,12 +44,8 @@ where
                 } else if decode_struct.extra_body_is_some() {
                     Self::UpdateContentLength(decode_struct)
                 } else {
-                    if decode_struct.extra_body_is_none() {
-                        let mut body = decode_struct.take_main_body();
-                        decode_struct.message.set_body(Body::Raw(body));
-                    } else {
-                        decode_struct.add_body_and_update_cl();
-                    }
+                    let mut body = decode_struct.take_main_body();
+                    decode_struct.message.set_body(Body::Raw(body));
                     Self::End
                 };
                 Ok(next_state)
