@@ -1,11 +1,11 @@
 use std::cmp::Ordering;
 
+use body_plz::variants::Body;
 use bytes::BytesMut;
 use header_plz::body_headers::encoding_info::EncodingInfo;
 use tracing::error;
 
 use crate::{
-    content_length::add_body_and_update_cl,
     decode_struct::DecodeStruct,
     decompress_trait::DecompressTrait,
     decompression::{
@@ -26,7 +26,7 @@ pub enum DecodeState<'a, T> {
 
 impl<'a, T> DecodeState<'a, T>
 where
-    T: DecompressTrait + 'a,
+    T: DecompressTrait + 'a + std::fmt::Debug,
 {
     pub fn init(message: &'a mut T, buf: &'a mut BytesMut) -> Self {
         let decode_struct = DecodeStruct::new(message, buf);
@@ -45,6 +45,12 @@ where
                 } else if decode_struct.extra_body_is_some() {
                     Self::UpdateContentLength(decode_struct)
                 } else {
+                    if decode_struct.extra_body_is_none() {
+                        let mut body = decode_struct.take_main_body();
+                        decode_struct.message.set_body(Body::Raw(body));
+                    } else {
+                        decode_struct.add_body_and_update_cl();
+                    }
                     Self::End
                 };
                 Ok(next_state)
