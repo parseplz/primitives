@@ -23,7 +23,13 @@ where
     T: DecompressTrait + std::fmt::Debug,
 {
     pub fn new(message: &'a mut T, buf: &'a mut BytesMut) -> Self {
-        let body = message.get_body().into_bytes().unwrap();
+        let body = match message.get_body() {
+            Body::Raw(data) => data,
+            Body::Chunked(chunks) => {
+                message.set_body(Body::Chunked(chunks));
+                buf.split()
+            }
+        };
         let extra_body = message.get_extra_body();
         let body_headers = message.body_headers_as_mut().take();
         Self {
@@ -45,9 +51,8 @@ where
     }
 
     pub fn chunked_to_raw(&mut self) {
-        if let Body::Chunked(_) = self.message.get_body() {
-            chunked_to_raw(self.message, &mut self.buf);
-        }
+        chunked_to_raw(self.message, &mut self.buf);
+        self.body = self.message.get_body().into_bytes().unwrap();
     }
 
     pub fn transfer_encoding_is_some(&self) -> bool {
