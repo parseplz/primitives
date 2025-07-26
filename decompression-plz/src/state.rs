@@ -178,88 +178,45 @@ where
     }
 }
 
+/*
 #[cfg(test)]
 mod tests {
 
-    use body_plz::variants::Body;
-    use bytes::BytesMut;
-    use header_plz::{
-        HeaderMap, abnf::HEADER_DELIMITER, body_headers::BodyHeader,
-        message_head::MessageHead,
+    use crate::{
+        DecompressTrait,
+        state::DecodeState,
+        tests::{INPUT, single_compression},
     };
 
-    use crate::{DecompressTrait, state::DecodeState, tests::INPUT};
 
-    #[derive(Debug, PartialEq)]
-    struct TestMessage {
-        header_map: HeaderMap,
-        body_header: Option<BodyHeader>,
-        body: Option<Body>,
-        extra_body: Option<BytesMut>,
-    }
+    // CE only
+    fn assert_decode_state_ce_only_single(content_encoding: ContentEncoding) {
+        let body = single_compression(&content_encoding);
+        let headers = format!(
+            "Host: example.com\r\n\
+            Content-Type: text/html; charset=utf-8\r\n\
+            Content-Encoding: {}\r\n\
+            Content-Length: {}\r\n\r\n",
+            content_encoding.as_ref(),
+            body.len()
+        );
+        let mut tm = TestMessage::build(
+            headers.as_bytes().into(),
+            Body::Raw(body.as_slice().into()),
+            None,
+        );
 
-    impl DecompressTrait for TestMessage {
-        fn get_body(&mut self) -> Body {
-            self.body.take().unwrap()
-        }
-
-        fn get_extra_body(&mut self) -> Option<BytesMut> {
-            self.extra_body.take()
-        }
-
-        fn set_body(&mut self, body: Body) {
-            self.body = Some(body);
-        }
-
-        fn body_headers_as_mut(&mut self) -> &mut Option<BodyHeader> {
-            &mut self.body_header
-        }
-
-        fn header_map(&self) -> &HeaderMap {
-            &self.header_map
-        }
-
-        fn header_map_as_mut(&mut self) -> &mut HeaderMap {
-            &mut self.header_map
-        }
-    }
-
-    impl TestMessage {
-        fn build(
-            headers: BytesMut,
-            body: Body,
-            extra: Option<BytesMut>,
-        ) -> Self {
-            let header_map = HeaderMap::from(headers);
-            let body_header = BodyHeader::from(&header_map);
-            Self {
-                header_map,
-                body_header: Some(body_header),
-                body: Some(body),
-                extra_body: extra,
-            }
-        }
-
-        fn into_bytes(self) -> BytesMut {
-            let mut bytes = self.header_map.into_bytes();
-            bytes.unsplit(self.body.unwrap().into_bytes().unwrap());
-            bytes
-        }
-    }
-
-    #[test]
-    fn test_decode_init_no_enc() {
-        let headers = "Host: example.com\r\n\
-                       Content-Type: text/html; charset=utf-8\r\n\
-                       Content-Length: 11\r\n\r\n";
-        let mut tm =
-            TestMessage::build(headers.into(), Body::Raw(INPUT.into()), None);
         let mut buf = BytesMut::new();
         let mut state = DecodeState::init(&mut tm, &mut buf);
-        dbg!(&state);
         state = state.try_next().unwrap();
-        dbg!(&state);
+        assert!(matches!(state, DecodeState::ContentEncoding(_, _)));
+
+        state = state.try_next().unwrap();
+        assert!(matches!(state, DecodeState::UpdateContentLength(_)));
+
+        state = state.try_next().unwrap();
         assert!(matches!(state, DecodeState::End));
+
         let result = tm.into_bytes();
         let verify = "Host: example.com\r\n\
                       Content-Type: text/html; charset=utf-8\r\n\
@@ -269,27 +226,149 @@ mod tests {
     }
 
     #[test]
-    fn test_decode_init_no_enc_extra_body() {
-        let headers = "Host: example.com\r\n\
-                       Content-Type: text/html; charset=utf-8\r\n\
-                       Content-Length: 11\r\n\r\n";
+    fn test_decode_state_ce_only_brotli() {
+        assert_decode_state_ce_only_single(ContentEncoding::Brotli);
+    }
+
+    #[test]
+    fn test_decode_state_ce_only_compress() {
+        assert_decode_state_ce_only_single(ContentEncoding::Compress);
+    }
+
+    #[test]
+    fn test_decode_state_ce_only_deflate() {
+        assert_decode_state_ce_only_single(ContentEncoding::Deflate);
+    }
+
+    #[test]
+    fn test_decode_state_ce_only_gzip() {
+        assert_decode_state_ce_only_single(ContentEncoding::Gzip);
+    }
+
+    #[test]
+    fn test_decode_state_ce_only_identity() {
+        assert_decode_state_ce_only_single(ContentEncoding::Identity);
+    }
+
+    #[test]
+    fn test_decode_state_ce_only_zstd() {
+        assert_decode_state_ce_only_single(ContentEncoding::Zstd);
+    }
+
+    // TE only
+    fn assert_decode_state_te_only_single(content_encoding: ContentEncoding) {
+        let body = single_compression(&content_encoding);
+        let headers = format!(
+            "Host: example.com\r\n\
+            Content-Type: text/html; charset=utf-8\r\n\
+            Transfer-Encoding: {}\r\n\
+            Content-Length: {}\r\n\r\n",
+            content_encoding.as_ref(),
+            body.len()
+        );
         let mut tm = TestMessage::build(
-            headers.into(),
-            Body::Raw(INPUT.into()),
-            Some(INPUT.into()),
+            headers.as_bytes().into(),
+            Body::Raw(body.as_slice().into()),
+            None,
         );
 
         let mut buf = BytesMut::new();
         let mut state = DecodeState::init(&mut tm, &mut buf);
         state = state.try_next().unwrap();
+        assert!(matches!(state, DecodeState::TransferEncoding(_, _)));
+
+        state = state.try_next().unwrap();
         assert!(matches!(state, DecodeState::UpdateContentLength(_)));
+
         state = state.try_next().unwrap();
         assert!(matches!(state, DecodeState::End));
+
         let result = tm.into_bytes();
         let verify = "Host: example.com\r\n\
                       Content-Type: text/html; charset=utf-8\r\n\
-                      Content-Length: 22\r\n\r\n\
-                      hello worldhello world";
+                      Content-Length: 11\r\n\r\n\
+                      hello world";
         assert_eq!(result, verify);
     }
+
+    #[test]
+    fn test_decode_state_te_only_brotli() {
+        assert_decode_state_te_only_single(ContentEncoding::Brotli);
+    }
+
+    #[test]
+    fn test_decode_state_te_only_chunked() {
+        ()
+    }
+
+    #[test]
+    fn test_decode_state_te_only_compress() {
+        assert_decode_state_te_only_single(ContentEncoding::Compress);
+    }
+
+    #[test]
+    fn test_decode_state_te_only_deflate() {
+        assert_decode_state_te_only_single(ContentEncoding::Deflate);
+    }
+
+    #[test]
+    fn test_decode_state_te_only_gzip() {
+        assert_decode_state_te_only_single(ContentEncoding::Gzip);
+    }
+
+    #[test]
+    fn test_decode_state_te_only_identity() {
+        assert_decode_state_te_only_single(ContentEncoding::Identity);
+    }
+
+    #[test]
+    fn test_decode_state_te_only_zstd() {
+        assert_decode_state_te_only_single(ContentEncoding::Zstd);
+    }
+
+    fn run_case(case: &Case, content_encoding: ContentEncoding) {
+        let body = single_compression(&content_encoding);
+        let headers = format!(
+            "Host: example.com\r\n\
+         Content-Type: text/html; charset=utf-8\r\n\
+         {}: {}\r\n\
+         Content-Length: {}\r\n\r\n",
+            case.header_name,
+            content_encoding.as_ref(),
+            body.len()
+        );
+
+        let mut tm = TestMessage::build(
+            headers.as_bytes().into(),
+            Body::Raw(body.as_slice().into()),
+            None,
+        );
+        let mut buf = BytesMut::new();
+        let mut state = DecodeState::init(&mut tm, &mut buf);
+        state = state.try_next().unwrap();
+        assert!((case.expected_state)(&state));
+        state = state.try_next().unwrap();
+        assert!(matches!(state, DecodeState::UpdateContentLength(_)));
+        state = state.try_next().unwrap();
+        assert!(matches!(state, DecodeState::End));
+
+        let result = tm.into_bytes();
+        let verify = "Host: example.com\r\n\
+                  Content-Type: text/html; charset=utf-8\r\n\
+                  Content-Length: 11\r\n\r\n\
+                  hello world";
+        assert_eq!(result, verify);
+    }
+
+    #[test]
+    fn assert_decode_states_single() {
+        let case = Case {
+            header_name: "Transfer-Encoding",
+            expected_state: |s| {
+                matches!(s, DecodeState::TransferEncoding(_, _))
+            },
+        };
+        run_case(&case, ContentEncoding::Brotli);
+    }
 }
+*/

@@ -6,11 +6,11 @@ use crate::state::DecodeState;
 pub mod chunked;
 pub mod content_length;
 pub use decompression::multi::error::MultiDecompressErrorReason;
-mod decode_struct;
+pub mod decode_struct;
 mod decompress_trait;
 mod decompression;
 pub use decompress_trait::DecompressTrait;
-mod state;
+pub mod state;
 
 pub fn decompress<T>(
     message: &mut T,
@@ -58,7 +58,10 @@ pub mod tests {
             ContentEncoding::Brotli => compress_brotli(INPUT),
             ContentEncoding::Deflate => compress_deflate(INPUT),
             ContentEncoding::Gzip => compress_gzip(INPUT),
-            ContentEncoding::Zstd => compress_zstd(INPUT),
+            ContentEncoding::Zstd | ContentEncoding::Compress => {
+                compress_zstd(INPUT)
+            }
+            ContentEncoding::Identity => INPUT.to_vec(),
             _ => panic!(),
         }
     }

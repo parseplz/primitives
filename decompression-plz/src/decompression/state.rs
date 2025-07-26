@@ -1,7 +1,7 @@
 use crate::decompression::{
     dstruct::DecompressionStruct, multi::error::MultiDecompressError,
 };
-use bytes::{buf::Writer, BufMut, BytesMut};
+use bytes::{BufMut, BytesMut, buf::Writer};
 use header_plz::body_headers::encoding_info::EncodingInfo;
 use tracing::error;
 
