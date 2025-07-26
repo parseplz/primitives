@@ -37,11 +37,113 @@ fn run_case(case: &Case, content_encoding: ContentEncoding) {
     assert_eq!(result, verify);
 }
 
+// Transfer-Encoding
+
 #[test]
-fn assert_decode_states_single() {
+fn assert_decode_state_single_te_brotli() {
     let case = Case {
         header_name: "Transfer-Encoding",
         expected_state: |s| matches!(s, DecodeState::TransferEncoding(_, _)),
     };
     run_case(&case, ContentEncoding::Brotli);
+}
+
+#[test]
+fn assert_decode_state_single_te_compress() {
+    let case = Case {
+        header_name: "Transfer-Encoding",
+        expected_state: |s| matches!(s, DecodeState::TransferEncoding(_, _)),
+    };
+    run_case(&case, ContentEncoding::Compress);
+}
+
+#[test]
+fn assert_decode_state_single_te_deflate() {
+    let case = Case {
+        header_name: "Transfer-Encoding",
+        expected_state: |s| matches!(s, DecodeState::TransferEncoding(_, _)),
+    };
+    run_case(&case, ContentEncoding::Deflate);
+}
+
+#[test]
+fn assert_decode_state_single_te_gzip() {
+    let case = Case {
+        header_name: "Transfer-Encoding",
+        expected_state: |s| matches!(s, DecodeState::TransferEncoding(_, _)),
+    };
+    run_case(&case, ContentEncoding::Gzip);
+}
+
+#[test]
+fn assert_decode_state_single_te_identity() {
+    let case = Case {
+        header_name: "Transfer-Encoding",
+        expected_state: |s| matches!(s, DecodeState::TransferEncoding(_, _)),
+    };
+    run_case(&case, ContentEncoding::Identity);
+}
+
+#[test]
+fn assert_decode_state_single_te_zstd() {
+    let case = Case {
+        header_name: "Transfer-Encoding",
+        expected_state: |s| matches!(s, DecodeState::TransferEncoding(_, _)),
+    };
+    run_case(&case, ContentEncoding::Zstd);
+}
+
+// CE only
+#[test]
+fn assert_decode_state_single_ce_brotli() {
+    let case = Case {
+        header_name: "Content-Encoding",
+        expected_state: |s| matches!(s, DecodeState::ContentEncoding(_, _)),
+    };
+    run_case(&case, ContentEncoding::Brotli);
+}
+
+#[test]
+fn assert_decode_state_single_ce_compress() {
+    let case = Case {
+        header_name: "Content-Encoding",
+        expected_state: |s| matches!(s, DecodeState::ContentEncoding(_, _)),
+    };
+    run_case(&case, ContentEncoding::Compress);
+}
+
+#[test]
+fn assert_decode_state_single_ce_deflate() {
+    let case = Case {
+        header_name: "Content-Encoding",
+        expected_state: |s| matches!(s, DecodeState::ContentEncoding(_, _)),
+    };
+    run_case(&case, ContentEncoding::Deflate);
+}
+
+#[test]
+fn assert_decode_state_single_ce_gzip() {
+    let case = Case {
+        header_name: "Content-Encoding",
+        expected_state: |s| matches!(s, DecodeState::ContentEncoding(_, _)),
+    };
+    run_case(&case, ContentEncoding::Gzip);
+}
+
+#[test]
+fn assert_decode_state_single_ce_identity() {
+    let case = Case {
+        header_name: "Content-Encoding",
+        expected_state: |s| matches!(s, DecodeState::ContentEncoding(_, _)),
+    };
+    run_case(&case, ContentEncoding::Identity);
+}
+
+#[test]
+fn assert_decode_state_single_ce_zstd() {
+    let case = Case {
+        header_name: "Content-Encoding",
+        expected_state: |s| matches!(s, DecodeState::ContentEncoding(_, _)),
+    };
+    run_case(&case, ContentEncoding::Zstd);
 }
