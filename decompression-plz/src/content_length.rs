@@ -8,14 +8,11 @@ pub fn add_body_and_update_cl<T>(message: &mut T, body: BytesMut)
 where
     T: DecompressTrait,
 {
-    if !body.is_empty() {
-        update_content_length(message, body.len());
+    if body.is_empty() {
+        return;
     }
 
-    //if let Some(bh) = body_headers {
-    //    message.body_headers_as_mut().replace(bh);
-    //}
-
+    update_content_length(message, body.len());
     message.set_body(Body::Raw(body));
 }
 
