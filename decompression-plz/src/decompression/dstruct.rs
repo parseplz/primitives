@@ -301,12 +301,12 @@ mod tests {
     fn test_push_last_encoding_multi_header() {
         let encoding_info = all_encoding_info_multi_header();
         let to_verify = vec![
-            EncodingInfo::new(0, vec![ContentEncoding::Brotli]),
-            EncodingInfo::new(1, vec![ContentEncoding::Deflate]),
-            EncodingInfo::new(2, vec![ContentEncoding::Identity]),
-            EncodingInfo::new(3, vec![ContentEncoding::Gzip]),
+            EncodingInfo::new(1, vec![ContentEncoding::Brotli]),
+            EncodingInfo::new(3, vec![ContentEncoding::Deflate]),
+            EncodingInfo::new(5, vec![ContentEncoding::Identity]),
+            EncodingInfo::new(7, vec![ContentEncoding::Gzip]),
             EncodingInfo::new(
-                4,
+                9,
                 vec![ContentEncoding::Zstd, ContentEncoding::Brotli],
             ),
         ];
