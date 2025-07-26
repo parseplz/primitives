@@ -17,7 +17,7 @@ pub fn decompress<T>(
     buf: &mut BytesMut,
 ) -> Result<(), MultiDecompressErrorReason>
 where
-    T: DecompressTrait,
+    T: DecompressTrait + std::fmt::Debug,
 {
     let mut state = DecodeState::init(message, buf);
     loop {

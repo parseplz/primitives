@@ -5,7 +5,7 @@ use header_plz::body_headers::encoding_info::EncodingInfo;
 use header_plz::body_headers::transfer_types::TransferType;
 
 use crate::chunked::chunked_to_raw;
-use crate::content_length::add_body_and_update_cl;
+use crate::content_length::{add_body_and_update_cl, update_content_length};
 use crate::decompress_trait::DecompressTrait;
 
 #[cfg_attr(test, derive(PartialEq))]
@@ -20,7 +20,7 @@ pub struct DecodeStruct<'a, T> {
 
 impl<'a, T> DecodeStruct<'a, T>
 where
-    T: DecompressTrait,
+    T: DecompressTrait + std::fmt::Debug,
 {
     pub fn new(message: &'a mut T, buf: &'a mut BytesMut) -> Self {
         let body = message.get_body().into_bytes().unwrap();
