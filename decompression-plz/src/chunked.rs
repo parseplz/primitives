@@ -55,3 +55,15 @@ pub fn partial_chunked_to_raw(vec_body: Vec<ChunkType>) -> Option<BytesMut> {
 
     Some(body)
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    extern crate tests_utils;
+    use tests_utils::TestMessage;
+
+    #[test]
+    fn test_chunked_to_raw() {
+        let a: Option<TestMessage>;
+    }
+}

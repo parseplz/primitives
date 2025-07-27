@@ -11,3 +11,6 @@ body-plz = "0.0.30"
 brotli = "8.0.0"
 flate2 = "1.1.0"
 zstd = "0.13.3"
+bytes = { workspace = true }
+
+decompression-plz = { path = ".." }

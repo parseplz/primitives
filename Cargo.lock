@@ -689,6 +689,8 @@ version = "0.1.0"
 dependencies = [
  "body-plz 0.0.30 (registry+https://github.com/rust-lang/crates.io-index)",
  "brotli",
+ "bytes",
+ "decompression-plz",
  "flate2",
  "header-plz 0.0.25 (registry+https://github.com/rust-lang/crates.io-index)",
  "zstd",

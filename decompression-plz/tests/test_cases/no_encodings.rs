@@ -2,6 +2,7 @@ use super::*;
 use body_plz::variants::Body;
 use bytes::BytesMut;
 use decompression_plz::state::DecodeState;
+use tests_utils::INPUT;
 
 #[test]
 fn test_decode_init_no_enc() {
