@@ -41,15 +41,9 @@ fn assert_case_single_compression(
     assert!(state.is_ended());
 
     let verify = if with_extra {
-        "Host: example.com\r\n\
-            Content-Type: text/html; charset=utf-8\r\n\
-            Content-Length: 22\r\n\r\n\
-            hello worldhello world"
+        VERIFY_SINGLE_HEADER_BODY_AND_EXTRA
     } else {
-        "Host: example.com\r\n\
-            Content-Type: text/html; charset=utf-8\r\n\
-            Content-Length: 11\r\n\r\n\
-            hello world"
+        VERIFY_SINGLE_HEADER_BODY_ONLY
     };
     let result = tm.into_bytes();
     assert_eq!(result, verify);

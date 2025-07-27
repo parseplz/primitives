@@ -3,7 +3,7 @@ use tests_utils::INPUT;
 use super::*;
 
 #[test]
-fn assert_decode_state_single_te_brotli_extra_raw() {
+fn assert_decode_state_single_ce_brotli_extra_raw() {
     assert_case_single_compression(
         CONTENT_ENCODING,
         ContentEncoding::Brotli,
@@ -12,7 +12,7 @@ fn assert_decode_state_single_te_brotli_extra_raw() {
 }
 
 #[test]
-fn assert_decode_state_single_te_compress_extra_raw() {
+fn assert_decode_state_single_ce_compress_extra_raw() {
     assert_case_single_compression(
         CONTENT_ENCODING,
         ContentEncoding::Compress,
@@ -21,7 +21,7 @@ fn assert_decode_state_single_te_compress_extra_raw() {
 }
 
 #[test]
-fn assert_decode_state_single_te_deflate_extra_raw() {
+fn assert_decode_state_single_ce_deflate_extra_raw() {
     assert_case_single_compression(
         CONTENT_ENCODING,
         ContentEncoding::Deflate,
@@ -30,7 +30,7 @@ fn assert_decode_state_single_te_deflate_extra_raw() {
 }
 
 #[test]
-fn assert_decode_state_single_te_gzip_extra_raw() {
+fn assert_decode_state_single_ce_gzip_extra_raw() {
     assert_case_single_compression(
         CONTENT_ENCODING,
         ContentEncoding::Gzip,
@@ -39,7 +39,7 @@ fn assert_decode_state_single_te_gzip_extra_raw() {
 }
 
 #[test]
-fn assert_decode_state_single_te_identity_extra_raw() {
+fn assert_decode_state_single_ce_identity_extra_raw() {
     assert_case_single_compression(
         CONTENT_ENCODING,
         ContentEncoding::Identity,
@@ -48,7 +48,7 @@ fn assert_decode_state_single_te_identity_extra_raw() {
 }
 
 #[test]
-fn assert_decode_state_single_te_zstd_extra_raw() {
+fn assert_decode_state_single_ce_zstd_extra_raw() {
     assert_case_single_compression(
         CONTENT_ENCODING,
         ContentEncoding::Zstd,

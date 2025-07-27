@@ -33,10 +33,6 @@ pub fn assert_case_single_compression_compressed_together(
     state = state.try_next().unwrap();
     assert!(state.is_ended());
 
-    let verify = "Host: example.com\r\n\
-        Content-Type: text/html; charset=utf-8\r\n\
-        Content-Length: 11\r\n\r\n\
-        hello world";
     let result = tm.into_bytes();
-    assert_eq!(result, verify);
+    assert_eq!(result, VERIFY_SINGLE_HEADER_BODY_ONLY);
 }

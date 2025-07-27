@@ -1,14 +1,16 @@
 use header_plz::const_headers::{CONTENT_ENCODING, TRANSFER_ENCODING};
 
 use super::*;
+mod body_only;
+mod with_extra;
 
-const VERIFY: &str = "Host: example.com\r\n\
-        Content-Type: text/html; charset=utf-8\r\n\
-        random: random\r\n\
-        another-random: random\r\n\
-        test-header: test-header\r\n\
-        Content-Length: 11\r\n\r\n\
-        hello world";
+const VERIFY_MULTI_HEADER: &str = "Host: example.com\r\n\
+                                   Content-Type: text/html; charset=utf-8\r\n\
+                                   random: random\r\n\
+                                   another-random: random\r\n\
+                                   test-header: test-header\r\n\
+                                   Content-Length: 11\r\n\r\n\
+                                   hello world";
 
 fn build_test_message_all_encodings_multi_header(
     header_name: &str,
@@ -44,12 +46,11 @@ fn build_test_message_all_encodings_multi_header(
 #[test]
 fn assert_decode_state_ce_all_multi_header() {
     let tm = build_test_message_all_encodings_multi_header(CONTENT_ENCODING);
-
-    assert_case_multi_compression(tm, CONTENT_ENCODING, VERIFY);
+    assert_case_multi_compression(tm, CONTENT_ENCODING, VERIFY_MULTI_HEADER);
 }
 
 #[test]
 fn assert_decode_state_te_all_multi_header() {
     let tm = build_test_message_all_encodings_multi_header(TRANSFER_ENCODING);
-    assert_case_multi_compression(tm, TRANSFER_ENCODING, VERIFY);
+    assert_case_multi_compression(tm, TRANSFER_ENCODING, VERIFY_MULTI_HEADER);
 }

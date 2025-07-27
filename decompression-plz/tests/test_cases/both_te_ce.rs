@@ -6,10 +6,10 @@ fn test_both_te_ce() {
     let body: Vec<u8> = all_compressed_data();
     let headers = format!(
         "Host: example.com\r\n\
-         Content-Type: text/html; charset=utf-8\r\n\
-         Transfer-Encoding: gzip, zstd\r\n\
-         Content-Encoding: br, deflate\r\n\
-         Content-Length: {}\r\n\r\n",
+        Content-Type: text/html; charset=utf-8\r\n\
+        Transfer-Encoding: gzip, zstd\r\n\
+        Content-Encoding: br, deflate\r\n\
+        Content-Length: {}\r\n\r\n",
         body.len()
     );
 
@@ -31,9 +31,5 @@ fn test_both_te_ce() {
     assert!(state.is_ended());
 
     let result = tm.into_bytes();
-    let verify = "Host: example.com\r\n\
-                  Content-Type: text/html; charset=utf-8\r\n\
-                  Content-Length: 11\r\n\r\n\
-                  hello world";
-    assert_eq!(result, verify);
+    assert_eq!(result, VERIFY_SINGLE_HEADER_BODY_ONLY);
 }

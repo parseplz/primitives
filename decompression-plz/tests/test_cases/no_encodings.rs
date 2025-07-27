@@ -16,11 +16,7 @@ fn test_decode_init_no_enc() {
     state = state.try_next().unwrap();
     assert!(state.is_ended());
     let result = tm.into_bytes();
-    let verify = "Host: example.com\r\n\
-                      Content-Type: text/html; charset=utf-8\r\n\
-                      Content-Length: 11\r\n\r\n\
-                      hello world";
-    assert_eq!(result, verify);
+    assert_eq!(result, VERIFY_SINGLE_HEADER_BODY_ONLY);
 }
 
 #[test]
@@ -41,9 +37,5 @@ fn test_decode_init_no_enc_extra_body() {
     state = state.try_next().unwrap();
     assert!(state.is_ended());
     let result = tm.into_bytes();
-    let verify = "Host: example.com\r\n\
-                      Content-Type: text/html; charset=utf-8\r\n\
-                      Content-Length: 22\r\n\r\n\
-                      hello worldhello world";
-    assert_eq!(result, verify);
+    assert_eq!(result, VERIFY_SINGLE_HEADER_BODY_AND_EXTRA);
 }

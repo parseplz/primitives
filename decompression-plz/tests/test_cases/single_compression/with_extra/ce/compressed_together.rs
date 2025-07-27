@@ -1,7 +1,7 @@
 use super::*;
 
 #[test]
-fn assert_decode_state_single_te_brotli_extra_compressed_together() {
+fn assert_decode_state_single_ce_brotli_extra_compressed_together() {
     assert_case_single_compression_compressed_together(
         CONTENT_ENCODING,
         ContentEncoding::Brotli,
@@ -9,7 +9,7 @@ fn assert_decode_state_single_te_brotli_extra_compressed_together() {
 }
 
 #[test]
-fn assert_decode_state_single_te_compress_extra_compressed_together() {
+fn assert_decode_state_single_ce_compress_extra_compressed_together() {
     assert_case_single_compression_compressed_together(
         CONTENT_ENCODING,
         ContentEncoding::Compress,
@@ -17,7 +17,7 @@ fn assert_decode_state_single_te_compress_extra_compressed_together() {
 }
 
 #[test]
-fn assert_decode_state_single_te_deflate_extra_compressed_together() {
+fn assert_decode_state_single_ce_deflate_extra_compressed_together() {
     assert_case_single_compression_compressed_together(
         CONTENT_ENCODING,
         ContentEncoding::Deflate,
@@ -25,7 +25,7 @@ fn assert_decode_state_single_te_deflate_extra_compressed_together() {
 }
 
 #[test]
-fn assert_decode_state_single_te_gzip_extra_compressed_together() {
+fn assert_decode_state_single_ce_gzip_extra_compressed_together() {
     assert_case_single_compression_compressed_together(
         CONTENT_ENCODING,
         ContentEncoding::Gzip,
@@ -33,7 +33,7 @@ fn assert_decode_state_single_te_gzip_extra_compressed_together() {
 }
 
 #[test]
-fn assert_decode_state_single_te_identity_extra_compressed_together() {
+fn assert_decode_state_single_ce_identity_extra_compressed_together() {
     assert_case_single_compression_compressed_together(
         CONTENT_ENCODING,
         ContentEncoding::Identity,
@@ -41,7 +41,7 @@ fn assert_decode_state_single_te_identity_extra_compressed_together() {
 }
 
 #[test]
-fn assert_decode_state_single_te_zstd_extra_compressed_together() {
+fn assert_decode_state_single_ce_zstd_extra_compressed_together() {
     assert_case_single_compression_compressed_together(
         CONTENT_ENCODING,
         ContentEncoding::Zstd,
