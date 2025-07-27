@@ -28,7 +28,7 @@ fn test_both_te_ce() {
     state = state.try_next().unwrap();
     assert!(matches!(state, DecodeState::UpdateContentLength(_)));
     state = state.try_next().unwrap();
-    assert!(matches!(state, DecodeState::End));
+    assert!(state.is_ended());
 
     let result = tm.into_bytes();
     let verify = "Host: example.com\r\n\

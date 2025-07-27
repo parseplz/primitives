@@ -14,7 +14,7 @@ fn test_decode_init_no_enc() {
     let mut buf = BytesMut::new();
     let mut state = DecodeState::init(&mut tm, &mut buf);
     state = state.try_next().unwrap();
-    assert!(matches!(state, DecodeState::End));
+    assert!(state.is_ended());
     let result = tm.into_bytes();
     let verify = "Host: example.com\r\n\
                       Content-Type: text/html; charset=utf-8\r\n\
@@ -39,7 +39,7 @@ fn test_decode_init_no_enc_extra_body() {
     state = state.try_next().unwrap();
     assert!(matches!(state, DecodeState::UpdateContentLength(_)));
     state = state.try_next().unwrap();
-    assert!(matches!(state, DecodeState::End));
+    assert!(state.is_ended());
     let result = tm.into_bytes();
     let verify = "Host: example.com\r\n\
                       Content-Type: text/html; charset=utf-8\r\n\

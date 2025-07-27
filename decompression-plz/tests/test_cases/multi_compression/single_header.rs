@@ -16,12 +16,11 @@ fn build_test_message_all_encodings_single_header(
         body.len()
     );
 
-    let mut tm = TestMessage::build(
+    TestMessage::build(
         headers.as_bytes().into(),
         Body::Raw(body.as_slice().into()),
         None,
-    );
-    tm
+    )
 }
 
 const VERIFY: &str = "Host: example.com\r\n\
@@ -32,18 +31,11 @@ const VERIFY: &str = "Host: example.com\r\n\
 #[test]
 fn assert_decode_state_ce_all_single_header() {
     let tm = build_test_message_all_encodings_single_header(CONTENT_ENCODING);
-
-    let f = move |s: &DecodeState<TestMessage>| {
-        matches!(s, DecodeState::ContentEncoding(_, _))
-    };
-    assert_case_multi_compression(f, tm, VERIFY);
+    assert_case_multi_compression(tm, CONTENT_ENCODING, VERIFY);
 }
 
 #[test]
 fn assert_decode_state_te_all_single_header() {
     let tm = build_test_message_all_encodings_single_header(TRANSFER_ENCODING);
-    let f = move |s: &DecodeState<TestMessage>| {
-        matches!(s, DecodeState::TransferEncoding(_, _))
-    };
-    assert_case_multi_compression(f, tm, VERIFY);
+    assert_case_multi_compression(tm, TRANSFER_ENCODING, VERIFY);
 }
