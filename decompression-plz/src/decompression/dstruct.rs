@@ -179,7 +179,7 @@ impl<'a> DecompressionStruct<'a> {
                 if e.is_corrupt() {
                     let (header_index, compression_index) =
                         self.last_header_compression_index();
-                    e.from_corrupt_to_partial(
+                    e.corrupt_to_partial(
                         input,
                         header_index,
                         compression_index,
@@ -199,7 +199,6 @@ mod tests {
     use tests_utils::*;
 
     use crate::decompression::multi::error::MultiDecompressErrorReason;
-    use crate::decompression::single::error::DecompressError;
 
     use super::*;
 

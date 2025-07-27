@@ -3,7 +3,6 @@ use std::cmp::Ordering;
 use body_plz::variants::Body;
 use bytes::BytesMut;
 use header_plz::body_headers::encoding_info::EncodingInfo;
-use tracing::error;
 
 use crate::{
     decode_struct::DecodeStruct,
@@ -44,7 +43,7 @@ where
                 } else if decode_struct.extra_body_is_some() {
                     Self::UpdateContentLength(decode_struct)
                 } else {
-                    let mut body = decode_struct.take_main_body();
+                    let body = decode_struct.take_main_body();
                     decode_struct.message.set_body(Body::Raw(body));
                     Self::End
                 };

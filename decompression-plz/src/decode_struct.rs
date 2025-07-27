@@ -5,7 +5,7 @@ use header_plz::body_headers::encoding_info::EncodingInfo;
 use header_plz::body_headers::transfer_types::TransferType;
 
 use crate::chunked::chunked_to_raw;
-use crate::content_length::{add_body_and_update_cl, update_content_length};
+use crate::content_length::add_body_and_update_cl;
 use crate::decompress_trait::DecompressTrait;
 
 #[cfg_attr(test, derive(PartialEq))]
@@ -46,12 +46,12 @@ where
         self.body_headers
             .as_ref()
             .and_then(|bh| bh.transfer_type.as_ref())
-            .and_then(|tt| Some(tt == &TransferType::Chunked))
+            .map(|tt| tt == &TransferType::Chunked)
             .unwrap_or(false)
     }
 
     pub fn chunked_to_raw(&mut self) {
-        chunked_to_raw(self.message, &mut self.buf);
+        chunked_to_raw(self.message, self.buf);
         self.body = self.message.get_body().into_bytes().unwrap();
     }
 

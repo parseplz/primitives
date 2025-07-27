@@ -1,5 +1,3 @@
-#![allow(warnings, unused)]
-
 use bytes::BytesMut;
 
 use crate::state::DecodeState;
