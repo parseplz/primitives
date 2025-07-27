@@ -118,7 +118,7 @@ fn apply_encoding<T>(
     encoding_info: &mut [EncodingInfo],
 ) -> Result<(), MultiDecompressErrorReason>
 where
-    T: DecompressTrait,
+    T: DecompressTrait + std::fmt::Debug,
 {
     match decompression_runner(
         &decode_struct.body,
@@ -127,7 +127,12 @@ where
         decode_struct.buf,
     ) {
         Ok(state) => {
-            (decode_struct.body, decode_struct.extra_body) = state.into();
+            let is_extra_raw = state.is_extra_raw();
+            let (body, extra_body) = state.into();
+            decode_struct.body = body;
+            if !is_extra_raw {
+                decode_struct.extra_body = extra_body;
+            }
             let iter = encoding_info.iter().map(|einfo| einfo.header_index);
             // remove applied headers
             decode_struct

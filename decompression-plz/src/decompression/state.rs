@@ -184,6 +184,10 @@ impl<'a> DecompressionState<'a> {
             || matches!(self, Self::EndExtraMainSeparate(..))
             || matches!(self, Self::EndExtraRawMainDone(..))
     }
+
+    pub fn is_extra_raw(&self) -> bool {
+        matches!(self, Self::EndExtraRawMainDone(..))
+    }
 }
 
 impl<'a> From<DecompressionState<'a>> for (BytesMut, Option<BytesMut>) {
