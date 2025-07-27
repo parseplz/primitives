@@ -23,12 +23,11 @@ where
 {
     let body = message.get_body().into_chunks();
     buf.reserve(total_chunk_size(&body));
-    let mut new_body = buf.split();
     body.into_iter().for_each(|chunk| {
         match chunk {
             // 1. Combine ChunkType::Chunk into one body.
             ChunkType::Chunk(data) => {
-                new_body.extend_from_slice(&data[..data.len() - 2])
+                buf.extend_from_slice(&data[..data.len() - 2])
             }
             // 2. If trailer is present,
             ChunkType::Trailers(trailer) => {
@@ -41,7 +40,7 @@ where
             _ => (),
         }
     });
-    message.set_body(Body::Raw(new_body));
+    message.set_body(Body::Raw(buf.split()));
 }
 
 // Partial chunked body
@@ -54,16 +53,4 @@ pub fn partial_chunked_to_raw(vec_body: Vec<ChunkType>) -> Option<BytesMut> {
     }
 
     Some(body)
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    extern crate tests_utils;
-    use tests_utils::TestMessage;
-
-    #[test]
-    fn test_chunked_to_raw() {
-        let a: Option<TestMessage>;
-    }
 }
