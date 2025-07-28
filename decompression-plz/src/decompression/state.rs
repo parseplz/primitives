@@ -165,7 +165,12 @@ impl<'a> DecompressionState<'a> {
                             main_decompressed,
                         )
                     }
-                    Err(e) => return Err(e),
+                    Err(mut e) => {
+                        if e.reason().is_partial() {
+                            e.reason_as_mut().set_extra_is_raw();
+                        }
+                        return Err(e);
+                    }
                 }
             }
             DecompressionState::EndMainOnly(_)

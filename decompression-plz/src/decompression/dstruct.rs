@@ -491,6 +491,7 @@ mod tests {
             partial_body,
             header_index,
             compression_index,
+            ..
         } = e.reason
         {
             assert_eq!(partial_body, INPUT);

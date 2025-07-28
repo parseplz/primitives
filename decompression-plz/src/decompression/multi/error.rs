@@ -24,6 +24,10 @@ impl MultiDecompressError {
         &self.reason
     }
 
+    pub fn reason_as_mut(&mut self) -> &mut MultiDecompressErrorReason {
+        &mut self.reason
+    }
+
     pub fn is_corrupt(&self) -> bool {
         matches!(self.reason, MultiDecompressErrorReason::Corrupt)
     }
@@ -42,6 +46,7 @@ impl MultiDecompressError {
             partial_body,
             header_index,
             compression_index,
+            is_extra_raw: false,
         };
         self.reason = reason;
         self
@@ -64,11 +69,22 @@ pub enum MultiDecompressErrorReason {
         partial_body: BytesMut,
         header_index: usize,
         compression_index: usize,
+        is_extra_raw: bool,
     },
 }
 
 impl MultiDecompressErrorReason {
     pub fn is_partial(&self) -> bool {
         matches!(self, MultiDecompressErrorReason::Partial { .. })
+    }
+
+    pub fn set_extra_is_raw(&mut self) {
+        if let MultiDecompressErrorReason::Partial {
+            is_extra_raw,
+            ..
+        } = self
+        {
+            *is_extra_raw = true;
+        }
     }
 }

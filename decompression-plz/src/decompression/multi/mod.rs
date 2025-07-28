@@ -43,6 +43,7 @@ where
                             partial_body: output,
                             header_index,
                             compression_index,
+                            is_extra_raw: false,
                         }
                     };
                     return Err(MultiDecompressError::new(reason, e));
@@ -143,6 +144,7 @@ mod tests {
             partial_body,
             header_index,
             compression_index,
+            ..
         } = result.reason
         {
             assert_eq!(header_index, 0);
@@ -174,6 +176,7 @@ mod tests {
             partial_body,
             header_index,
             compression_index,
+            ..
         } = result.reason
         {
             assert_eq!(header_index, 0);
@@ -198,6 +201,7 @@ mod tests {
             partial_body,
             header_index,
             compression_index,
+            ..
         } = result.reason
         {
             assert_eq!(header_index, 1);
@@ -226,6 +230,7 @@ mod tests {
             partial_body,
             header_index,
             compression_index,
+            ..
         } = result.reason
         {
             assert_eq!(header_index, 5);

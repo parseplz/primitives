@@ -140,10 +140,13 @@ where
                 ref mut partial_body,
                 header_index,
                 compression_index,
+                is_extra_raw,
             } = e.reason
             {
                 decode_struct.body = partial_body.split();
-                decode_struct.extra_body = None;
+                if !is_extra_raw {
+                    decode_struct.extra_body = None;
+                }
                 for (index, einfo) in encoding_info.iter().rev().enumerate() {
                     if index > header_index {
                         decode_struct
