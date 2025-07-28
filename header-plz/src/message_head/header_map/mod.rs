@@ -274,6 +274,14 @@ impl HeaderMap {
         self.headers[pos].change_value(value);
     }
 
+    pub fn update_header_multiple_values_on_position<'a>(
+        &mut self,
+        pos: usize,
+        value: impl Iterator<Item = &'a str>,
+    ) {
+        self.headers[pos].change_value_multiple(value);
+    }
+
     // common
     pub fn has_key_and_value(&self, key: &str, value: &str) -> Option<usize> {
         self.headers.iter().position(|header| {
@@ -675,6 +683,34 @@ mod tests {
                       Content-Length:20\r\n\
                       Content-Type:application/json\r\n\
                       Content-encoding: gzip\r\n\
+                      Content-Length:20\r\n\
+                      Content-Type:application/json\r\n\
+                      Trailer: Some\r\n\
+                      Connection: keep-alive\r\n\
+                      X-custom-header: somevalue\r\n\r\n";
+        assert_eq!(result, verify);
+    }
+
+    #[test]
+    fn test_update_update_header_multiple_values_on_position() {
+        let mut map = build_header_map();
+        let ce = [
+            ContentEncoding::Gzip,
+            ContentEncoding::Deflate,
+            ContentEncoding::Brotli,
+        ];
+        let iter = ce.iter().map(|s| s.as_ref());
+        map.update_header_multiple_values_on_position(3, iter);
+        let iter = ce.iter().map(|s| s.as_ref());
+        map.update_header_multiple_values_on_position(6, iter);
+        let result = map.into_bytes();
+        let verify = "Host: localhost\r\n\
+                      Content-Length: 20\r\n\
+                      Content-type: application/json\r\n\
+                      Transfer-encoding: gzip, deflate, br\r\n\
+                      Content-Length:20\r\n\
+                      Content-Type:application/json\r\n\
+                      Content-encoding: gzip, deflate, br\r\n\
                       Content-Length:20\r\n\
                       Content-Type:application/json\r\n\
                       Trailer: Some\r\n\

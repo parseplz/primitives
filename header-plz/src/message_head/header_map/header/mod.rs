@@ -41,6 +41,22 @@ impl Header {
         self.value.extend_from_slice(CRLF.as_bytes());
     }
 
+    pub fn change_value_multiple<'a>(
+        &mut self,
+        values: impl Iterator<Item = &'a str>,
+    ) {
+        self.value.clear();
+        let mut first = true;
+        for value in values {
+            if !first {
+                self.value.extend_from_slice(", ".as_bytes());
+            }
+            first = false;
+            self.value.extend_from_slice(value.as_bytes());
+        }
+        self.value.extend_from_slice(CRLF.as_bytes());
+    }
+
     // new() method checked whether it is a valid str
     // safe to unwrap
     pub fn key_as_str(&self) -> &str {
@@ -100,6 +116,8 @@ fn clear_and_write(buf: &mut BytesMut, data: &[u8]) {
 #[cfg(test)]
 mod tests {
     use bytes::BytesMut;
+
+    use crate::body_headers::content_encoding::ContentEncoding;
 
     use super::Header;
 
@@ -188,6 +206,24 @@ mod tests {
         let result = header.into_bytes();
         let result_range = result.as_ptr_range();
         assert_eq!(result, "Small: 10000\r\n");
+        assert_ne!(input_range, result_range);
+    }
+
+    #[test]
+    fn test_change_header_value_multiple() {
+        let input = BytesMut::from("Content-Encoding: gzip\r\n");
+        let input_range = input.as_ptr_range();
+        let mut header = Header::from(input);
+        let ce = [
+            ContentEncoding::Gzip,
+            ContentEncoding::Deflate,
+            ContentEncoding::Brotli,
+        ];
+        let iter = ce.iter().map(|s| s.as_ref());
+        header.change_value_multiple(iter);
+        let result = header.into_bytes();
+        let result_range = result.as_ptr_range();
+        assert_eq!(result, "Content-Encoding: gzip, deflate, br\r\n");
         assert_ne!(input_range, result_range);
     }
 }
