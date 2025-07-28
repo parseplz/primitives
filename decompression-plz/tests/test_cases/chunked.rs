@@ -184,6 +184,28 @@ fn test_chunked_with_compression() {
     assert_chunked_encoding(headers, false, None);
 }
 
+fn build_chunked_multi_header_body(encoding: &str) -> String {
+    format!(
+        "Host: example.com\r\n\
+        Content-Type: text/html; charset=utf-8\r\n\
+        {encoding}: br\r\n\
+        {encoding}: deflate\r\n\
+        {encoding}: identity\r\n\
+        {encoding}: gzip\r\n\
+        {encoding}: zstd\r\n\
+        Transfer-Encoding: chunked\r\n\r\n"
+    )
+}
+
+#[test]
+fn test_chunked_with_compression_multi_header() {
+    assert_chunked_encoding(
+        &build_chunked_multi_header_body(TRANSFER_ENCODING),
+        false,
+        None,
+    );
+}
+
 #[test]
 fn test_chunked_with_compression_extra_raw() {
     let headers = "Host: example.com\r\n\
@@ -192,6 +214,15 @@ fn test_chunked_with_compression_extra_raw() {
                    \r\n";
 
     assert_chunked_encoding(headers, false, Some(INPUT.into()));
+}
+
+#[test]
+fn test_chunked_with_compression_multi_header_extra_raw() {
+    assert_chunked_encoding(
+        &build_chunked_multi_header_body(TRANSFER_ENCODING),
+        false,
+        Some(INPUT.into()),
+    );
 }
 
 #[test]
@@ -238,6 +269,50 @@ fn test_chunked_with_compress_extra_compressed_together() {
 }
 
 #[test]
+fn test_chunked_with_compress_extra_compressed_together_multi_header() {
+    let body = all_compressed_data(); // len 53
+    let mut chunk_vec = vec![
+        ChunkType::Size("10\r\n".into()),
+        ChunkType::Chunk(body[0..10].into()),
+        ChunkType::Size("10\r\n".into()),
+        ChunkType::Chunk(body[10..20].into()),
+        ChunkType::Size("10\r\n".into()),
+        ChunkType::Chunk(body[20..30].into()),
+        ChunkType::Size("10\r\n".into()),
+        ChunkType::Chunk(body[30..40].into()),
+        ChunkType::Size("10\r\n".into()),
+    ];
+
+    for chunk in chunk_vec.iter_mut() {
+        if let ChunkType::Chunk(chunk) = chunk {
+            chunk.extend_from_slice("\r\n".as_bytes());
+        }
+    }
+    let chunk_body = Body::Chunked(chunk_vec);
+    let extra = BytesMut::from(&body[40..]);
+
+    let headers = build_chunked_multi_header_body(TRANSFER_ENCODING);
+
+    let mut tm = TestMessage::build(
+        BytesMut::from(&headers[..]),
+        chunk_body,
+        Some(extra),
+    );
+
+    let mut buf = BytesMut::new();
+    let mut state = DecodeState::init(&mut tm, &mut buf);
+    state = state.try_next().unwrap();
+    assert!(matches!(state, DecodeState::TransferEncoding(..)));
+
+    state = state.try_next().unwrap();
+    assert!(matches!(state, DecodeState::UpdateContentLength(..)));
+
+    state = state.try_next().unwrap();
+    assert!(state.is_ended());
+    assert_eq!(tm.into_bytes(), VERIFY_SINGLE_HEADER_BODY_ONLY);
+}
+
+#[test]
 fn test_chunked_with_compress_extra_compressed_separate() {
     let body = build_all_compressed_chunk_body();
     let extra = all_compressed_data();
@@ -248,6 +323,29 @@ fn test_chunked_with_compress_extra_compressed_separate() {
                    \r\n";
 
     let mut tm = TestMessage::build(headers.into(), body, Some(extra));
+
+    let mut buf = BytesMut::new();
+    let mut state = DecodeState::init(&mut tm, &mut buf);
+    state = state.try_next().unwrap();
+    assert!(matches!(state, DecodeState::TransferEncoding(..)));
+
+    state = state.try_next().unwrap();
+    assert!(matches!(state, DecodeState::UpdateContentLength(..)));
+
+    state = state.try_next().unwrap();
+    assert!(state.is_ended());
+    assert_eq!(tm.into_bytes(), VERIFY_SINGLE_HEADER_BODY_AND_EXTRA);
+}
+
+#[test]
+fn test_chunked_with_compress_extra_compressed_separate_multi_header() {
+    let body = build_all_compressed_chunk_body();
+    let extra = all_compressed_data();
+
+    let headers = build_chunked_multi_header_body(TRANSFER_ENCODING);
+
+    let mut tm =
+        TestMessage::build(BytesMut::from(&headers[..]), body, Some(extra));
 
     let mut buf = BytesMut::new();
     let mut state = DecodeState::init(&mut tm, &mut buf);
@@ -358,5 +456,3 @@ fn test_chunked_with_ce_compress_extra_compressed_separate() {
     assert!(state.is_ended());
     assert_eq!(tm.into_bytes(), VERIFY_SINGLE_HEADER_BODY_AND_EXTRA);
 }
-
-// Partial
