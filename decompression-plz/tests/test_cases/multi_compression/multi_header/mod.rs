@@ -12,10 +12,19 @@ const VERIFY_MULTI_HEADER: &str = "Host: example.com\r\n\
                                    Content-Length: 11\r\n\r\n\
                                    hello world";
 
+const VERIFY_MULTI_HEADER_EXTRA: &str = "Host: example.com\r\n\
+                                   Content-Type: text/html; charset=utf-8\r\n\
+                                   random: random\r\n\
+                                   another-random: random\r\n\
+                                   test-header: test-header\r\n\
+                                   Content-Length: 22\r\n\r\n\
+                                   hello worldhello world";
+
 fn build_test_message_all_encodings_multi_header(
     header_name: &str,
+    body: &[u8],
+    extra: Option<&[u8]>,
 ) -> TestMessage {
-    let body: Vec<u8> = all_compressed_data();
     let headers = format!(
         "Host: example.com\r\n\
         {}: br\r\n\
@@ -38,19 +47,7 @@ fn build_test_message_all_encodings_multi_header(
 
     TestMessage::build(
         headers.as_bytes().into(),
-        Body::Raw(body.as_slice().into()),
-        None,
+        Body::Raw(body.into()),
+        extra.map(|x| BytesMut::from(x)),
     )
-}
-
-#[test]
-fn assert_decode_state_ce_all_multi_header() {
-    let tm = build_test_message_all_encodings_multi_header(CONTENT_ENCODING);
-    assert_case_multi_compression(tm, CONTENT_ENCODING, VERIFY_MULTI_HEADER);
-}
-
-#[test]
-fn assert_decode_state_te_all_multi_header() {
-    let tm = build_test_message_all_encodings_multi_header(TRANSFER_ENCODING);
-    assert_case_multi_compression(tm, TRANSFER_ENCODING, VERIFY_MULTI_HEADER);
 }

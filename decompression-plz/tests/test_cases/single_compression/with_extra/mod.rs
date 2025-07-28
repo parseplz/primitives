@@ -6,7 +6,7 @@ pub fn assert_case_single_compression_compressed_together(
     header_name: &str,
     content_encoding: ContentEncoding,
 ) {
-    let compressed: Vec<u8> = single_compression(&content_encoding);
+    let compressed = single_compression(&content_encoding);
     let (body, extra) = compressed.split_at(compressed.len() / 2);
     let headers = format!(
         "Host: example.com\r\n\

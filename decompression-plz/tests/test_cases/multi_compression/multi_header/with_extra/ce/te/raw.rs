@@ -1,7 +1,7 @@
 use super::*;
 
 #[test]
-fn assert_decode_state_te_all_multi_header() {
+fn assert_decode_state_te_all_multi_header_extra_raw() {
     let body = all_compressed_data();
     let tm = build_test_message_all_encodings_multi_header(
         TRANSFER_ENCODING,

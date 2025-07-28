@@ -73,15 +73,16 @@ impl TestMessage {
     }
 }
 
-pub fn all_compressed_data() -> Vec<u8> {
+pub fn all_compressed_data() -> BytesMut {
     let brotli_compressed = compress_brotli(INPUT);
     let deflate_compressed = compress_deflate(&brotli_compressed);
     let gzip_compressed = compress_gzip(&deflate_compressed);
-    compress_zstd(&gzip_compressed)
+    let zstd_compressed = compress_zstd(&gzip_compressed);
+    BytesMut::from(zstd_compressed.as_slice())
 }
 
-pub fn single_compression(encoding: &ContentEncoding) -> Vec<u8> {
-    match encoding {
+pub fn single_compression(encoding: &ContentEncoding) -> BytesMut {
+    let compressed = match encoding {
         ContentEncoding::Brotli => compress_brotli(INPUT),
         ContentEncoding::Deflate => compress_deflate(INPUT),
         ContentEncoding::Gzip => compress_gzip(INPUT),
@@ -90,7 +91,8 @@ pub fn single_compression(encoding: &ContentEncoding) -> Vec<u8> {
         }
         ContentEncoding::Identity => INPUT.to_vec(),
         _ => panic!(),
-    }
+    };
+    BytesMut::from(compressed.as_slice())
 }
 
 pub fn all_encoding_info_multi_header() -> Vec<EncodingInfo> {

@@ -8,7 +8,7 @@ fn build_test_message_all_encodings_single_header(
     header_name: &str,
     extra: Option<BytesMut>,
 ) -> TestMessage {
-    let body: Vec<u8> = all_compressed_data();
+    let body = all_compressed_data();
     let headers = format!(
         "Host: example.com\r\n\
         Content-Type: text/html; charset=utf-8\r\n\
@@ -19,17 +19,13 @@ fn build_test_message_all_encodings_single_header(
         body.len()
     );
 
-    TestMessage::build(
-        headers.as_bytes().into(),
-        Body::Raw(body.as_slice().into()),
-        extra,
-    )
+    TestMessage::build(headers.as_bytes().into(), Body::Raw(body), extra)
 }
 
 fn build_test_message_all_encodings_single_header_compressed_together(
     header_name: &str,
 ) -> TestMessage {
-    let compressed: Vec<u8> = all_compressed_data();
+    let compressed = all_compressed_data();
     let (body, extra) = compressed.split_at(compressed.len() / 2);
     let headers = format!(
         "Host: example.com\r\n\

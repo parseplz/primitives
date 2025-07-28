@@ -3,7 +3,7 @@ use tests_utils::all_compressed_data;
 
 #[test]
 fn test_both_te_ce() {
-    let body: Vec<u8> = all_compressed_data();
+    let body = all_compressed_data();
     let headers = format!(
         "Host: example.com\r\n\
         Content-Type: text/html; charset=utf-8\r\n\
@@ -13,11 +13,8 @@ fn test_both_te_ce() {
         body.len()
     );
 
-    let mut tm = TestMessage::build(
-        headers.as_bytes().into(),
-        Body::Raw(body.as_slice().into()),
-        None,
-    );
+    let mut tm =
+        TestMessage::build(headers.as_bytes().into(), Body::Raw(body), None);
     let mut buf = BytesMut::new();
     let mut state = DecodeState::init(&mut tm, &mut buf);
     state = state.try_next().unwrap();

@@ -13,7 +13,7 @@ fn assert_case_single_compression(
     content_encoding: ContentEncoding,
     extra: Option<BytesMut>,
 ) {
-    let body: Vec<u8> = single_compression(&content_encoding);
+    let body = single_compression(&content_encoding);
     let headers = format!(
         "Host: example.com\r\n\
         Content-Type: text/html; charset=utf-8\r\n\
@@ -26,11 +26,8 @@ fn assert_case_single_compression(
 
     let expected_state = encoding_state(header_name);
     let with_extra = extra.is_some();
-    let mut tm = TestMessage::build(
-        headers.as_bytes().into(),
-        Body::Raw(body.as_slice().into()),
-        extra,
-    );
+    let mut tm =
+        TestMessage::build(headers.as_bytes().into(), Body::Raw(body), extra);
     let mut buf = BytesMut::new();
     let mut state = DecodeState::init(&mut tm, &mut buf);
     state = state.try_next().unwrap();
