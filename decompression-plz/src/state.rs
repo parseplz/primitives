@@ -1,6 +1,8 @@
 use body_plz::variants::Body;
 use bytes::BytesMut;
-use header_plz::body_headers::encoding_info::EncodingInfo;
+use header_plz::body_headers::{
+    content_encoding::ContentEncoding, encoding_info::EncodingInfo,
+};
 
 use crate::{
     decode_struct::DecodeStruct,
@@ -59,7 +61,6 @@ where
                     if last_info.encodings().is_empty() {
                         ds.message
                             .remove_header_on_position(last_info.header_index);
-
                         // remove the last encoding_info
                         encoding_infos.pop();
                     }
@@ -139,6 +140,12 @@ fn apply_encoding<T>(
 where
     T: DecompressTrait + std::fmt::Debug,
 {
+    if is_only_encoding(encoding_info, ContentEncoding::Identity) {
+        decode_struct
+            .message
+            .remove_header_on_position(encoding_info[0].header_index);
+        return Ok(());
+    }
     match decompression_runner(
         &decode_struct.body,
         decode_struct.extra_body.as_deref(),
@@ -201,4 +208,13 @@ where
             Err(e.reason)
         }
     }
+}
+
+pub fn is_only_encoding(
+    encoding_info: &[EncodingInfo],
+    encoding: ContentEncoding,
+) -> bool {
+    encoding_info.len() == 1
+        && encoding_info[0].encodings().len() == 1
+        && encoding_info[0].encodings()[0] == encoding
 }
