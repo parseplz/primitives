@@ -14,7 +14,7 @@ pub struct DecodeStruct<'a, T> {
     pub message: &'a mut T,
     pub body: BytesMut,
     pub extra_body: Option<BytesMut>,
-    body_headers: Option<BodyHeader>,
+    pub body_headers: Option<BodyHeader>,
     pub buf: &'a mut BytesMut,
 }
 
@@ -69,33 +69,20 @@ where
             .is_some()
     }
 
-    pub fn is_chunked_te_only(&self) -> bool {
-        self.body_headers
-            .as_ref()
-            .map(|bh| bh.is_chunked_te_only())
-            .unwrap_or(false)
-    }
-
-    pub fn is_identity_te_only(&self) -> bool {
-        self.body_headers
-            .as_ref()
-            .map(|bh| bh.is_identity_te_only())
-            .unwrap_or(false)
-    }
-
-    pub fn is_identity_ce_only(&self) -> bool {
-        self.body_headers
-            .as_ref()
-            .map(|bh| bh.is_identity_ce_only())
-            .unwrap_or(false)
-    }
-
-    pub fn transfer_encoding(&mut self) -> Vec<EncodingInfo> {
+    pub fn get_transfer_encoding(&mut self) -> Vec<EncodingInfo> {
         self.body_headers.as_mut().unwrap().transfer_encoding.take().unwrap()
     }
 
-    pub fn content_encoding(&mut self) -> Vec<EncodingInfo> {
+    pub fn get_content_encoding(&mut self) -> Vec<EncodingInfo> {
         self.body_headers.as_mut().unwrap().content_encoding.take().unwrap()
+    }
+
+    pub fn set_transfer_encoding(&mut self, te: Vec<EncodingInfo>) {
+        self.body_headers.as_mut().unwrap().transfer_encoding = Some(te);
+    }
+
+    pub fn set_content_encoding(&mut self, ce: Vec<EncodingInfo>) {
+        self.body_headers.as_mut().unwrap().content_encoding = Some(ce);
     }
 
     pub fn extra_body_is_some(&self) -> bool {
