@@ -25,11 +25,11 @@ fn encoding_state(
 }
 
 const VERIFY_SINGLE_HEADER_BODY_ONLY: &str = "Host: example.com\r\n\
-                                    Content-Type: text/html; charset=utf-8\r\n\
-                                    Content-Length: 11\r\n\r\n\
-                                    hello world";
+                                              Content-Type: text/html; charset=utf-8\r\n\
+                                              Content-Length: 11\r\n\r\n\
+                                              hello world";
 
 const VERIFY_SINGLE_HEADER_BODY_AND_EXTRA: &str = "Host: example.com\r\n\
-                                    Content-Type: text/html; charset=utf-8\r\n\
-                                    Content-Length: 22\r\n\r\n\
-                                    hello worldhello world";
+                                                   Content-Type: text/html; charset=utf-8\r\n\
+                                                   Content-Length: 22\r\n\r\n\
+                                                   hello worldhello world";

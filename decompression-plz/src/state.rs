@@ -70,11 +70,7 @@ where
                     Ok(()) => Self::UpdateContentLength(decode_struct),
                     Err(e) => {
                         // TODO: maybe remove chunked TE
-                        if e.is_partial() {
-                            Self::UpdateContentLengthAndErr(decode_struct, e)
-                        } else {
-                            return Err(e);
-                        }
+                        Self::UpdateContentLengthAndErr(decode_struct, e)
                     }
                 };
                 Ok(next_state)
@@ -83,16 +79,14 @@ where
                 mut decode_struct,
                 mut encoding_infos,
             ) => {
-                let next_state = if let Err(e) =
-                    apply_encoding(&mut decode_struct, &mut encoding_infos)
-                {
-                    if e.is_partial() {
+                let next_state = match apply_encoding(
+                    &mut decode_struct,
+                    &mut encoding_infos,
+                ) {
+                    Err(e) => {
                         Self::UpdateContentLengthAndErr(decode_struct, e)
-                    } else {
-                        return Err(e);
                     }
-                } else {
-                    Self::UpdateContentLength(decode_struct)
+                    Ok(_) => Self::UpdateContentLength(decode_struct),
                 };
                 Ok(next_state)
             }
