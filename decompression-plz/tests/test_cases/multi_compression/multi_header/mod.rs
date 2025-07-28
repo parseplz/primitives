@@ -48,6 +48,6 @@ fn build_test_message_all_encodings_multi_header(
     TestMessage::build(
         headers.as_bytes().into(),
         Body::Raw(body.into()),
-        extra.map(|x| BytesMut::from(x)),
+        extra.map(BytesMut::from),
     )
 }
