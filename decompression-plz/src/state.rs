@@ -1,6 +1,8 @@
 use body_plz::variants::Body;
 use bytes::BytesMut;
-use header_plz::body_headers::encoding_info::EncodingInfo;
+use header_plz::body_headers::{
+    content_encoding::ContentEncoding, encoding_info::EncodingInfo,
+};
 
 use crate::{
     decode_struct::DecodeStruct,
@@ -31,69 +33,77 @@ where
 
     pub fn try_next(self) -> Result<Self, MultiDecompressErrorReason> {
         match self {
-            DecodeState::Start(mut decode_struct) => {
-                let next_state = if decode_struct.transfer_encoding_is_some() {
-                    let encodings = decode_struct.transfer_encoding();
-                    Self::TransferEncoding(decode_struct, encodings)
-                } else if decode_struct.content_encoding_is_some() {
-                    let encodings = decode_struct.content_encoding();
-                    Self::ContentEncoding(decode_struct, encodings)
-                } else if decode_struct.extra_body_is_some() {
-                    Self::UpdateContentLength(decode_struct)
+            DecodeState::Start(mut ds) => {
+                let next_state = if ds.transfer_encoding_is_some() {
+                    let encodings = ds.get_transfer_encoding();
+                    Self::TransferEncoding(ds, encodings)
+                } else if ds.content_encoding_is_some() {
+                    let encodings = ds.get_content_encoding();
+                    Self::ContentEncoding(ds, encodings)
+                } else if ds.extra_body_is_some() {
+                    Self::UpdateContentLength(ds)
                 } else {
-                    let body = decode_struct.take_main_body();
-                    decode_struct.message.set_body(Body::Raw(body));
+                    let body = ds.take_main_body();
+                    ds.message.set_body(Body::Raw(body));
                     Self::End
                 };
                 Ok(next_state)
             }
-            DecodeState::TransferEncoding(
-                mut decode_struct,
-                mut encoding_infos,
-            ) => {
+            DecodeState::TransferEncoding(mut ds, mut encoding_infos) => {
                 // Convert chunked to raw
                 // http/1 only
-                // TODO: check if only te is chunked
-                if decode_struct.is_chunked_te() {
-                    decode_struct.chunked_to_raw();
+                // remove chunked te from encoding_infos
+                if ds.is_chunked_te() {
+                    ds.chunked_to_raw();
+                    // remove chunked TE
+                    encoding_infos
+                        .last_mut()
+                        .unwrap()
+                        .encodings_as_mut()
+                        .pop();
+                    //if encoding_infos.last().unwrap().encodings().is_empty() {
+                    //    encoding_infos.pop();
+                    //}
                 }
-                let next_state = match apply_encoding(
-                    &mut decode_struct,
-                    &mut encoding_infos,
-                ) {
-                    Ok(()) if decode_struct.content_encoding_is_some() => {
-                        let encodings = decode_struct.content_encoding();
-                        Self::ContentEncoding(decode_struct, encodings)
+
+                let mut next_state = if is_chunked_te_only(&encoding_infos) {
+                    ds.message.header_map_as_mut().remove_header_on_position(
+                        encoding_infos[0].header_index,
+                    );
+                    if ds.content_encoding_is_some() {
+                        let encodings = ds.get_content_encoding();
+                        Self::ContentEncoding(ds, encodings)
+                    } else {
+                        Self::UpdateContentLength(ds)
                     }
-                    Ok(()) => Self::UpdateContentLength(decode_struct),
-                    Err(e) => {
-                        // TODO: maybe remove chunked TE
-                        Self::UpdateContentLengthAndErr(decode_struct, e)
+                } else {
+                    match apply_encoding(&mut ds, &mut encoding_infos) {
+                        Ok(()) if ds.content_encoding_is_some() => {
+                            let encodings = ds.get_content_encoding();
+                            Self::ContentEncoding(ds, encodings)
+                        }
+                        Ok(()) => Self::UpdateContentLength(ds),
+                        Err(e) => Self::UpdateContentLengthAndErr(ds, e),
                     }
                 };
+                next_state.set_transfer_encoding(encoding_infos);
                 Ok(next_state)
             }
-            DecodeState::ContentEncoding(
-                mut decode_struct,
-                mut encoding_infos,
-            ) => {
-                let next_state = match apply_encoding(
-                    &mut decode_struct,
-                    &mut encoding_infos,
-                ) {
-                    Err(e) => {
-                        Self::UpdateContentLengthAndErr(decode_struct, e)
-                    }
-                    Ok(_) => Self::UpdateContentLength(decode_struct),
-                };
+            DecodeState::ContentEncoding(mut ds, mut encoding_infos) => {
+                let mut next_state =
+                    match apply_encoding(&mut ds, &mut encoding_infos) {
+                        Err(e) => Self::UpdateContentLengthAndErr(ds, e),
+                        Ok(_) => Self::UpdateContentLength(ds),
+                    };
+                next_state.set_content_encoding(encoding_infos);
                 Ok(next_state)
             }
-            DecodeState::UpdateContentLength(mut decode_struct) => {
-                decode_struct.add_body_and_update_cl();
+            DecodeState::UpdateContentLength(mut ds) => {
+                ds.add_body_and_update_cl();
                 Ok(Self::End)
             }
-            DecodeState::UpdateContentLengthAndErr(mut decode_struct, e) => {
-                decode_struct.add_body_and_update_cl();
+            DecodeState::UpdateContentLengthAndErr(mut ds, e) => {
+                ds.add_body_and_update_cl();
                 Err(e)
             }
             DecodeState::End => Ok(DecodeState::End),
@@ -102,6 +112,27 @@ where
 
     pub fn is_ended(&self) -> bool {
         matches!(self, DecodeState::End)
+    }
+
+    pub fn decode_struct_as_mut(&mut self) -> &mut DecodeStruct<'a, T> {
+        match self {
+            DecodeState::Start(ds) => ds,
+            DecodeState::TransferEncoding(ds, _) => ds,
+            DecodeState::ContentEncoding(ds, _) => ds,
+            DecodeState::UpdateContentLength(ds) => ds,
+            DecodeState::UpdateContentLengthAndErr(ds, _) => ds,
+            _ => unreachable!(),
+        }
+    }
+
+    pub fn set_transfer_encoding(&mut self, te: Vec<EncodingInfo>) {
+        let ds_mut = self.decode_struct_as_mut();
+        ds_mut.set_transfer_encoding(te);
+    }
+
+    pub fn set_content_encoding(&mut self, ce: Vec<EncodingInfo>) {
+        let ds_mut = self.decode_struct_as_mut();
+        ds_mut.set_content_encoding(ce);
     }
 }
 
@@ -174,4 +205,8 @@ where
             Err(e.reason)
         }
     }
+}
+
+fn is_chunked_te_only(einfo_vec: &[EncodingInfo]) -> bool {
+    einfo_vec.len() == 1 && einfo_vec[0].encodings().is_empty()
 }

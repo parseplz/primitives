@@ -218,6 +218,7 @@ pub fn decompression_runner<'a>(
     let mut state =
         DecompressionState::start(main, extra, encodings, buf.writer());
     loop {
+        dbg!(&state);
         state = state.try_next()?;
         if state.is_ended() {
             return Ok(state);
