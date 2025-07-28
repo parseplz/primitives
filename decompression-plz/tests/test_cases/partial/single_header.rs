@@ -95,3 +95,11 @@ fn test_partial_te_single_header_extra_raw() {
 fn test_partial_ce_single_header() {
     assert_partial_decompressed_single_header(CONTENT_ENCODING, None);
 }
+
+#[test]
+fn test_partial_ce_single_header_extra_raw() {
+    assert_partial_decompressed_single_header(
+        CONTENT_ENCODING,
+        Some(INPUT.into()),
+    );
+}

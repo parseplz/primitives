@@ -1,7 +1,7 @@
 use super::*;
 use body_plz::variants::chunked::ChunkType;
 use decompression_plz::chunked::{chunked_to_raw, partial_chunked_to_raw};
-use tests_utils::all_compressed_data;
+use tests_utils::{INPUT, all_compressed_data};
 
 const HEADERS: &str = "Host: example.com\r\n\
                        Content-Type: text/html; charset=utf-8\r\n\
@@ -129,19 +129,102 @@ fn build_all_compressed_chunk_body() -> Body {
     Body::Chunked(chunk_vec)
 }
 
+#[track_caller]
+fn assert_chunked_encoding(
+    headers: &str,
+    with_ce: bool,
+    extra: Option<BytesMut>,
+) {
+    let mut buf = BytesMut::new();
+
+    let verify = if extra.is_none() {
+        "Host: example.com\r\n\
+         Content-Type: text/html; charset=utf-8\r\n\
+         Content-Length: 11\r\n\r\n\
+         hello world"
+    } else {
+        "Host: example.com\r\n\
+         Content-Type: text/html; charset=utf-8\r\n\
+         Content-Length: 22\r\n\r\n\
+         hello worldhello world"
+    };
+
+    let mut tm = TestMessage::build(
+        headers.into(),
+        build_all_compressed_chunk_body(),
+        extra,
+    );
+
+    let mut state = DecodeState::init(&mut tm, &mut buf);
+    state = state.try_next().unwrap();
+    assert!(matches!(state, DecodeState::TransferEncoding(..)));
+
+    if with_ce {
+        state = state.try_next().unwrap();
+        assert!(matches!(state, DecodeState::ContentEncoding(..)));
+    }
+
+    state = state.try_next().unwrap();
+    assert!(matches!(state, DecodeState::UpdateContentLength(..)));
+
+    state = state.try_next().unwrap();
+    assert!(state.is_ended());
+
+    let result = tm.into_bytes();
+    assert_eq!(result, verify);
+}
+
 #[test]
 fn test_chunked_with_compression() {
     let headers = "Host: example.com\r\n\
                    Content-Type: text/html; charset=utf-8\r\n\
                    Transfer-Encoding: br, deflate, identity, gzip, zstd, chunked\r\n\
                    \r\n";
-    let mut buf = BytesMut::new();
 
-    let mut tm = TestMessage::build(
-        headers.into(),
-        build_all_compressed_chunk_body(),
-        None,
-    );
+    assert_chunked_encoding(headers, false, None);
+}
+
+#[test]
+fn test_chunked_with_compression_extra_raw() {
+    let headers = "Host: example.com\r\n\
+                   Content-Type: text/html; charset=utf-8\r\n\
+                   Transfer-Encoding: br, deflate, identity, gzip, zstd, chunked\r\n\
+                   \r\n";
+
+    assert_chunked_encoding(headers, false, Some(INPUT.into()));
+}
+
+#[test]
+fn test_chunked_with_compress_extra_compressed_together() {
+    let body = all_compressed_data(); // len 53
+    let mut chunk_vec = vec![
+        ChunkType::Size("10\r\n".into()),
+        ChunkType::Chunk(body[0..10].into()),
+        ChunkType::Size("10\r\n".into()),
+        ChunkType::Chunk(body[10..20].into()),
+        ChunkType::Size("10\r\n".into()),
+        ChunkType::Chunk(body[20..30].into()),
+        ChunkType::Size("10\r\n".into()),
+        ChunkType::Chunk(body[30..40].into()),
+        ChunkType::Size("10\r\n".into()),
+    ];
+
+    for chunk in chunk_vec.iter_mut() {
+        if let ChunkType::Chunk(chunk) = chunk {
+            chunk.extend_from_slice("\r\n".as_bytes());
+        }
+    }
+    let chunk_body = Body::Chunked(chunk_vec);
+    let extra = BytesMut::from(&body[40..]);
+
+    let headers = "Host: example.com\r\n\
+                   Content-Type: text/html; charset=utf-8\r\n\
+                   Transfer-Encoding: br, deflate, identity, gzip, zstd, chunked\r\n\
+                   \r\n";
+
+    let mut tm = TestMessage::build(headers.into(), chunk_body, Some(extra));
+
+    let mut buf = BytesMut::new();
     let mut state = DecodeState::init(&mut tm, &mut buf);
     state = state.try_next().unwrap();
     assert!(matches!(state, DecodeState::TransferEncoding(..)));
@@ -151,29 +234,87 @@ fn test_chunked_with_compression() {
 
     state = state.try_next().unwrap();
     assert!(state.is_ended());
-
-    let verify = "Host: example.com\r\n\
-                  Content-Type: text/html; charset=utf-8\r\n\
-                  Content-Length: 11\r\n\r\n\
-                  hello world";
-    let result = tm.into_bytes();
-    assert_eq!(result, verify);
+    assert_eq!(tm.into_bytes(), VERIFY_SINGLE_HEADER_BODY_ONLY);
 }
 
+#[test]
+fn test_chunked_with_compress_extra_compressed_separate() {
+    let body = build_all_compressed_chunk_body();
+    let extra = all_compressed_data();
+
+    let headers = "Host: example.com\r\n\
+                   Content-Type: text/html; charset=utf-8\r\n\
+                   Transfer-Encoding: br, deflate, identity, gzip, zstd, chunked\r\n\
+                   \r\n";
+
+    let mut tm = TestMessage::build(headers.into(), body, Some(extra));
+
+    let mut buf = BytesMut::new();
+    let mut state = DecodeState::init(&mut tm, &mut buf);
+    state = state.try_next().unwrap();
+    assert!(matches!(state, DecodeState::TransferEncoding(..)));
+
+    state = state.try_next().unwrap();
+    assert!(matches!(state, DecodeState::UpdateContentLength(..)));
+
+    state = state.try_next().unwrap();
+    assert!(state.is_ended());
+    assert_eq!(tm.into_bytes(), VERIFY_SINGLE_HEADER_BODY_AND_EXTRA);
+}
+
+/// Ce
 #[test]
 fn test_chunked_with_ce_compression() {
     let headers = "Host: example.com\r\n\
                    Content-Type: text/html; charset=utf-8\r\n\
                    Transfer-Encoding: chunked\r\n\
-                   Content-Encoding: br, deflate, identity, gzip, zstd\r\n\
-                   \r\n";
-    let mut buf = BytesMut::new();
+                   Content-Encoding: br, deflate, identity, gzip, zstd\r\n\r\n";
 
-    let mut tm = TestMessage::build(
-        headers.into(),
-        build_all_compressed_chunk_body(),
-        None,
-    );
+    assert_chunked_encoding(headers, true, None);
+}
+
+#[test]
+fn test_chunked_with_ce_compression_extra_raw() {
+    let headers = "Host: example.com\r\n\
+                   Content-Type: text/html; charset=utf-8\r\n\
+                   Transfer-Encoding: chunked\r\n\
+                   Content-Encoding: br, deflate, identity, gzip, zstd\r\n\r\n";
+
+    assert_chunked_encoding(headers, true, Some(INPUT.into()));
+}
+
+#[test]
+fn test_chunked_with_ce_compress_extra_compressed_together() {
+    let body = all_compressed_data(); // len 53
+    let mut chunk_vec = vec![
+        ChunkType::Size("10\r\n".into()),
+        ChunkType::Chunk(body[0..10].into()),
+        ChunkType::Size("10\r\n".into()),
+        ChunkType::Chunk(body[10..20].into()),
+        ChunkType::Size("10\r\n".into()),
+        ChunkType::Chunk(body[20..30].into()),
+        ChunkType::Size("10\r\n".into()),
+        ChunkType::Chunk(body[30..40].into()),
+        ChunkType::Size("10\r\n".into()),
+    ];
+
+    for chunk in chunk_vec.iter_mut() {
+        if let ChunkType::Chunk(chunk) = chunk {
+            chunk.extend_from_slice("\r\n".as_bytes());
+        }
+    }
+    let chunk_body = Body::Chunked(chunk_vec);
+    let extra = BytesMut::from(&body[40..]);
+
+    let headers = "Host: example.com\r\n\
+                   Content-Type: text/html; charset=utf-8\r\n\
+                   Content-Encoding: br, deflate, identity, gzip, zstd\r\n\
+                   Transfer-Encoding: chunked\r\n\
+                   \r\n";
+
+    let mut tm = TestMessage::build(headers.into(), chunk_body, Some(extra));
+
+    let mut buf = BytesMut::new();
     let mut state = DecodeState::init(&mut tm, &mut buf);
     state = state.try_next().unwrap();
     assert!(matches!(state, DecodeState::TransferEncoding(..)));
@@ -186,11 +327,36 @@ fn test_chunked_with_ce_compression() {
 
     state = state.try_next().unwrap();
     assert!(state.is_ended());
-
-    let verify = "Host: example.com\r\n\
-                  Content-Type: text/html; charset=utf-8\r\n\
-                  Content-Length: 11\r\n\r\n\
-                  hello world";
-    let result = tm.into_bytes();
-    assert_eq!(result, verify);
+    assert_eq!(tm.into_bytes(), VERIFY_SINGLE_HEADER_BODY_ONLY);
 }
+
+#[test]
+fn test_chunked_with_ce_compress_extra_compressed_separate() {
+    let body = build_all_compressed_chunk_body();
+    let extra = all_compressed_data();
+
+    let headers = "Host: example.com\r\n\
+                   Content-Type: text/html; charset=utf-8\r\n\
+                   Content-Encoding: br, deflate, identity, gzip, zstd\r\n\
+                   Transfer-Encoding: chunked\r\n\
+                   \r\n";
+
+    let mut tm = TestMessage::build(headers.into(), body, Some(extra));
+
+    let mut buf = BytesMut::new();
+    let mut state = DecodeState::init(&mut tm, &mut buf);
+    state = state.try_next().unwrap();
+    assert!(matches!(state, DecodeState::TransferEncoding(..)));
+
+    state = state.try_next().unwrap();
+    assert!(matches!(state, DecodeState::ContentEncoding(..)));
+
+    state = state.try_next().unwrap();
+    assert!(matches!(state, DecodeState::UpdateContentLength(..)));
+
+    state = state.try_next().unwrap();
+    assert!(state.is_ended());
+    assert_eq!(tm.into_bytes(), VERIFY_SINGLE_HEADER_BODY_AND_EXTRA);
+}
+
+// Partial

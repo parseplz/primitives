@@ -1,8 +1,6 @@
 use body_plz::variants::Body;
 use bytes::BytesMut;
-use header_plz::body_headers::{
-    content_encoding::ContentEncoding, encoding_info::EncodingInfo,
-};
+use header_plz::body_headers::encoding_info::EncodingInfo;
 
 use crate::{
     decode_struct::DecodeStruct,
@@ -61,9 +59,6 @@ where
                         .unwrap()
                         .encodings_as_mut()
                         .pop();
-                    //if encoding_infos.last().unwrap().encodings().is_empty() {
-                    //    encoding_infos.pop();
-                    //}
                 }
 
                 let mut next_state = if is_chunked_te_only(&encoding_infos) {
