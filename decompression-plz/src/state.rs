@@ -1,5 +1,3 @@
-use std::cmp::Ordering;
-
 use body_plz::variants::Body;
 use bytes::BytesMut;
 use header_plz::body_headers::encoding_info::EncodingInfo;
@@ -146,28 +144,29 @@ where
             {
                 decode_struct.body = partial_body.split();
                 decode_struct.extra_body = None;
-                for einfo in encoding_info.iter().rev() {
-                    match einfo.header_index.cmp(&header_index) {
-                        Ordering::Less | Ordering::Equal => {
-                            let last_failed = einfo
-                                .encodings()
-                                .iter()
-                                .rev()
-                                .nth(compression_index)
-                                .unwrap();
-                            decode_struct
-                                .message
-                                .truncate_header_value_on_position(
-                                    einfo.header_index,
-                                    last_failed,
-                                );
-                            break;
-                        }
-                        Ordering::Greater => {
-                            decode_struct
-                                .message
-                                .remove_header_on_position(einfo.header_index);
-                        }
+                dbg!(&header_index);
+                dbg!(&compression_index);
+                for (index, einfo) in encoding_info.iter().rev().enumerate() {
+                    if index > header_index {
+                        decode_struct
+                            .message
+                            .remove_header_on_position(einfo.header_index);
+                    } else {
+                        let iter = einfo
+                            .encodings()
+                            .iter()
+                            .rev()
+                            .skip(compression_index)
+                            .rev()
+                            .map(|e| e.as_ref());
+                        decode_struct
+                            .message
+                            .header_map_as_mut()
+                            .update_header_multiple_values_on_position(
+                                einfo.header_index,
+                                iter,
+                            );
+                        break;
                     }
                 }
             }
