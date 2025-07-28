@@ -48,20 +48,18 @@ where
                 Ok(next_state)
             }
             DecodeState::TransferEncoding(mut ds, mut encoding_infos) => {
-                // Convert chunked to raw
-                // http/1 only
-                // remove chunked te from encoding_infos
                 if ds.is_chunked_te() {
                     ds.chunked_to_raw();
                     // remove chunked TE
+                    // Chunked TE must be the last
                     encoding_infos
                         .last_mut()
                         .unwrap()
                         .encodings_as_mut()
                         .pop();
                 }
-
-                let mut next_state = if is_chunked_te_only(&encoding_infos) {
+                // If only chunked was present then Vec<EncodingInfo> is empty
+                let mut next_state = if is_empty_encodings(&encoding_infos) {
                     ds.message.header_map_as_mut().remove_header_on_position(
                         encoding_infos[0].header_index,
                     );
@@ -202,6 +200,7 @@ where
     }
 }
 
-fn is_chunked_te_only(einfo_vec: &[EncodingInfo]) -> bool {
+// Only chunked was present
+fn is_empty_encodings(einfo_vec: &[EncodingInfo]) -> bool {
     einfo_vec.len() == 1 && einfo_vec[0].encodings().is_empty()
 }

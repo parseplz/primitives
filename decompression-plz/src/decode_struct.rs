@@ -14,7 +14,7 @@ pub struct DecodeStruct<'a, T> {
     pub message: &'a mut T,
     pub body: BytesMut,
     pub extra_body: Option<BytesMut>,
-    pub body_headers: Option<BodyHeader>,
+    pub body_headers: BodyHeader,
     pub buf: &'a mut BytesMut,
 }
 
@@ -31,7 +31,8 @@ where
             }
         };
         let extra_body = message.get_extra_body();
-        let body_headers = message.body_headers_as_mut().take();
+        let body_headers =
+            message.body_headers_as_mut().take().unwrap_or_default();
         Self {
             message,
             body_headers,
@@ -43,11 +44,7 @@ where
 
     // TODO: implement new method in BodyHeader
     pub fn is_chunked_te(&self) -> bool {
-        self.body_headers
-            .as_ref()
-            .and_then(|bh| bh.transfer_type.as_ref())
-            .map(|tt| tt == &TransferType::Chunked)
-            .unwrap_or(false)
+        self.body_headers.transfer_type == Some(TransferType::Chunked)
     }
 
     pub fn chunked_to_raw(&mut self) {
@@ -56,33 +53,27 @@ where
     }
 
     pub fn transfer_encoding_is_some(&self) -> bool {
-        self.body_headers
-            .as_ref()
-            .and_then(|bh| bh.transfer_encoding.as_ref())
-            .is_some()
+        self.body_headers.transfer_encoding.is_some()
     }
 
     pub fn content_encoding_is_some(&self) -> bool {
-        self.body_headers
-            .as_ref()
-            .and_then(|bh| bh.content_encoding.as_ref())
-            .is_some()
+        self.body_headers.content_encoding.is_some()
     }
 
     pub fn get_transfer_encoding(&mut self) -> Vec<EncodingInfo> {
-        self.body_headers.as_mut().unwrap().transfer_encoding.take().unwrap()
+        self.body_headers.transfer_encoding.take().unwrap()
     }
 
     pub fn get_content_encoding(&mut self) -> Vec<EncodingInfo> {
-        self.body_headers.as_mut().unwrap().content_encoding.take().unwrap()
+        self.body_headers.content_encoding.take().unwrap()
     }
 
     pub fn set_transfer_encoding(&mut self, te: Vec<EncodingInfo>) {
-        self.body_headers.as_mut().unwrap().transfer_encoding = Some(te);
+        self.body_headers.transfer_encoding = Some(te);
     }
 
     pub fn set_content_encoding(&mut self, ce: Vec<EncodingInfo>) {
-        self.body_headers.as_mut().unwrap().content_encoding = Some(ce);
+        self.body_headers.content_encoding = Some(ce);
     }
 
     pub fn extra_body_is_some(&self) -> bool {
