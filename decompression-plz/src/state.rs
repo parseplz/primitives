@@ -40,7 +40,9 @@ where
                 } else if ds.content_encoding_is_some() {
                     let encodings = ds.get_content_encoding();
                     Self::ContentEncoding(ds, encodings)
-                } else if ds.extra_body_is_some() {
+                } else if ds.extra_body_is_some()
+                    || ds.is_transfer_type_close()
+                {
                     Self::UpdateContentLength(ds)
                 } else {
                     let body = ds.take_main_body();
