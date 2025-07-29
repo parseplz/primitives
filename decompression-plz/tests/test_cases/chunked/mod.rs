@@ -3,7 +3,7 @@ use body_plz::variants::chunked::ChunkType;
 use decompression_plz::chunked::{chunked_to_raw, partial_chunked_to_raw};
 use tests_utils::{INPUT, all_compressed_data};
 
-const HEADERS: &str = "Host: example.com\r\n\
+const CHUNKED_HEADER: &str = "Host: example.com\r\n\
                        Content-Type: text/html; charset=utf-8\r\n\
                        Transfer-Encoding: chunked\r\n\r\n";
 
@@ -38,7 +38,7 @@ fn test_chunked_to_raw() {
     let body = build_chunked_body_large();
     let mut buf = BytesMut::new();
 
-    let mut tm = TestMessage::build(HEADERS.into(), body, None);
+    let mut tm = TestMessage::build(CHUNKED_HEADER.into(), body, None);
     chunked_to_raw(&mut tm, &mut buf);
     let verify = "Host: example.com\r\n\
                   Content-Type: text/html; charset=utf-8\r\n\
@@ -55,7 +55,7 @@ fn test_chunked_to_raw_with_trailer() {
     let trailer_chunk =
         ChunkType::Trailers(HeaderMap::from(BytesMut::from(trailer_headers)));
     body.push_chunk(trailer_chunk);
-    let mut tm = TestMessage::build(HEADERS.into(), body, None);
+    let mut tm = TestMessage::build(CHUNKED_HEADER.into(), body, None);
     let mut buf = BytesMut::new();
     chunked_to_raw(&mut tm, &mut buf);
     let verify = "Host: example.com\r\n\
@@ -85,8 +85,11 @@ fn test_partial_chunked_to_raw() {
 // state
 #[test]
 fn test_chunked_body_large() {
-    let mut tm =
-        TestMessage::build(HEADERS.into(), build_chunked_body_large(), None);
+    let mut tm = TestMessage::build(
+        CHUNKED_HEADER.into(),
+        build_chunked_body_large(),
+        None,
+    );
     let mut buf = BytesMut::new();
     let mut state = DecodeState::init(&mut tm, &mut buf);
     state = state.try_next().unwrap();
