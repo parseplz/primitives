@@ -182,7 +182,7 @@ where
                     decode_struct.extra_body = None;
                 }
                 for (index, einfo) in encoding_info.iter().rev().enumerate() {
-                    if index > header_index {
+                    if index < header_index {
                         decode_struct
                             .message
                             .remove_header_on_position(einfo.header_index);
