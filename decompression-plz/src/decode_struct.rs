@@ -45,6 +45,13 @@ where
             .unwrap_or(false)
     }
 
+    pub fn is_transfer_type_close(&self) -> bool {
+        self.message
+            .body_headers()
+            .map(|b| b.transfer_type == Some(TransferType::Close))
+            .unwrap_or(false)
+    }
+
     pub fn chunked_to_raw(&mut self) {
         chunked_to_raw(self.message, self.buf);
         self.body = self.message.get_body().into_bytes().unwrap();
