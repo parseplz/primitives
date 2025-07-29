@@ -37,8 +37,8 @@ impl DecompressTrait for TestMessage {
         self.body = Some(body);
     }
 
-    fn body_headers_as_mut(&mut self) -> &mut Option<BodyHeader> {
-        &mut self.body_header
+    fn body_headers_as_mut(&mut self) -> Option<&mut BodyHeader> {
+        self.body_header.as_mut()
     }
 
     fn header_map(&self) -> &HeaderMap {
@@ -47,6 +47,10 @@ impl DecompressTrait for TestMessage {
 
     fn header_map_as_mut(&mut self) -> &mut HeaderMap {
         &mut self.header_map
+    }
+
+    fn body_headers(&self) -> Option<&BodyHeader> {
+        self.body_header.as_ref()
     }
 }
 

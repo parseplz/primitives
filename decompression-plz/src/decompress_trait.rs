@@ -10,7 +10,9 @@ pub trait DecompressTrait {
 
     fn set_body(&mut self, body: Body);
 
-    fn body_headers_as_mut(&mut self) -> &mut Option<BodyHeader>;
+    fn body_headers(&self) -> Option<&BodyHeader>;
+
+    fn body_headers_as_mut(&mut self) -> Option<&mut BodyHeader>;
 
     /// header
     fn header_map(&self) -> &HeaderMap;
