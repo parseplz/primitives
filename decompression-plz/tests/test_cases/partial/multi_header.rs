@@ -38,7 +38,7 @@ fn assert_partial_decompressed_multi_header(
         )
     };
 
-    let mut tm = TestMessage::build(
+    let mut tm = TestMessage::new(
         headers.as_bytes().into(),
         Body::Raw(all_compressed_data()),
         extra,

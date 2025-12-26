@@ -45,7 +45,7 @@ fn build_test_message_all_encodings_multi_header(
         body.len()
     );
 
-    TestMessage::build(
+    TestMessage::new(
         headers.as_bytes().into(),
         Body::Raw(body.into()),
         extra.map(BytesMut::from),

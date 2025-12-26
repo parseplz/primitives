@@ -16,6 +16,34 @@ pub const INPUT: &[u8] = b"hello world";
 
 pub const ALL_COMPRESSIONS: &str = "br, deflate, gzip, zstd";
 
+/*
+const VERIFY_SINGLE_HEADER_BODY_ONLY: &str = "Host: example.com\r\n\
+                                              Content-Type: text/html; charset=utf-8\r\n\
+                                              Content-Length: 11\r\n\r\n\
+                                              hello world";
+
+const VERIFY_SINGLE_HEADER_BODY_AND_EXTRA: &str = "Host: example.com\r\n\
+                                                   Content-Type: text/html; charset=utf-8\r\n\
+                                                   Content-Length: 22\r\n\r\n\
+                                                   hello worldhello world";
+
+const VERIFY_MULTI_HEADER: &str = "Host: example.com\r\n\
+                                   Content-Type: text/html; charset=utf-8\r\n\
+                                   random: random\r\n\
+                                   another-random: random\r\n\
+                                   test-header: test-header\r\n\
+                                   Content-Length: 11\r\n\r\n\
+                                   hello world";
+
+const VERIFY_MULTI_HEADER_EXTRA: &str = "Host: example.com\r\n\
+                                   Content-Type: text/html; charset=utf-8\r\n\
+                                   random: random\r\n\
+                                   another-random: random\r\n\
+                                   test-header: test-header\r\n\
+                                   Content-Length: 22\r\n\r\n\
+                                   hello worldhello world";
+                                   */
+
 #[derive(Debug, PartialEq)]
 pub struct TestMessage {
     header_map: HeaderMap,
@@ -55,7 +83,7 @@ impl DecompressTrait for TestMessage {
 }
 
 impl TestMessage {
-    pub fn build(
+    pub fn new(
         headers: BytesMut,
         body: Body,
         extra: Option<BytesMut>,
@@ -70,10 +98,155 @@ impl TestMessage {
         }
     }
 
+    pub fn new_with_buf(
+        headers: BytesMut,
+        body: Body,
+        extra: Option<BytesMut>,
+    ) -> (Self, BytesMut) {
+        (TestMessage::new(headers, body, extra), BytesMut::new())
+    }
+
     pub fn into_bytes(self) -> BytesMut {
         let mut bytes = self.header_map.into_bytes();
         bytes.unsplit(self.body.unwrap().into_bytes().unwrap());
         bytes
+    }
+
+    pub fn build_tm_single_header(
+        encoding_name: &str,
+        encodings: &str,
+        body: BytesMut,
+        extra: Option<BytesMut>,
+    ) -> Self {
+        let headers = format!(
+            "Host: example.com\r\n\
+            Content-Type: text/html; charset=utf-8\r\n\
+            {encoding_name}: {encodings}\r\n\
+            Content-Length: {}\r\n\r\n",
+            body.len()
+        );
+        TestMessage::new(headers.as_bytes().into(), Body::Raw(body), extra)
+    }
+
+    pub fn build_tm_sh_single_compression(
+        encoding_name: &str,
+        encoding: ContentEncoding,
+    ) -> Self {
+        let body = single_compression(&encoding);
+        Self::build_tm_single_header(
+            encoding_name,
+            encoding.as_ref(),
+            body,
+            None,
+        )
+    }
+
+    pub fn build_tm_sh_single_compression_with_extra_raw(
+        encoding_name: &str,
+        encoding: ContentEncoding,
+    ) -> Self {
+        let body = single_compression(&encoding);
+        Self::build_tm_single_header(
+            encoding_name,
+            encoding.as_ref(),
+            body,
+            Some(INPUT.into()),
+        )
+    }
+
+    pub fn build_tm_sh_single_compression_with_extra_compressed_together(
+        encoding_name: &str,
+        encoding: ContentEncoding,
+    ) -> Self {
+        let compressed = single_compression(&encoding);
+        let (body, extra) = compressed.split_at(compressed.len() / 2);
+        Self::build_tm_single_header(
+            encoding_name,
+            encoding.as_ref(),
+            body.into(),
+            Some(extra.into()),
+        )
+    }
+
+    pub fn build_tm_sh_single_compression_with_extra_compressed_separate(
+        encoding_name: &str,
+        encoding: ContentEncoding,
+    ) -> Self {
+        let compressed = single_compression(&encoding);
+        Self::build_tm_single_header(
+            encoding_name,
+            encoding.as_ref(),
+            compressed.clone(),
+            Some(compressed),
+        )
+    }
+
+    pub fn build_tm_sh_all(encoding_name: &str) -> Self {
+        let body = all_compressed_data();
+        Self::build_tm_single_header(
+            encoding_name,
+            ALL_COMPRESSIONS,
+            body,
+            None,
+        )
+    }
+
+    pub fn build_tm_sh_all_with_extra_raw(encoding_name: &str) -> Self {
+        let body = all_compressed_data();
+        Self::build_tm_single_header(
+            encoding_name,
+            ALL_COMPRESSIONS,
+            body,
+            Some(INPUT.into()),
+        )
+    }
+
+    pub fn build_tm_sh_all_with_extra_compressed_together(
+        encoding_name: &str,
+    ) -> Self {
+        let compressed = all_compressed_data();
+        let (body, extra) = compressed.split_at(compressed.len() / 2);
+        Self::build_tm_single_header(
+            encoding_name,
+            ALL_COMPRESSIONS,
+            body.into(),
+            Some(extra.into()),
+        )
+    }
+
+    pub fn build_tm_sh_all_with_extra_compressed_separate(
+        encoding_name: &str,
+    ) -> Self {
+        let compressed = all_compressed_data();
+        Self::build_tm_single_header(
+            encoding_name,
+            ALL_COMPRESSIONS,
+            compressed.clone(),
+            Some(compressed),
+        )
+    }
+
+    // multi header
+    pub fn build_tm_multi_header(
+        encoding_name: &str,
+        body: BytesMut,
+        extra: Option<BytesMut>,
+    ) -> Self {
+        let headers = format!(
+            "Host: example.com\r\n\
+            {encoding_name}: br\r\n\
+            Content-Type: text/html; charset=utf-8\r\n\
+            {encoding_name}: deflate\r\n\
+            random: random\r\n\
+            {encoding_name}: identity\r\n\
+            another-random: random\r\n\
+            {encoding_name}: gzip\r\n\
+            test-header: test-header\r\n\
+            {encoding_name}: zstd\r\n\
+            Content-Length: {}\r\n\r\n",
+            body.len()
+        );
+        TestMessage::new(headers.as_bytes().into(), Body::Raw(body), extra)
     }
 }
 

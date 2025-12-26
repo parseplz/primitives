@@ -27,7 +27,7 @@ fn assert_case_single_compression(
     let expected_state = encoding_state(header_name);
     let with_extra = extra.is_some();
     let mut tm =
-        TestMessage::build(headers.as_bytes().into(), Body::Raw(body), extra);
+        TestMessage::new(headers.as_bytes().into(), Body::Raw(body), extra);
     let mut buf = BytesMut::new();
     let mut state = DecodeState::init(&mut tm, &mut buf);
     state = state.try_next().unwrap();

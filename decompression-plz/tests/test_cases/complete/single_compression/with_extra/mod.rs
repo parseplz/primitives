@@ -19,7 +19,7 @@ pub fn assert_case_single_compression_compressed_together(
     );
 
     let expected_state = encoding_state(header_name);
-    let mut tm = TestMessage::build(
+    let mut tm = TestMessage::new(
         headers.as_bytes().into(),
         Body::Raw(body.into()),
         Some(extra.into()),

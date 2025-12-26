@@ -38,7 +38,7 @@ fn test_chunked_to_raw() {
     let body = build_chunked_body_large();
     let mut buf = BytesMut::new();
 
-    let mut tm = TestMessage::build(CHUNKED_HEADER.into(), body, None);
+    let mut tm = TestMessage::new(CHUNKED_HEADER.into(), body, None);
     chunked_to_raw(&mut tm, &mut buf);
     let verify = "Host: example.com\r\n\
                   Content-Type: text/html; charset=utf-8\r\n\
@@ -55,7 +55,7 @@ fn test_chunked_to_raw_with_trailer() {
     let trailer_chunk =
         ChunkType::Trailers(HeaderMap::from(BytesMut::from(trailer_headers)));
     body.push_chunk(trailer_chunk);
-    let mut tm = TestMessage::build(CHUNKED_HEADER.into(), body, None);
+    let mut tm = TestMessage::new(CHUNKED_HEADER.into(), body, None);
     let mut buf = BytesMut::new();
     chunked_to_raw(&mut tm, &mut buf);
     let verify = "Host: example.com\r\n\
@@ -85,7 +85,7 @@ fn test_partial_chunked_to_raw() {
 // state
 #[test]
 fn test_chunked_body_large() {
-    let mut tm = TestMessage::build(
+    let mut tm = TestMessage::new(
         CHUNKED_HEADER.into(),
         build_chunked_body_large(),
         None,
@@ -152,7 +152,7 @@ fn assert_chunked_encoding(
          hello worldhello world"
     };
 
-    let mut tm = TestMessage::build(
+    let mut tm = TestMessage::new(
         headers.into(),
         build_all_compressed_chunk_body(),
         extra,
@@ -256,7 +256,7 @@ fn test_chunked_with_compress_extra_compressed_together() {
                    Transfer-Encoding: br, deflate, identity, gzip, zstd, chunked\r\n\
                    \r\n";
 
-    let mut tm = TestMessage::build(headers.into(), chunk_body, Some(extra));
+    let mut tm = TestMessage::new(headers.into(), chunk_body, Some(extra));
 
     let mut buf = BytesMut::new();
     let mut state = DecodeState::init(&mut tm, &mut buf);
@@ -296,7 +296,7 @@ fn test_chunked_with_compress_extra_compressed_together_multi_header() {
 
     let headers = build_chunked_multi_header_body(TRANSFER_ENCODING);
 
-    let mut tm = TestMessage::build(
+    let mut tm = TestMessage::new(
         BytesMut::from(&headers[..]),
         chunk_body,
         Some(extra),
@@ -325,7 +325,7 @@ fn test_chunked_with_compress_extra_compressed_separate() {
                    Transfer-Encoding: br, deflate, identity, gzip, zstd, chunked\r\n\
                    \r\n";
 
-    let mut tm = TestMessage::build(headers.into(), body, Some(extra));
+    let mut tm = TestMessage::new(headers.into(), body, Some(extra));
 
     let mut buf = BytesMut::new();
     let mut state = DecodeState::init(&mut tm, &mut buf);
@@ -348,7 +348,7 @@ fn test_chunked_with_compress_extra_compressed_separate_multi_header() {
     let headers = build_chunked_multi_header_body(TRANSFER_ENCODING);
 
     let mut tm =
-        TestMessage::build(BytesMut::from(&headers[..]), body, Some(extra));
+        TestMessage::new(BytesMut::from(&headers[..]), body, Some(extra));
 
     let mut buf = BytesMut::new();
     let mut state = DecodeState::init(&mut tm, &mut buf);
@@ -413,7 +413,7 @@ fn test_chunked_with_ce_compress_extra_compressed_together() {
                    Transfer-Encoding: chunked\r\n\
                    \r\n";
 
-    let mut tm = TestMessage::build(headers.into(), chunk_body, Some(extra));
+    let mut tm = TestMessage::new(headers.into(), chunk_body, Some(extra));
 
     let mut buf = BytesMut::new();
     let mut state = DecodeState::init(&mut tm, &mut buf);
@@ -442,7 +442,7 @@ fn test_chunked_with_ce_compress_extra_compressed_separate() {
                    Transfer-Encoding: chunked\r\n\
                    \r\n";
 
-    let mut tm = TestMessage::build(headers.into(), body, Some(extra));
+    let mut tm = TestMessage::new(headers.into(), body, Some(extra));
 
     let mut buf = BytesMut::new();
     let mut state = DecodeState::init(&mut tm, &mut buf);

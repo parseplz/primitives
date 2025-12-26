@@ -19,7 +19,7 @@ fn build_test_message_all_encodings_single_header(
         body.len()
     );
 
-    TestMessage::build(headers.as_bytes().into(), Body::Raw(body), extra)
+    TestMessage::new(headers.as_bytes().into(), Body::Raw(body), extra)
 }
 
 fn build_test_message_all_encodings_single_header_compressed_together(
@@ -37,7 +37,7 @@ fn build_test_message_all_encodings_single_header_compressed_together(
         body.len()
     );
 
-    TestMessage::build(
+    TestMessage::new(
         headers.as_bytes().into(),
         Body::Raw(body.as_ref().into()),
         Some(extra.as_ref().into()),

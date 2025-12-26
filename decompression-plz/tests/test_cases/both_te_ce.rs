@@ -14,7 +14,7 @@ fn test_both_te_ce() {
     );
 
     let mut tm =
-        TestMessage::build(headers.as_bytes().into(), Body::Raw(body), None);
+        TestMessage::new(headers.as_bytes().into(), Body::Raw(body), None);
     let mut buf = BytesMut::new();
     let mut state = DecodeState::init(&mut tm, &mut buf);
     state = state.try_next().unwrap();

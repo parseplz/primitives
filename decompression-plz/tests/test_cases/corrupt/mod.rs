@@ -36,7 +36,7 @@ fn assert_corrupt_encoding(
 
     let expected_state = encoding_state(encoding);
 
-    let mut tm = TestMessage::build(
+    let mut tm = TestMessage::new(
         headers.as_bytes().into(),
         Body::Raw(INPUT.into()),
         extra,
