@@ -39,6 +39,20 @@ impl OneHeader {
     pub fn value_len(&self) -> usize {
         self.value.len()
     }
+
+    pub fn key_as_str(&self) -> Option<&str> {
+        str::from_utf8(&self.key)
+            .ok()
+            .map(|s| s.split(COLON as char).nth(0))
+            .flatten()
+    }
+
+    pub fn value_as_str(&self) -> Option<&str> {
+        str::from_utf8(&self.value)
+            .ok()
+            .map(|s| s.split(CRLF).nth(0))
+            .flatten()
+    }
 }
 
 impl From<(BytesMut, BytesMut)> for OneHeader {
