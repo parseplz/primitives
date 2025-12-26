@@ -1,9 +1,8 @@
-// pub mod header;
 use crate::abnf::COLON;
 use one::OneHeader;
 use std::str::{self};
 use two::TwoHeader;
-mod one;
+pub mod one;
 mod two;
 
 use bytes::BytesMut;
@@ -431,6 +430,15 @@ impl From<HeaderMap<TwoHeader>> for HeaderMap<OneHeader> {
             entries,
             crlf: Some(CRLF.into()),
         }
+    }
+}
+
+impl<'a, T> IntoIterator for &'a HeaderMap<T> {
+    type Item = &'a T;
+    type IntoIter = std::slice::Iter<'a, T>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.entries.iter()
     }
 }
 
