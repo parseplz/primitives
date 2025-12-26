@@ -5,7 +5,7 @@ use crate::{
     message_head::header_map::{Hmap, one::OneHeader, split_header},
 };
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct TwoHeader {
     key: Bytes,
     value: Bytes,

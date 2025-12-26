@@ -24,8 +24,8 @@ pub trait Hmap {
     fn len(&self) -> usize;
 }
 
-#[derive(Debug, PartialEq)]
-struct HeaderMap<T> {
+#[derive(Debug, PartialEq, Eq)]
+pub struct HeaderMap<T> {
     entries: Vec<T>,
     crlf: Option<BytesMut>,
 }

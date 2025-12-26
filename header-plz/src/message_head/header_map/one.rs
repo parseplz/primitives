@@ -5,7 +5,7 @@ use crate::{
     message_head::header_map::{Hmap, two::TwoHeader},
 };
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct OneHeader {
     key: BytesMut,   // key + ": "
     value: BytesMut, // value + "\r\n"
