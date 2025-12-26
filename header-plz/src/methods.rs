@@ -1,3 +1,5 @@
+use bytes::Bytes;
+
 pub const CONNECT: &[u8] = b"CONNECT";
 pub const DELETE: &[u8] = b"DELETE";
 pub const GET: &[u8] = b"GET";
@@ -19,24 +21,45 @@ pub enum Method {
     POST,
     PUT,
     TRACE,
+    UNKNOWN(Bytes),
+}
+
+impl Method {
+    fn unknown(src: &[u8]) -> Self {
+        Self::UNKNOWN(Bytes::from_owner(src.to_owned()))
+    }
 }
 
 impl From<&[u8]> for Method {
-    fn from(bytes: &[u8]) -> Method {
-        match bytes {
-            CONNECT => Method::CONNECT,
-            DELETE => Method::DELETE,
-            GET => Method::GET,
-            HEAD => Method::HEAD,
-            OPTIONS => Method::OPTIONS,
-            PATCH => Method::PATCH,
-            POST => Method::POST,
-            PUT => Method::PUT,
-            TRACE => Method::TRACE,
-            _ => unreachable!(
-                "unknown method| {}",
-                String::from_utf8_lossy(bytes)
-            ),
+    fn from(src: &[u8]) -> Method {
+        match src.len() {
+            0 => todo!(),
+            3 => match src {
+                GET => Method::GET,
+                PUT => Method::PUT,
+                _ => Method::unknown(src),
+            },
+            4 => match src {
+                HEAD => Method::HEAD,
+                POST => Method::POST,
+                _ => Method::unknown(src),
+            },
+            5 => match src {
+                PATCH => Method::PATCH,
+                TRACE => Method::TRACE,
+                _ => Method::unknown(src),
+            },
+
+            6 => match src {
+                DELETE => Method::DELETE,
+                _ => Method::unknown(src),
+            },
+            7 => match src {
+                CONNECT => Method::CONNECT,
+                OPTIONS => Method::OPTIONS,
+                _ => Method::unknown(src),
+            },
+            _ => Method::unknown(src),
         }
     }
 }
