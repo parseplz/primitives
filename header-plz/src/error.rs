@@ -1,7 +1,7 @@
 use std::fmt::Debug;
 use thiserror::Error;
 
-use crate::message_head::info_line::error::InfoLineError;
+use crate::message_head::info_line::one::error::InfoLineError;
 
 #[cfg_attr(any(test, debug_assertions), derive(PartialEq))]
 #[derive(Debug, Error)]

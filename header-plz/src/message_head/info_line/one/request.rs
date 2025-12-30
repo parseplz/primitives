@@ -9,7 +9,7 @@ use crate::abnf::SP;
 
 // Request Info Line
 #[derive(Debug)]
-pub struct Request {
+pub struct RequestLine {
     method: BytesMut,  // Method + Space
     uri: BytesMut,     //  Uri
     version: BytesMut, // Space + Version + CRLF
@@ -27,24 +27,24 @@ pub struct Request {
  *      InfoLineError::SecondOWS    [2]
  */
 
-impl InfoLine for Request {
+impl InfoLine for RequestLine {
     fn try_build_infoline(
         mut data: BytesMut,
-    ) -> Result<Request, InfoLineError> {
-        let mut index = data.iter().position(|&x| x == SP as u8).ok_or(
+    ) -> Result<RequestLine, InfoLineError> {
+        let mut index = data.iter().position(|&x| x == SP).ok_or(
             InfoLineError::FirstOWS(
                 String::from_utf8_lossy(&data).to_string(),
             ),
         )?;
         let method = data.split_to(index + 1);
         // 2. Second OWS
-        index = data.iter().position(|&x| x == SP as u8).ok_or(
+        index = data.iter().position(|&x| x == SP).ok_or(
             InfoLineError::SecondOWS(
                 String::from_utf8_lossy(&data).to_string(),
             ),
         )?;
         let uri = data.split_to(index);
-        Ok(Request {
+        Ok(RequestLine {
             method,
             uri,
             version: data,
@@ -58,7 +58,7 @@ impl InfoLine for Request {
     }
 }
 
-impl Request {
+impl RequestLine {
     pub fn method(&self) -> &[u8] {
         self.method.trim_ascii_end()
     }
@@ -76,7 +76,7 @@ impl Request {
         &mut self.uri
     }
 
-    pub fn uri_as_string(&self) -> Cow<str> {
+    pub fn uri_as_string(&self) -> Cow<'_, str> {
         String::from_utf8_lossy(&self.uri)
     }
 
@@ -96,7 +96,7 @@ mod tests {
         let buf = BytesMut::from(req);
         let verify = buf[0..20].to_owned();
         let verify_ptr = buf[0..20].as_ptr_range();
-        let request = Request::try_build_infoline(buf)?;
+        let request = RequestLine::try_build_infoline(buf)?;
         assert_eq!(request.method(), b"GET");
         assert_eq!(request.uri_as_string(), "/echo");
         assert_eq!(request.version, " HTTP/1.1\r\n");
@@ -112,7 +112,7 @@ mod tests {
         let buf = BytesMut::from(req);
         let verify_ptr = buf[..37].as_ptr_range();
         let verify = buf.clone();
-        match Request::try_build_infoline(buf) {
+        match RequestLine::try_build_infoline(buf) {
             Ok(info_line) => {
                 assert_eq!(info_line.method, "CONNECT ");
                 assert_eq!(info_line.uri, "www.google.com:443");
@@ -133,7 +133,7 @@ mod tests {
         let buf = BytesMut::from(req);
         let verify_ptr = buf[..].as_ptr_range();
         let verify = buf.clone();
-        match Request::try_build_infoline(buf) {
+        match RequestLine::try_build_infoline(buf) {
             Ok(info_line) => {
                 assert_eq!(info_line.method, "GET ");
                 assert_eq!(info_line.uri, "http://www.google.com/");
@@ -154,7 +154,7 @@ mod tests {
         let buf = BytesMut::from(req);
         let verify_ptr = buf[..].as_ptr_range();
         let verify = buf.clone();
-        match Request::try_build_infoline(buf) {
+        match RequestLine::try_build_infoline(buf) {
             Ok(info_line) => {
                 assert_eq!(info_line.method, "GET ");
                 assert_eq!(info_line.uri, "http://www.google.com:8080/");
@@ -173,7 +173,7 @@ mod tests {
     fn test_return_queries() -> Result<(), Box<dyn Error>> {
         let req = "GET /users?param=value&param2=value2 HTTP/1.1\r\n\r\n";
         let buf = BytesMut::from(req);
-        let info_line = Request::try_build_infoline(buf)?;
+        let info_line = RequestLine::try_build_infoline(buf)?;
         let uri = info_line.uri()?;
         let query = uri.query().unwrap();
         assert_eq!("param=value&param2=value2", query);

@@ -1,9 +1,9 @@
 use crate::abnf::COLON;
 use one::OneHeader;
 use std::str::{self};
-use two::TwoHeader;
+use two::Header;
 pub mod one;
-mod two;
+pub mod two;
 
 use bytes::BytesMut;
 
@@ -23,24 +23,36 @@ pub trait Hmap {
     fn len(&self) -> usize;
 }
 
-#[derive(Debug, PartialEq, Eq)]
-pub struct HeaderMap<T> {
+pub type OneHeaderMap = HMap<OneHeader>;
+pub type HeaderMap = HMap<Header>;
+
+#[derive(Debug, PartialEq, Eq, Clone)]
+pub struct HMap<T> {
     entries: Vec<T>,
     crlf: Option<BytesMut>,
 }
 
-impl<'a, T> HeaderMap<T>
+impl<T> Default for HMap<T>
 where
     T: Hmap + std::fmt::Debug,
 {
-    fn new() -> Self {
-        HeaderMap {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl<'a, T> HMap<T>
+where
+    T: Hmap + std::fmt::Debug,
+{
+    pub fn new() -> Self {
+        HMap {
             entries: Vec::new(),
             crlf: None,
         }
     }
 
-    fn insert<K, V>(&mut self, key: K, value: V)
+    pub fn insert<K, V>(&mut self, key: K, value: V)
     where
         T: From<(K, V)>,
     {
@@ -334,7 +346,7 @@ where
  *      6. Add the new Header to the new HeaderMap.
  */
 
-impl From<BytesMut> for HeaderMap<OneHeader> {
+impl From<BytesMut> for HMap<OneHeader> {
     fn from(mut input: BytesMut) -> Self {
         let crlf = input.split_off(input.len() - 2);
         let mut entries = Vec::new();
@@ -346,14 +358,14 @@ impl From<BytesMut> for HeaderMap<OneHeader> {
             let header = input.split_to(crlf_index + 2);
             entries.push(OneHeader::from(header))
         }
-        HeaderMap {
+        HMap {
             entries,
             crlf: Some(crlf),
         }
     }
 }
 
-impl HeaderMap<OneHeader> {
+impl HMap<OneHeader> {
     pub fn into_bytes(self) -> BytesMut {
         let mut buf = self.crlf.unwrap();
         for header in self.entries.into_iter().rev() {
@@ -375,7 +387,7 @@ impl HeaderMap<OneHeader> {
     }
 }
 
-impl HeaderMap<TwoHeader> {
+impl HMap<Header> {
     pub fn update_header_on_position_multiple_values(
         &mut self,
         pos: usize,
@@ -393,28 +405,28 @@ pub fn split_header(header: &str) -> (&str, &str) {
         .unwrap_or_default()
 }
 
-impl From<HeaderMap<OneHeader>> for HeaderMap<TwoHeader> {
-    fn from(one: HeaderMap<OneHeader>) -> Self {
+impl From<HMap<OneHeader>> for HMap<Header> {
+    fn from(one: HMap<OneHeader>) -> Self {
         let entries = one
             .entries
             .into_iter()
             .filter_map(|h| {
                 if !h.is_empty() {
-                    Some(TwoHeader::from(h))
+                    Some(Header::from(h))
                 } else {
                     None
                 }
             })
             .collect();
-        HeaderMap {
+        HMap {
             entries,
             crlf: None,
         }
     }
 }
 
-impl From<HeaderMap<TwoHeader>> for HeaderMap<OneHeader> {
-    fn from(two: HeaderMap<TwoHeader>) -> Self {
+impl From<HMap<Header>> for HMap<OneHeader> {
+    fn from(two: HMap<Header>) -> Self {
         let entries = two
             .entries
             .into_iter()
@@ -426,14 +438,14 @@ impl From<HeaderMap<TwoHeader>> for HeaderMap<OneHeader> {
                 }
             })
             .collect();
-        HeaderMap {
+        HMap {
             entries,
             crlf: Some(CRLF.into()),
         }
     }
 }
 
-impl<'a, T> IntoIterator for &'a HeaderMap<T> {
+impl<'a, T> IntoIterator for &'a HMap<T> {
     type Item = &'a T;
     type IntoIter = std::slice::Iter<'a, T>;
 
@@ -463,7 +475,7 @@ mod tests {
         BytesMut::from(input)
     }
 
-    fn build_from_two_verifier() -> HeaderMap<OneHeader> {
+    fn build_from_two_verifier() -> HMap<OneHeader> {
         let input = "Host: localhost\r\n\
                      Content-Length: 20\r\n\
                      Content-type: application/json\r\n\
@@ -476,28 +488,20 @@ mod tests {
                      Trailer: Some\r\n\
                      Connection: keep-alive\r\n\
                      X-custom-header: somevalue\r\n\r\n";
-        HeaderMap::from(BytesMut::from(input))
+        HMap::from(BytesMut::from(input))
     }
 
-    fn build_test_one() -> HeaderMap<OneHeader> {
-        HeaderMap::from(build_input())
+    fn build_test_one() -> HMap<OneHeader> {
+        HMap::from(build_input())
     }
 
-    fn build_test_two() -> HeaderMap<TwoHeader> {
-        let mut map: HeaderMap<TwoHeader> = HeaderMap::new();
-        let one = build_test_one();
-        for entry in one.entries.into_iter() {
-            map.insert(
-                Bytes::from(entry.key_as_ref().to_owned()),
-                Bytes::from(entry.value_as_ref().to_owned()),
-            );
-        }
-        map
+    fn build_test_two() -> HMap<Header> {
+        build_test_one().into()
     }
 
     #[test]
     fn test_hmap_one_insert() {
-        let mut map: HeaderMap<OneHeader> = HeaderMap::new();
+        let mut map: HMap<OneHeader> = HMap::new();
         map.insert(BytesMut::from("key: "), BytesMut::from("value\r\n"));
         assert_eq!(map.entries.len(), 1);
         assert_eq!(map.entries[0].key_as_ref(), b"key");
@@ -506,7 +510,7 @@ mod tests {
 
     #[test]
     fn test_hmap_two_insert() {
-        let mut map: HeaderMap<TwoHeader> = HeaderMap::new();
+        let mut map: HMap<Header> = HMap::new();
         map.insert(Bytes::from("key"), Bytes::from("value"));
         assert_eq!(map.entries.len(), 1);
         assert_eq!(map.entries[0].key_as_ref(), b"key");
@@ -536,7 +540,7 @@ mod tests {
     fn test_hmap_update_header_all_one() {
         let input = build_input();
         let input_range = input.as_ptr_range();
-        let mut map = HeaderMap::from(input);
+        let mut map = HMap::from(input);
         let old = "Content-Length: 20";
         let new = "Content-Length: 10";
         let result = map.update_header_all(old, new);
@@ -563,7 +567,7 @@ mod tests {
     fn test_hmap_update_header_one() {
         let input = build_input();
         let input_range = input.as_ptr_range();
-        let mut map = HeaderMap::from(input);
+        let mut map = HMap::from(input);
         let old = "Content-Length: 20";
         let new = "Content-Length: 10";
         let result = map.update_header(old, new);
@@ -925,10 +929,10 @@ mod tests {
     fn test_header_map_len_small() {
         let data = "a: b\r\n\r\n";
         let buf = BytesMut::from(data);
-        let header_map = HeaderMap::from(buf);
+        let header_map = HMap::from(buf);
         assert_eq!(header_map.len(), 8);
 
-        let mut map: HeaderMap<TwoHeader> = HeaderMap::new();
+        let mut map: HMap<Header> = HMap::new();
         let one = build_test_one();
         for entry in one.entries.into_iter() {
             map.insert(
@@ -943,7 +947,7 @@ mod tests {
     #[test]
     fn test_from_one_to_two() {
         let one = build_test_one();
-        let two = HeaderMap::<TwoHeader>::from(one);
+        let two = HMap::<Header>::from(one);
         assert_eq!(two, build_test_two());
     }
 
@@ -953,7 +957,7 @@ mod tests {
         let to_remove = "Content-Length: 20";
         let result = one.remove_header(to_remove);
         assert!(result);
-        let two = HeaderMap::<TwoHeader>::from(one);
+        let two = HMap::<Header>::from(one);
         let mut verify = build_test_two();
         verify.entries.remove(1);
         assert_eq!(two, verify);
@@ -965,7 +969,7 @@ mod tests {
         let to_remove = "Content-Type: application/json";
         let result = one.remove_header_all(to_remove);
         assert!(result);
-        let two = HeaderMap::<TwoHeader>::from(one);
+        let two = HMap::<Header>::from(one);
         let mut verify = build_test_two();
         verify.entries.remove(2);
         verify.entries.remove(4);
@@ -977,7 +981,7 @@ mod tests {
     #[test]
     fn test_from_two_to_one() {
         let two = build_test_two();
-        let one = HeaderMap::<OneHeader>::from(two);
+        let one = HMap::<OneHeader>::from(two);
         assert_eq!(one, build_from_two_verifier());
     }
 
@@ -987,7 +991,7 @@ mod tests {
         let to_remove = "Content-Length: 20";
         let result = two.remove_header(to_remove);
         assert!(result);
-        let one = HeaderMap::<OneHeader>::from(two);
+        let one = HMap::<OneHeader>::from(two);
         let mut verify = build_from_two_verifier();
         verify.entries.remove(1);
         assert_eq!(one, verify);
@@ -999,7 +1003,7 @@ mod tests {
         let to_remove = "Content-Type: application/json";
         let result = two.remove_header_all(to_remove);
         assert!(result);
-        let one = HeaderMap::<OneHeader>::from(two);
+        let one = HMap::<OneHeader>::from(two);
         let mut verify = build_from_two_verifier();
         verify.entries.remove(2);
         verify.entries.remove(4);

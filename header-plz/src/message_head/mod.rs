@@ -1,27 +1,33 @@
 use buffer_plz::Cursor;
 use bytes::BytesMut;
-use header_map::HeaderMap;
-use info_line::InfoLine;
 
-use crate::abnf::HEADER_DELIMITER;
+use crate::{
+    abnf::HEADER_DELIMITER,
+    message_head::{
+        header_map::{HMap, OneHeaderMap, one::OneHeader},
+        info_line::one::InfoLine,
+    },
+};
 
 mod try_from_bytes;
 
 pub mod header_map;
-pub mod info_line;
+pub(crate) mod info_line;
+
+pub type OneMessageHead<I> = MessageHead<I, OneHeader>;
 
 // Represent the Header region Infoline + HeaderMap.
-#[cfg_attr(any(test, debug_assertions), derive(Debug, PartialEq, Eq))]
-pub struct MessageHead<T> {
-    info_line: T,
-    header_map: HeaderMap,
+#[derive(Debug, PartialEq, Eq)]
+pub struct MessageHead<I, H> {
+    info_line: I,
+    header_map: HMap<H>,
 }
 
-impl<T> MessageHead<T>
+impl<T> MessageHead<T, OneHeader>
 where
     T: InfoLine,
 {
-    pub fn new(info_line: T, header_map: HeaderMap) -> Self {
+    pub fn new(info_line: T, header_map: OneHeaderMap) -> Self {
         MessageHead {
             info_line,
             header_map,
@@ -35,7 +41,7 @@ where
         data
     }
 
-    pub fn header_map(&self) -> &HeaderMap {
+    pub fn header_map(&self) -> &OneHeaderMap {
         &self.header_map
     }
 
@@ -47,7 +53,7 @@ where
         &mut self.info_line
     }
 
-    pub fn header_map_as_mut(&mut self) -> &mut HeaderMap {
+    pub fn header_map_as_mut(&mut self) -> &mut OneHeaderMap {
         &mut self.header_map
     }
 }
@@ -59,7 +65,7 @@ where
  *         \r\n\r as received, set buf position to buf.len() - 3 and return
  *         false.
  */
-impl MessageHead<()> {
+impl MessageHead<(), ()> {
     pub fn is_complete(buf: &mut Cursor) -> bool {
         if let Some(index) = buf
             .as_ref()

@@ -5,16 +5,16 @@ use crate::{
     message_head::header_map::{Hmap, one::OneHeader, split_header},
 };
 
-#[derive(Debug, PartialEq, Eq)]
-pub struct TwoHeader {
+#[derive(Debug, PartialEq, Eq, Clone)]
+pub struct Header {
     key: Bytes,
     value: Bytes,
     is_removed: bool,
 }
 
-impl TwoHeader {
+impl Header {
     fn new(key: Bytes, value: Bytes) -> Self {
-        TwoHeader {
+        Header {
             key,
             value,
             is_removed: false,
@@ -26,7 +26,7 @@ impl TwoHeader {
     }
 }
 
-impl Hmap for TwoHeader {
+impl Hmap for Header {
     fn key_as_ref(&self) -> &[u8] {
         &self.key
     }
@@ -54,9 +54,9 @@ impl Hmap for TwoHeader {
     }
 }
 
-impl From<(Bytes, Bytes)> for TwoHeader {
+impl From<(Bytes, Bytes)> for Header {
     fn from((key, value): (Bytes, Bytes)) -> Self {
-        TwoHeader {
+        Header {
             key,
             value,
             is_removed: false,
@@ -64,11 +64,11 @@ impl From<(Bytes, Bytes)> for TwoHeader {
     }
 }
 
-impl From<(&str, &str)> for TwoHeader {
+impl From<(&str, &str)> for Header {
     fn from((key, value): (&str, &str)) -> Self {
         let key = Bytes::from(key.to_owned());
         let value = Bytes::from(value.to_owned());
-        TwoHeader {
+        Header {
             key,
             value,
             is_removed: false,
@@ -76,10 +76,10 @@ impl From<(&str, &str)> for TwoHeader {
     }
 }
 
-impl From<&str> for TwoHeader {
+impl From<&str> for Header {
     fn from(hdr: &str) -> Self {
         let (key, val) = split_header(hdr);
-        TwoHeader {
+        Header {
             key: Bytes::copy_from_slice(key.as_bytes()),
             value: Bytes::copy_from_slice(val.as_bytes()),
             is_removed: false,
@@ -87,8 +87,8 @@ impl From<&str> for TwoHeader {
     }
 }
 
-impl From<TwoHeader> for OneHeader {
-    fn from(two: TwoHeader) -> OneHeader {
+impl From<Header> for OneHeader {
+    fn from(two: Header) -> OneHeader {
         let mut key = BytesMut::from(two.key);
         key.extend_from_slice(HEADER_FS.as_bytes());
         let mut value = BytesMut::from(two.value);
@@ -108,8 +108,8 @@ mod tests {
         let key = "Content-Type";
         let value = "application/json";
 
-        let header: TwoHeader = (key, value).into();
-        let expected = TwoHeader {
+        let _header: Header = (key, value).into();
+        let _expected = Header {
             key: Bytes::from(key.to_owned()),
             value: Bytes::from(value.to_owned()),
             is_removed: false,
@@ -119,8 +119,8 @@ mod tests {
     #[test]
     fn test_two_header_from_str() {
         let input = "Content-Type: application/json\r\n";
-        let header: TwoHeader = (input).into();
-        let expected = TwoHeader {
+        let header: Header = (input).into();
+        let expected = Header {
             key: Bytes::from("Content-Type".to_owned()),
             value: Bytes::from("application/json".to_owned()),
             is_removed: false,
@@ -131,8 +131,8 @@ mod tests {
     #[test]
     fn test_two_header_from_str_key_only() {
         let input = "Content-Type:";
-        let header: TwoHeader = (input).into();
-        let expected = TwoHeader {
+        let header: Header = (input).into();
+        let expected = Header {
             key: Bytes::from("Content-Type".to_owned()),
             value: Bytes::from("".to_owned()),
             is_removed: false,
@@ -142,7 +142,7 @@ mod tests {
 
     #[test]
     fn test_two_header_as_ref() {
-        let two = TwoHeader::from(("key", "value"));
+        let two = Header::from(("key", "value"));
         assert_eq!(two.key_as_ref(), b"key");
         assert_eq!(two.value_as_ref(), b"value");
     }
@@ -150,13 +150,13 @@ mod tests {
     #[test]
     fn test_two_header_len() {
         let buf = "content-type: application/json\r\n";
-        let header = TwoHeader::from(buf);
+        let header = Header::from(buf);
         assert_eq!(header.len(), 28);
     }
 
     #[test]
     fn test_two_to_one_perfect() {
-        let two = TwoHeader::from(("content-type", "application/json"));
+        let two = Header::from(("content-type", "application/json"));
         let one = OneHeader::from(two);
         assert_eq!(one.key_as_ref(), b"content-type");
         assert_eq!(one.value_as_ref(), b"application/json");
@@ -166,14 +166,14 @@ mod tests {
 
         let buf: BytesMut = "content-type: application/json\r\n".into();
         let one = OneHeader::from(buf);
-        let two = TwoHeader::from(one);
+        let two = Header::from(one);
         assert_eq!(two.key_as_ref(), b"content-type");
         assert_eq!(two.value_as_ref(), b"application/json");
     }
 
     #[test]
     fn test_two_to_one_no_key() {
-        let two = TwoHeader::from(("", "application/json"));
+        let two = Header::from(("", "application/json"));
         let one = OneHeader::from(two);
         assert_eq!(one.key_as_ref(), b"");
         assert_eq!(one.value_as_ref(), b"application/json");
@@ -183,7 +183,7 @@ mod tests {
 
     #[test]
     fn test_two_to_one_no_value() {
-        let two = TwoHeader::from(("content-type", ""));
+        let two = Header::from(("content-type", ""));
         let one = OneHeader::from(two);
         assert_eq!(one.key_as_ref(), b"content-type");
         assert_eq!(one.value_as_ref(), b"");

@@ -2,10 +2,10 @@ use bytes::{BufMut, Bytes, BytesMut};
 
 use crate::{
     abnf::*,
-    message_head::header_map::{Hmap, two::TwoHeader},
+    message_head::header_map::{Hmap, two::Header},
 };
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq, Clone)]
 pub struct OneHeader {
     key: BytesMut,   // key + ": "
     value: BytesMut, // value + "\r\n"
@@ -43,15 +43,11 @@ impl OneHeader {
     pub fn key_as_str(&self) -> Option<&str> {
         str::from_utf8(&self.key)
             .ok()
-            .map(|s| s.split(COLON as char).nth(0))
-            .flatten()
+            .and_then(|s| s.split(COLON as char).nth(0))
     }
 
     pub fn value_as_str(&self) -> Option<&str> {
-        str::from_utf8(&self.value)
-            .ok()
-            .map(|s| s.split(CRLF).nth(0))
-            .flatten()
+        str::from_utf8(&self.value).ok().and_then(|s| s.split(CRLF).nth(0))
     }
 }
 
@@ -117,7 +113,7 @@ impl From<BytesMut> for OneHeader {
 }
 
 // TODO: utf-8 check ?
-impl From<OneHeader> for TwoHeader {
+impl From<OneHeader> for Header {
     fn from(mut one: OneHeader) -> Self {
         let key = if one.key_len() == 0 {
             Bytes::new()
@@ -138,7 +134,7 @@ impl From<OneHeader> for TwoHeader {
         } else {
             one.value.split_to(one.value_len() - 2).freeze()
         };
-        TwoHeader::from((key, value))
+        Header::from((key, value))
     }
 }
 
@@ -324,7 +320,7 @@ mod tests {
     fn test_one_to_two_perfect() {
         let buf: BytesMut = "content-type: application/json\r\n".into();
         let one = OneHeader::from(buf);
-        let two = TwoHeader::from(one);
+        let two = Header::from(one);
         assert_eq!(two.key_as_ref(), b"content-type");
         assert_eq!(two.value_as_ref(), b"application/json");
     }
@@ -333,7 +329,7 @@ mod tests {
     fn test_one_to_two_no_space() {
         let buf: BytesMut = "content-type:application/json\r\n".into();
         let one = OneHeader::from(buf);
-        let two = TwoHeader::from(one);
+        let two = Header::from(one);
         assert_eq!(two.key_as_ref(), b"content-type");
         assert_eq!(two.value_as_ref(), b"application/json");
     }
@@ -342,7 +338,7 @@ mod tests {
     fn test_one_to_two_empty_value() {
         let buf: BytesMut = "content-type:\r\n".into();
         let one = OneHeader::from(buf);
-        let two = TwoHeader::from(one);
+        let two = Header::from(one);
         assert_eq!(two.key_as_ref(), b"content-type");
         assert_eq!(two.value_as_ref(), b"");
     }

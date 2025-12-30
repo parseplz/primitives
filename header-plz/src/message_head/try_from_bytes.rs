@@ -1,6 +1,8 @@
 use super::MessageHead;
 use crate::{
-    HeaderMap, error::HeaderReadError, message_head::info_line::InfoLine,
+    OneMessageHead,
+    error::HeaderReadError,
+    message_head::{OneHeaderMap, info_line::one::InfoLine},
 };
 use bytes::BytesMut;
 
@@ -14,7 +16,7 @@ use bytes::BytesMut;
  *      HttpReadError::HeaderStruct   [Default]
  */
 
-impl<T> TryFrom<BytesMut> for MessageHead<T>
+impl<T> TryFrom<BytesMut> for OneMessageHead<T>
 where
     T: InfoLine,
 {
@@ -24,7 +26,7 @@ where
         if let Some(infoline_index) = data.iter().position(|&x| x == 13) {
             let raw = data.split_to(infoline_index + 2);
             let info_line = T::try_build_infoline(raw)?;
-            return Ok(MessageHead::new(info_line, HeaderMap::from(data)));
+            return Ok(MessageHead::new(info_line, OneHeaderMap::from(data)));
         }
         Err(HeaderReadError::HeaderStruct(
             String::from_utf8_lossy(&data).to_string(),
@@ -34,8 +36,7 @@ where
 
 #[cfg(test)]
 mod tests {
-
-    use crate::{Request, Response};
+    use crate::{OneRequestLine, OneResponseLine};
 
     use super::*;
 
@@ -50,7 +51,7 @@ mod tests {
                        Connection: keep-alive\r\n\r\n";
         let buf = BytesMut::from(input);
         let org = buf.as_ptr_range();
-        let result = MessageHead::<Request>::try_from(buf).unwrap();
+        let result = OneMessageHead::<OneRequestLine>::try_from(buf).unwrap();
         assert_eq!(result.info_line.method(), b"GET");
         assert_eq!(result.info_line.uri_as_string(), "/");
         let verify = result.into_bytes();
@@ -66,7 +67,7 @@ mod tests {
                         Content-Length: 12\r\n\r\n";
         let buf = BytesMut::from(input);
         let org = buf.as_ptr_range();
-        let result = MessageHead::<Response>::try_from(buf).unwrap();
+        let result = OneMessageHead::<OneResponseLine>::try_from(buf).unwrap();
         assert_eq!(result.info_line.status(), b"200");
         let verify = result.into_bytes();
         assert_eq!(verify, input);
@@ -77,7 +78,7 @@ mod tests {
     fn test_message_header_error() {
         let input = "This is not a valid message";
         let buf = BytesMut::from(input);
-        let result = MessageHead::<Request>::try_from(buf);
+        let result = OneMessageHead::<OneRequestLine>::try_from(buf);
         if let Err(e) = result {
             let err = HeaderReadError::HeaderStruct(input.to_string());
             assert_eq!(e, err);

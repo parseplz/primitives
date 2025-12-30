@@ -2,7 +2,7 @@
 // optimizations later.
 // const MAX_SCHEME_LEN: usize = 64;
 
-use std::{fmt, str::FromStr};
+use std::str::FromStr;
 
 use crate::{bytes_str::BytesStr, uri::InvalidUri};
 
@@ -143,7 +143,7 @@ mod test {
     }
 
     fn scheme(s: &str) -> Scheme {
-        s.parse().expect(&format!("Invalid scheme: {}", s))
+        s.parse().unwrap_or_else(|_| panic!("Invalid scheme: {}", s))
     }
 
     #[test]

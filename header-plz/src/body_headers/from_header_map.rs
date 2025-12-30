@@ -2,22 +2,22 @@ use mime_plz::ContentType;
 
 use super::{BodyHeader, transfer_types::TransferType};
 use crate::{
-    Header, HeaderMap, body_headers::encoding_info::EncodingInfo,
-    const_headers::*,
+    OneHeaderMap, body_headers::encoding_info::EncodingInfo, const_headers::*,
+    message_head::header_map::one::OneHeader,
 };
 
-impl From<&HeaderMap> for Option<BodyHeader> {
-    fn from(header_map: &HeaderMap) -> Self {
+impl From<&OneHeaderMap> for Option<BodyHeader> {
+    fn from(header_map: &OneHeaderMap) -> Self {
         let bh = BodyHeader::from(header_map);
         bh.sanitize()
     }
 }
 
-impl From<&HeaderMap> for BodyHeader {
+impl From<&OneHeaderMap> for BodyHeader {
     #[inline(always)]
-    fn from(header_map: &HeaderMap) -> BodyHeader {
+    fn from(header_map: &OneHeaderMap) -> BodyHeader {
         let mut bh = BodyHeader::default();
-        header_map.headers().iter().enumerate().for_each(|(index, header)| {
+        header_map.into_iter().enumerate().for_each(|(index, header)| {
             parse_body_headers(&mut bh, index, header)
         });
 
@@ -34,22 +34,29 @@ impl From<&HeaderMap> for BodyHeader {
     }
 }
 
-pub fn parse_body_headers(bh: &mut BodyHeader, index: usize, header: &Header) {
-    let key = header.key_as_str();
-    if key.eq_ignore_ascii_case(CONTENT_LENGTH) {
-        let transfer_type = TransferType::from_cl(header.value_as_str());
-        bh.update_transfer_type(transfer_type);
-    } else if key.eq_ignore_ascii_case(TRANSFER_ENCODING) {
-        let einfo = EncodingInfo::from((index, header.value_as_str()));
-        bh.transfer_encoding.get_or_insert_with(Vec::new).push(einfo);
-        if bh.chunked_te_position().is_some() {
-            bh.transfer_type = Some(TransferType::Chunked)
-        }
-    } else if key.eq_ignore_ascii_case(CONTENT_ENCODING) {
-        let einfo = EncodingInfo::from((index, header.value_as_str()));
-        bh.content_encoding.get_or_insert_with(Vec::new).push(einfo);
-    } else if key.eq_ignore_ascii_case(CONTENT_TYPE) {
-        if let Some((main_type, _)) = header.value_as_str().split_once('/') {
+pub fn parse_body_headers(
+    bh: &mut BodyHeader,
+    index: usize,
+    header: &OneHeader,
+) {
+    if let Some(key) = header.key_as_str()
+        && let Some(value) = header.value_as_str()
+    {
+        if key.eq_ignore_ascii_case(CONTENT_LENGTH) {
+            let transfer_type = TransferType::from_cl(value);
+            bh.update_transfer_type(transfer_type);
+        } else if key.eq_ignore_ascii_case(TRANSFER_ENCODING) {
+            let einfo = EncodingInfo::from((index, value));
+            bh.transfer_encoding.get_or_insert_with(Vec::new).push(einfo);
+            if bh.chunked_te_position().is_some() {
+                bh.transfer_type = Some(TransferType::Chunked)
+            }
+        } else if key.eq_ignore_ascii_case(CONTENT_ENCODING) {
+            let einfo = EncodingInfo::from((index, value));
+            bh.content_encoding.get_or_insert_with(Vec::new).push(einfo);
+        } else if key.eq_ignore_ascii_case(CONTENT_TYPE)
+            && let Some((main_type, _)) = value.split_once('/')
+        {
             bh.content_type = Some(ContentType::from(main_type));
         }
     }
@@ -62,7 +69,7 @@ mod tests {
     use bytes::BytesMut;
 
     fn build_body_header(input: &str) -> BodyHeader {
-        let header_map = HeaderMap::from(BytesMut::from(input));
+        let header_map = OneHeaderMap::from(BytesMut::from(input));
         BodyHeader::from(&header_map)
     }
 

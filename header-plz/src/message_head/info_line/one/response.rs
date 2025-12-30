@@ -5,7 +5,7 @@ use super::{InfoLine, InfoLineError};
 
 // Response Info Line
 #[derive(Debug)]
-pub struct Response {
+pub struct ResponseLine {
     version: BytesMut, // Version + space
     status: BytesMut,  // status
     reason: BytesMut,  // space + Reason + CRLF
@@ -17,10 +17,10 @@ pub struct Response {
  *      3. Remainder is reason + CRLF
  */
 
-impl InfoLine for Response {
+impl InfoLine for ResponseLine {
     fn try_build_infoline(
         mut data: BytesMut,
-    ) -> Result<Response, InfoLineError> {
+    ) -> Result<ResponseLine, InfoLineError> {
         // "1" in decimal
         let index = if data[5] == 49 {
             9
@@ -31,7 +31,7 @@ impl InfoLine for Response {
         let version = data.split_to(index);
         // status code always 3 digits
         let status = data.split_to(3);
-        Ok(Response {
+        Ok(ResponseLine {
             version,
             status,
             reason: data,
@@ -55,7 +55,7 @@ pub enum StatusCodeError {
     ParseInt(#[from] std::num::ParseIntError),
 }
 
-impl Response {
+impl ResponseLine {
     pub fn status(&self) -> &[u8] {
         &self.status
     }
@@ -79,7 +79,7 @@ mod tests {
         let buf = BytesMut::from(response);
         let verify = buf.clone();
         let initial_ptr = buf.as_ptr_range();
-        let response = Response::try_build_infoline(buf).unwrap();
+        let response = ResponseLine::try_build_infoline(buf).unwrap();
         assert_eq!(response.version, "HTTP/1.1 ");
         assert_eq!(response.status, "200");
         assert_eq!(response.reason, " OK\r\n");
@@ -94,7 +94,7 @@ mod tests {
         let buf = BytesMut::from(response);
         let verify = buf.clone();
         let initial_ptr = buf.as_ptr_range();
-        let response = Response::try_build_infoline(buf).unwrap();
+        let response = ResponseLine::try_build_infoline(buf).unwrap();
         assert_eq!(response.version, "HTTP/2 ");
         assert_eq!(response.status, "200");
         assert_eq!(response.reason, " OK\r\n");
@@ -107,7 +107,7 @@ mod tests {
     fn test_infoline_response_is_ws_handshake_true() {
         let response = "HTTP/1.1 101 Switching Protocols\r\n";
         let buf = BytesMut::from(response);
-        let response = Response::try_build_infoline(buf).unwrap();
+        let response = ResponseLine::try_build_infoline(buf).unwrap();
         assert!(response.is_ws_handshake().unwrap());
     }
 
@@ -115,7 +115,7 @@ mod tests {
     fn test_infoline_response_is_ws_handshake_false() {
         let response = "HTTP/1.1 200 OK\r\n";
         let buf = BytesMut::from(response);
-        let response = Response::try_build_infoline(buf).unwrap();
+        let response = ResponseLine::try_build_infoline(buf).unwrap();
         assert!(!response.is_ws_handshake().unwrap());
     }
 }

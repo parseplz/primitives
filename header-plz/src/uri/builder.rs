@@ -58,13 +58,13 @@ impl Builder {
         })
     }
 
-    pub fn path_and_query<T>(self, scheme: T) -> Self
+    pub fn path<T>(self, path: T) -> Self
     where
         T: TryInto<PathAndQuery>,
         <T as TryInto<PathAndQuery>>::Error: Into<InvalidUri>,
     {
         self.map(move |mut uri| {
-            uri.path_and_query = scheme.try_into().map_err(Into::into)?.into();
+            uri.path_and_query = path.try_into().map_err(Into::into)?.into();
             Ok(uri)
         })
     }
@@ -89,7 +89,7 @@ impl Builder {
         Builder(self.0.and_then(func))
     }
 
-    fn build(self) -> Result<Uri, InvalidUri> {
+    pub fn build(self) -> Result<Uri, InvalidUri> {
         let parts = self.0?;
         let scheme = match parts.scheme {
             Some(scheme) => scheme,
@@ -128,7 +128,7 @@ mod tests {
         let uri = Builder::new()
             .scheme(Scheme::HTTP)
             .authority("hyper.rs")
-            .path_and_query("/foo?a=1#23")
+            .path("/foo?a=1#23")
             .build()
             .unwrap();
         assert_eq!(uri.scheme(), Some(&Scheme::HTTP));
@@ -141,7 +141,7 @@ mod tests {
     fn build_from_string() {
         for i in 1..10 {
             let uri = Builder::new()
-                .path_and_query(format!("/foo?a={}#i", i))
+                .path(format!("/foo?a={}#i", i))
                 .build()
                 .unwrap();
             let expected_query = format!("a={}", i);
@@ -154,7 +154,7 @@ mod tests {
     fn build_from_string_ref() {
         for i in 1..10 {
             let p_a_q = format!("/foo?a={}", i);
-            let uri = Builder::new().path_and_query(&p_a_q).build().unwrap();
+            let uri = Builder::new().path(&p_a_q).build().unwrap();
             let expected_query = format!("a={}", i);
             assert_eq!(uri.path(), "/foo");
             assert_eq!(uri.query(), Some(expected_query.as_str()));

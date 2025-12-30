@@ -2,11 +2,10 @@ use crate::{
     bytes_str::BytesStr,
     uri::{builder::Builder, path::PathAndQuery, scheme::Scheme},
 };
-use bytes::Bytes;
-use std::{convert::Infallible, fmt, str::FromStr};
+use std::convert::Infallible;
 mod builder;
-mod path;
-mod scheme;
+pub mod path;
+pub mod scheme;
 
 #[derive(Debug)]
 pub enum InvalidUri {
