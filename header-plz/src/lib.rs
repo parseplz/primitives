@@ -12,6 +12,7 @@ pub mod uri;
 // control lines
 use message_head::info_line;
 // http1
+pub use info_line::one::InfoLine as OneInfoLine;
 pub use info_line::one::request::RequestLine as OneRequestLine;
 pub use info_line::one::response::ResponseLine as OneResponseLine;
 
