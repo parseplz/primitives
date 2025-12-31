@@ -43,7 +43,7 @@ where
 
 impl<'a, T> HMap<T>
 where
-    T: Hmap + std::fmt::Debug,
+    T: Hmap,
 {
     pub fn new() -> Self {
         HMap {
@@ -105,10 +105,17 @@ where
         })
     }
 
+    pub fn has_header<H>(&self, hdr: H) -> bool
+    where
+        T: From<H>,
+    {
+        self.header_position(hdr).is_some()
+    }
+
     // ----- update
     // old : Content-Length: 20
     // new : Content-Length: 10
-    pub fn update_header_all<K>(&mut self, old: K, new: K) -> bool
+    pub fn update_header_all<K>(&'a mut self, old: K, new: K) -> bool
     where
         T: From<K>,
     {
@@ -150,7 +157,7 @@ where
         result
     }
 
-    pub fn remove_header_all<K>(&mut self, to_remove: K) -> bool
+    pub fn remove_header_all<K>(&'a mut self, to_remove: K) -> bool
     where
         T: From<K>,
     {
@@ -221,7 +228,11 @@ where
     }
 
     // ----- update
-    pub fn update_header_key_all<K>(&mut self, old_key: K, new_key: K) -> bool
+    pub fn update_header_key_all<K>(
+        &'a mut self,
+        old_key: K,
+        new_key: K,
+    ) -> bool
     where
         K: AsRef<[u8]>,
     {
