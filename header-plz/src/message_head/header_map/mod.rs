@@ -61,6 +61,13 @@ where
         self.entries.push(T::from((key, value)));
     }
 
+    pub fn extend<I>(&mut self, to_add: I)
+    where
+        I: IntoIterator<Item = T>,
+    {
+        self.entries.extend(to_add);
+    }
+
     pub fn find_position_all<F>(
         &'a mut self,
         mut f: F,
