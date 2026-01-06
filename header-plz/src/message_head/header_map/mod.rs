@@ -327,9 +327,11 @@ where
         self.entries[pos].change_value(value.as_ref());
     }
 
-    pub fn build_multiple_value_key(
+    pub fn update_header_value_on_position_multiple_values(
+        &mut self,
+        pos: usize,
         values: impl Iterator<Item: AsRef<[u8]>>,
-    ) -> BytesMut {
+    ) {
         let mut buf = BytesMut::new();
         let mut first = true;
         for value in values {
@@ -339,7 +341,7 @@ where
             first = false;
             buf.extend_from_slice(value.as_ref());
         }
-        buf
+        self.entries[pos].change_value(buf.as_ref());
     }
 
     pub fn truncate_header_value_on_position() {
