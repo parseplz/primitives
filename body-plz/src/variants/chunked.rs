@@ -1,5 +1,5 @@
 use bytes::BytesMut;
-use header_plz::HeaderMap;
+use header_plz::OneHeaderMap;
 
 // Enum to represent different types of Chunked Body
 #[cfg_attr(any(test, debug_assertions), derive(Debug, PartialEq, Eq))]
@@ -7,7 +7,7 @@ pub enum ChunkType {
     Size(BytesMut),
     Chunk(BytesMut),
     LastChunk(BytesMut),
-    Trailers(HeaderMap),
+    Trailers(OneHeaderMap),
     EndCRLF(BytesMut),
 }
 
@@ -45,6 +45,7 @@ pub fn total_chunk_size(chunks: &[ChunkType]) -> usize {
 #[cfg(test)]
 mod tests {
     use buffer_plz::Cursor;
+    use header_plz::OneHeaderMap as HeaderMap;
 
     use crate::reader::chunked_reader::ChunkReaderState;
 
