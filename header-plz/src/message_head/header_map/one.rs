@@ -178,6 +178,11 @@ impl Hmap for OneHeader {
     fn len(&self) -> usize {
         self.key.len() + self.value.len()
     }
+
+    fn truncate_value(&mut self, pos: usize) {
+        self.value.truncate(pos);
+        self.value.extend_from_slice(CRLF.as_bytes());
+    }
 }
 
 fn reuse_or_swap(len: usize, target: &mut BytesMut, incoming: &[u8]) {
@@ -431,23 +436,11 @@ mod tests {
         assert_ne!(input_range, result_range);
     }
 
-    /* TODO: fix
     #[test]
-    fn test_change_header_value_multiple() {
-        let input = BytesMut::from("Content-Encoding: gzip\r\n");
-        let input_range = input.as_ptr_range();
-        let mut header = OneHeader::from(input);
-        let ce = [
-            ContentEncoding::Gzip,
-            ContentEncoding::Deflate,
-            ContentEncoding::Brotli,
-        ];
-        let iter = ce.iter().map(|s| s.as_ref());
-        header.change_value_multiple(iter);
-        let result = header.into_bytes();
-        let result_range = result.as_ptr_range();
-        assert_eq!(result, "Content-Encoding: gzip, deflate, br\r\n");
-        assert_ne!(input_range, result_range);
+    fn test_truncate_value() {
+        let mut input = OneHeader::from(("key", "hola, que, tal"));
+        input.truncate_value(9);
+        let mut verify = OneHeader::from(("key", "hola, que"));
+        assert_eq!(input, verify);
     }
-    */
 }

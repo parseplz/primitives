@@ -52,6 +52,10 @@ impl Hmap for Header {
     fn len(&self) -> usize {
         self.key.len() + self.value.len()
     }
+
+    fn truncate_value(&mut self, pos: usize) {
+        self.value.truncate(pos)
+    }
 }
 
 impl From<(Bytes, Bytes)> for Header {
@@ -189,5 +193,13 @@ mod tests {
         assert_eq!(one.value_as_ref(), b"");
         let verify = "content-type: \r\n";
         assert_eq!(one.into_bytes(), verify);
+    }
+
+    #[test]
+    fn test_truncate_value() {
+        let mut input = Header::from(("key", "hola, que, tal"));
+        input.truncate_value(9);
+        let mut verify = Header::from(("key", "hola, que"));
+        assert_eq!(input, verify);
     }
 }

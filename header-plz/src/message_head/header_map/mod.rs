@@ -21,6 +21,8 @@ pub trait Hmap {
     fn clear(&mut self);
 
     fn len(&self) -> usize;
+
+    fn truncate_value(&mut self, pos: usize);
 }
 
 pub type OneHeaderMap = HMap<OneHeader>;
