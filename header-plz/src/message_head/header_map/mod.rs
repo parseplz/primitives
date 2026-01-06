@@ -478,6 +478,24 @@ impl<'a, T> IntoIterator for &'a HMap<T> {
     }
 }
 
+impl<'a, T> IntoIterator for &'a mut HMap<T> {
+    type Item = &'a mut T;
+    type IntoIter = std::slice::IterMut<'a, T>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.entries.iter_mut()
+    }
+}
+
+impl<T> IntoIterator for HMap<T> {
+    type Item = T;
+    type IntoIter = std::vec::IntoIter<T>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.entries.into_iter()
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
