@@ -1,4 +1,4 @@
-use crate::abnf::COLON;
+use crate::abnf::*;
 use one::OneHeader;
 use std::str::{self};
 use two::Header;
@@ -498,6 +498,8 @@ impl<T> IntoIterator for HMap<T> {
 
 #[cfg(test)]
 mod tests {
+    use crate::body_headers::content_encoding::ContentEncoding;
+
     use super::*;
     use bytes::Bytes;
 
@@ -559,6 +561,37 @@ mod tests {
         assert_eq!(map.entries[0].value_as_ref(), b"value");
     }
 
+    #[test]
+    fn test_hmap_one_extend() {
+        let mut map: HMap<OneHeader> = HMap::new();
+        map.insert(BytesMut::from("key: "), BytesMut::from("value\r\n"));
+
+        let mut to_extend: HMap<OneHeader> = HMap::new();
+        to_extend
+            .insert(BytesMut::from("key2: "), BytesMut::from("value2\r\n"));
+        map.extend(to_extend);
+        assert_eq!(map.entries.len(), 2);
+        assert_eq!(map.entries[0].key_as_ref(), b"key");
+        assert_eq!(map.entries[0].value_as_ref(), b"value");
+        assert_eq!(map.entries[1].key_as_ref(), b"key2");
+        assert_eq!(map.entries[1].value_as_ref(), b"value2");
+    }
+
+    #[test]
+    fn test_hmap_two_extend() {
+        let mut map: HMap<Header> = HMap::new();
+        map.insert(Bytes::from("key"), Bytes::from("value"));
+
+        let mut to_extend: HMap<Header> = HMap::new();
+        to_extend.insert(Bytes::from("key2"), Bytes::from("value2"));
+        map.extend(to_extend);
+        assert_eq!(map.entries.len(), 2);
+        assert_eq!(map.entries[0].key_as_ref(), b"key");
+        assert_eq!(map.entries[0].value_as_ref(), b"value");
+        assert_eq!(map.entries[1].key_as_ref(), b"key2");
+        assert_eq!(map.entries[1].value_as_ref(), b"value2");
+    }
+
     // ---------- Entire Header
     // ----- find
     #[test]
@@ -575,6 +608,22 @@ mod tests {
         let _key = "Content-Length: 20";
         let result = map.header_position("content-length: 20");
         assert_eq!(result, Some(1));
+    }
+
+    #[test]
+    fn test_hmap_has_header_one() {
+        let map = build_test_one();
+        let _key = "Content-Length: 20";
+        assert!(map.has_header("content-length: 20"));
+        assert!(map.has_header(("content-length", "20")));
+    }
+
+    #[test]
+    fn test_hmap_has_header_two() {
+        let map = build_test_two();
+        let _key = "Content-Length: 20";
+        assert!(map.has_header("content-length: 20"));
+        assert!(map.has_header(("content-length", "20")));
     }
 
     // ----- update
@@ -659,6 +708,32 @@ mod tests {
     }
 
     // remove
+    #[test]
+    fn test_hmap_remove_header_multiple_positions_one() {
+        let mut map = build_test_one();
+        let result =
+            map.remove_header_multiple_positions([2, 5, 8].into_iter());
+        assert!(result);
+        let mut verify = build_test_one();
+        verify.entries[2].clear();
+        verify.entries[5].clear();
+        verify.entries[8].clear();
+        assert_eq!(map, verify);
+    }
+
+    #[test]
+    fn test_hmap_remove_header_multiple_positions_two() {
+        let mut map = build_test_two();
+        let result =
+            map.remove_header_multiple_positions([2, 5, 8].into_iter());
+        assert!(result);
+        let mut verify = build_test_two();
+        verify.entries[2].clear();
+        verify.entries[5].clear();
+        verify.entries[8].clear();
+        assert_eq!(map, verify);
+    }
+
     #[test]
     fn test_hmap_remove_header_all_one() {
         let mut map = build_test_one();
@@ -771,6 +846,22 @@ mod tests {
         let result = map.value_of_key("Content-Type");
         let verify = "application/json";
         assert_eq!(result, Some(verify.as_bytes()));
+    }
+
+    #[test]
+    fn test_hmap_has_key_one() {
+        let map = build_test_one();
+        let key = "Content-Type";
+        let result = map.has_key(key);
+        assert!(result);
+    }
+
+    #[test]
+    fn test_hmap_has_key_two() {
+        let map = build_test_two();
+        let key = "Content-Type";
+        let result = map.has_key(key);
+        assert!(result);
     }
 
     // ----- update
@@ -952,10 +1043,26 @@ mod tests {
         assert_eq!(map, verify);
     }
 
-    #[ignore]
     #[test]
-    fn test_update_update_header_multiple_values_on_position() {
-        let _map = build_test_one();
+    fn test_hmap_update_header_multiple_value_on_pos_one() {
+        let mut map = build_test_one();
+        let pos = 1;
+        let val = ["a", "b", "c"];
+        map.update_header_value_on_position_multiple_values(pos, val.iter());
+        let mut verify = build_test_one();
+        verify.entries[1].change_value(b"a, b, c");
+        assert_eq!(map, verify);
+    }
+
+    #[test]
+    fn test_hmap_update_header_multiple_value_on_pos_two() {
+        let mut map = build_test_two();
+        let pos = 1;
+        let val = ["a", "b", "c"];
+        map.update_header_value_on_position_multiple_values(pos, val.iter());
+        let mut verify = build_test_two();
+        verify.entries[1].change_value(b"a, b, c");
+        assert_eq!(map, verify);
     }
 
     // len
@@ -1051,5 +1158,141 @@ mod tests {
         verify.entries.remove(4);
         verify.entries.remove(6);
         assert_eq!(one, verify);
+    }
+
+    #[test]
+    fn test_empty() {
+        let map = HMap::<Header>::new();
+        assert!(map.is_empty());
+        let map = HMap::<OneHeader>::new();
+        assert!(map.is_empty());
+    }
+
+    #[test]
+    fn test_header_map_truncate_header_values_single_one() {
+        let data = "Header: a\r\n\r\n";
+        let buf = BytesMut::from(data);
+        let mut header_map = OneHeaderMap::from(buf);
+        header_map.truncate_header_value_at_position(0, "a");
+        let result = header_map.into_bytes();
+        assert_eq!(result, "Header: \r\n\r\n");
+    }
+
+    #[test]
+    fn test_header_map_truncate_header_values_single_two() {
+        let mut map: HMap<Header> = HMap::new();
+        map.insert(Bytes::from("Header"), Bytes::from("a"));
+        map.truncate_header_value_at_position(0, "a");
+
+        let mut verify: HMap<Header> = HMap::new();
+        verify.insert(Bytes::from("Header"), Bytes::from(""));
+        assert_eq!(map, verify);
+    }
+
+    #[test]
+    fn test_header_map_truncate_header_values_one() {
+        let data = "Header: a,  b,c\r\n\r\n";
+        let buf = BytesMut::from(data);
+        let mut header_map = OneHeaderMap::from(buf);
+        header_map.truncate_header_value_at_position(0, "c");
+        let result = header_map.into_bytes();
+        assert_eq!(result, "Header: a,  b\r\n\r\n");
+
+        let mut header_map = OneHeaderMap::from(result);
+        header_map.truncate_header_value_at_position(0, "b");
+        let result = header_map.into_bytes();
+        assert_eq!(result, "Header: a\r\n\r\n");
+    }
+
+    #[test]
+    fn test_header_map_truncate_header_values_two() {
+        let mut map: HMap<Header> = HMap::new();
+        map.insert(Bytes::from("Header"), Bytes::from("a,  b,c"));
+        map.truncate_header_value_at_position(0, "c");
+
+        let mut verify: HMap<Header> = HMap::new();
+        verify.insert(Bytes::from("Header"), Bytes::from("a,  b"));
+        assert_eq!(map, verify);
+
+        let mut map: HMap<Header> = HMap::new();
+        map.insert(Bytes::from("Header"), Bytes::from("a,  b,c"));
+        map.truncate_header_value_at_position(0, "b");
+
+        let mut verify: HMap<Header> = HMap::new();
+        verify.insert(Bytes::from("Header"), Bytes::from("a"));
+        assert_eq!(map, verify);
+    }
+
+    #[test]
+    fn test_header_map_truncate_header_values_middle_one() {
+        let data = "Content-Encoding: gzip, deflate, br\r\n\r\n";
+        let buf = BytesMut::from(data);
+        let mut header_map = OneHeaderMap::from(buf);
+        header_map
+            .truncate_header_value_at_position(0, ContentEncoding::Deflate);
+        let result = header_map.into_bytes();
+        assert_eq!(result, "Content-Encoding: gzip\r\n\r\n");
+    }
+
+    #[test]
+    fn test_header_map_truncate_header_values_middle_two() {
+        let mut map: HMap<Header> = HMap::new();
+        map.insert(
+            Bytes::from("Content-Encoding"),
+            Bytes::from("gzip, deflate, br"),
+        );
+        map.truncate_header_value_at_position(0, ContentEncoding::Gzip);
+        let mut verify: HMap<Header> = HMap::new();
+        verify.insert(Bytes::from("Content-Encoding"), Bytes::from(""));
+        assert_eq!(map, verify);
+    }
+
+    #[test]
+    fn test_header_map_truncate_header_values_all_one() {
+        let data = "Content-Encoding: gzip, deflate, br\r\n\r\n";
+        let buf = BytesMut::from(data);
+        let mut header_map = OneHeaderMap::from(buf);
+        header_map.truncate_header_value_at_position(0, ContentEncoding::Gzip);
+        let result = header_map.into_bytes();
+        assert_eq!(result, "Content-Encoding: \r\n\r\n");
+    }
+
+    #[test]
+    fn test_header_map_truncate_header_values_all_two() {
+        let mut map: HMap<Header> = HMap::new();
+        map.insert(
+            Bytes::from("Content-Encoding"),
+            Bytes::from("gzip, deflate, br"),
+        );
+        map.truncate_header_value_at_position(0, ContentEncoding::Gzip);
+        let mut verify: HMap<Header> = HMap::new();
+        verify.insert(Bytes::from("Content-Encoding"), Bytes::from(""));
+        assert_eq!(map, verify);
+    }
+
+    #[test]
+    fn test_header_map_truncate_header_values_no_match_one() {
+        let data = "Content-Encoding: gzip, deflate, br\r\n\r\n";
+        let buf = BytesMut::from(data);
+        let mut header_map = OneHeaderMap::from(buf);
+        header_map.truncate_header_value_at_position(0, "invalid");
+        let result = header_map.into_bytes();
+        assert_eq!(result, "Content-Encoding: gzip, deflate, br\r\n\r\n");
+    }
+
+    #[test]
+    fn test_header_map_truncate_header_values_no_match_two() {
+        let mut map: HMap<Header> = HMap::new();
+        map.insert(
+            Bytes::from("Content-Encoding"),
+            Bytes::from("gzip, deflate, br"),
+        );
+        map.truncate_header_value_at_position(0, "invalid");
+        let mut verify: HMap<Header> = HMap::new();
+        verify.insert(
+            Bytes::from("Content-Encoding"),
+            Bytes::from("gzip, deflate, br"),
+        );
+        assert_eq!(map, verify);
     }
 }
