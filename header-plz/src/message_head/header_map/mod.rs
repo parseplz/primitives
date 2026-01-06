@@ -344,8 +344,31 @@ where
         self.entries[pos].change_value(buf.as_ref());
     }
 
-    pub fn truncate_header_value_on_position() {
-        todo!()
+    pub fn truncate_header_value_at_position<V>(
+        &mut self,
+        pos: usize,
+        truncate_at: V,
+    ) where
+        V: AsRef<str>,
+    {
+        let value = self.entries[pos].value_as_ref();
+
+        let Some(mut index) = value
+            .windows(truncate_at.as_ref().len())
+            .position(|window| window == truncate_at.as_ref().as_bytes())
+        else {
+            return;
+        };
+
+        for (i, &byte) in value[..index].iter().enumerate().rev() {
+            if byte == b' ' || byte == b',' {
+                index = i;
+            } else {
+                break;
+            }
+        }
+
+        self.entries[pos].truncate_value(index);
     }
 
     // ----- Misc
