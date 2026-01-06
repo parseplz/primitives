@@ -218,7 +218,7 @@ where
         })
     }
 
-    pub fn contains_key<K>(&self, key: K) -> bool
+    pub fn has_key<K>(&self, key: K) -> bool
     where
         K: AsRef<[u8]> + 'a,
     {
