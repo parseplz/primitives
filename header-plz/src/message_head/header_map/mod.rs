@@ -420,27 +420,6 @@ impl HMap<OneHeader> {
         }
         buf
     }
-
-    pub fn update_header_on_position_multiple_valuees(
-        &mut self,
-        pos: usize,
-        values: impl Iterator<Item: AsRef<[u8]>>,
-    ) {
-        let mut buf = Self::build_multiple_value_key(values);
-        buf.extend_from_slice(CRLF.as_bytes());
-        self.entries[pos].change_value(buf.as_ref());
-    }
-}
-
-impl HMap<Header> {
-    pub fn update_header_on_position_multiple_values(
-        &mut self,
-        pos: usize,
-        values: impl Iterator<Item: AsRef<[u8]>>,
-    ) {
-        let buf = Self::build_multiple_value_key(values);
-        self.entries[pos].change_value(buf.as_ref());
-    }
 }
 
 pub fn split_header(header: &str) -> (&str, &str) {
