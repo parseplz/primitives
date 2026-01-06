@@ -440,7 +440,7 @@ mod tests {
     fn test_truncate_value() {
         let mut input = OneHeader::from(("key", "hola, que, tal"));
         input.truncate_value(9);
-        let mut verify = OneHeader::from(("key", "hola, que"));
+        let verify = OneHeader::from(("key", "hola, que"));
         assert_eq!(input, verify);
     }
 }

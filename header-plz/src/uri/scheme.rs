@@ -116,7 +116,7 @@ pub enum Protocol {
 }
 
 impl Protocol {
-    pub(super) fn len(&self) -> usize {
+    pub fn len(&self) -> usize {
         match *self {
             Protocol::Http => 4,
             Protocol::Https => 5,

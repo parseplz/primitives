@@ -23,7 +23,7 @@ impl BytesStr {
         unsafe { std::str::from_utf8_unchecked(self.0.as_ref()) }
     }
 
-    pub(crate) fn into_inner(self) -> Bytes {
+    pub fn into_inner(self) -> Bytes {
         self.0
     }
 

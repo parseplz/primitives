@@ -130,7 +130,7 @@ impl PathAndQuery {
         }
     }
 
-    pub(super) fn star() -> Self {
+    pub fn star() -> Self {
         PathAndQuery {
             data: BytesStr::from_static("*"),
             ..Default::default()

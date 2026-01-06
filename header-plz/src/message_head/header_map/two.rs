@@ -13,7 +13,7 @@ pub struct Header {
 }
 
 impl Header {
-    fn new(key: Bytes, value: Bytes) -> Self {
+    pub fn new(key: Bytes, value: Bytes) -> Self {
         Header {
             key,
             value,
@@ -199,7 +199,7 @@ mod tests {
     fn test_truncate_value() {
         let mut input = Header::from(("key", "hola, que, tal"));
         input.truncate_value(9);
-        let mut verify = Header::from(("key", "hola, que"));
+        let verify = Header::from(("key", "hola, que"));
         assert_eq!(input, verify);
     }
 }
