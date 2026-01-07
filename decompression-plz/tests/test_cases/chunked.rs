@@ -1,6 +1,7 @@
 use super::*;
 use body_plz::variants::chunked::ChunkType;
 use decompression_plz::chunked::{chunked_to_raw, partial_chunked_to_raw};
+use header_plz::OneHeaderMap;
 use tests_utils::{INPUT, all_compressed_data};
 
 const CHUNKED_HEADER: &str = "Host: example.com\r\n\
@@ -52,8 +53,9 @@ fn test_chunked_to_raw_with_trailer() {
     let mut body = build_chunked_body_large();
     let trailer_headers = "Header: Val\r\n\
                            Another: Val\r\n\r\n";
-    let trailer_chunk =
-        ChunkType::Trailers(HeaderMap::from(BytesMut::from(trailer_headers)));
+    let trailer_chunk = ChunkType::Trailers(OneHeaderMap::from(
+        BytesMut::from(trailer_headers),
+    ));
     body.push_chunk(trailer_chunk);
     let mut tm = TestMessage::new(CHUNKED_HEADER.into(), body, None);
     let mut buf = BytesMut::new();

@@ -7,8 +7,8 @@ use tests_utils::INPUT;
 #[test]
 fn test_decode_init_no_enc() {
     let headers = "Host: example.com\r\n\
-                       Content-Type: text/html; charset=utf-8\r\n\
-                       Content-Length: 11\r\n\r\n";
+                   Content-Type: text/html; charset=utf-8\r\n\
+                   Content-Length: 11\r\n\r\n";
     let mut tm =
         TestMessage::new(headers.into(), Body::Raw(INPUT.into()), None);
     let mut buf = BytesMut::new();
@@ -22,8 +22,8 @@ fn test_decode_init_no_enc() {
 #[test]
 fn test_decode_init_no_enc_extra_body() {
     let headers = "Host: example.com\r\n\
-                       Content-Type: text/html; charset=utf-8\r\n\
-                       Content-Length: 11\r\n\r\n";
+                   Content-Type: text/html; charset=utf-8\r\n\
+                   Content-Length: 11\r\n\r\n";
     let mut tm = TestMessage::new(
         headers.into(),
         Body::Raw(INPUT.into()),

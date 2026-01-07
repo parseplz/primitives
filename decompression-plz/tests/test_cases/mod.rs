@@ -8,15 +8,15 @@ pub mod corrupt;
 pub mod no_encodings;
 pub mod partial;
 
-fn encoding_state(
+fn encoding_state<T>(
     header: &str,
-) -> impl FnOnce(&DecodeState<TestMessage>) -> bool {
+) -> impl FnOnce(&DecodeState<TestMessage<T>>) -> bool {
     if header == TRANSFER_ENCODING {
-        |s: &DecodeState<TestMessage>| {
+        |s: &DecodeState<TestMessage<T>>| {
             matches!(s, DecodeState::TransferEncoding(_, _))
         }
     } else if header == CONTENT_ENCODING {
-        |s: &DecodeState<TestMessage>| {
+        |s: &DecodeState<TestMessage<T>>| {
             matches!(s, DecodeState::ContentEncoding(_, _))
         }
     } else {

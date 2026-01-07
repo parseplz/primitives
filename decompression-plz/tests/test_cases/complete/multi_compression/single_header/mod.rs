@@ -1,13 +1,21 @@
-use header_plz::const_headers::{CONTENT_ENCODING, TRANSFER_ENCODING};
+use header_plz::{
+    OneHeader,
+    const_headers::{CONTENT_ENCODING, TRANSFER_ENCODING},
+    message_head::header_map::HMap,
+};
 
 use super::*;
 mod body_only;
 mod with_extra;
 
-fn build_test_message_all_encodings_single_header(
+pub fn build_test_message_all_encodings_single_header<T>(
     header_name: &str,
     extra: Option<BytesMut>,
-) -> TestMessage {
+) -> TestMessage<T>
+where
+    T: From<OneHeader>,
+    HMap<T>: From<HMap<header_plz::OneHeader>>,
+{
     let body = all_compressed_data();
     let headers = format!(
         "Host: example.com\r\n\
@@ -19,12 +27,12 @@ fn build_test_message_all_encodings_single_header(
         body.len()
     );
 
-    TestMessage::new(headers.as_bytes().into(), Body::Raw(body), extra)
+    TestMessage::<T>::new(headers.as_bytes().into(), Body::Raw(body), extra)
 }
 
 fn build_test_message_all_encodings_single_header_compressed_together(
     header_name: &str,
-) -> TestMessage {
+) -> TestMessage<OneHeader> {
     let compressed = all_compressed_data();
     let (body, extra) = compressed.split_at(compressed.len() / 2);
     let headers = format!(

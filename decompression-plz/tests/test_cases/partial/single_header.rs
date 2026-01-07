@@ -1,3 +1,5 @@
+use rstest::rstest;
+
 use super::*;
 
 #[track_caller]
@@ -56,15 +58,21 @@ fn assert_partial_decompressed_single_header(
     }
 }
 
-#[test]
-fn test_partial_te_single_header() {
-    assert_partial_decompressed_single_header(TRANSFER_ENCODING, None);
+#[rstest]
+fn test_partial_single_header(
+    #[values(TRANSFER_ENCODING, CONTENT_ENCODING)] encoding_type: &str,
+) {
+    assert_partial_decompressed_single_header(encoding_type, None);
 }
 
-#[test]
-fn test_partial_te_single_header_extra_raw() {
+#[rstest]
+fn test_partial_single_header_extra_raw(
+    #[values(TRANSFER_ENCODING, CONTENT_ENCODING)] encoding_type: &str,
+) {
+    use tests_utils::INPUT;
+
     assert_partial_decompressed_single_header(
-        TRANSFER_ENCODING,
+        encoding_type,
         Some(INPUT.into()),
     );
 }
@@ -89,17 +97,3 @@ fn test_partial_te_single_header_extra_raw() {
 //        TRANSFER_ENCODING,
 //    );
 //}
-
-//
-#[test]
-fn test_partial_ce_single_header() {
-    assert_partial_decompressed_single_header(CONTENT_ENCODING, None);
-}
-
-#[test]
-fn test_partial_ce_single_header_extra_raw() {
-    assert_partial_decompressed_single_header(
-        CONTENT_ENCODING,
-        Some(INPUT.into()),
-    );
-}

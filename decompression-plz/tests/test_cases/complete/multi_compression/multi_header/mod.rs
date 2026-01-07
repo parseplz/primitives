@@ -1,4 +1,7 @@
-use header_plz::const_headers::{CONTENT_ENCODING, TRANSFER_ENCODING};
+use header_plz::{
+    const_headers::{CONTENT_ENCODING, TRANSFER_ENCODING},
+    message_head::header_map::HMap,
+};
 
 use super::*;
 mod body_only;
@@ -20,11 +23,15 @@ const VERIFY_MULTI_HEADER_EXTRA: &str = "Host: example.com\r\n\
                                    Content-Length: 22\r\n\r\n\
                                    hello worldhello world";
 
-fn build_test_message_all_encodings_multi_header(
+pub fn build_test_message_all_encodings_multi_header<T>(
     header_name: &str,
     body: &[u8],
     extra: Option<&[u8]>,
-) -> TestMessage {
+) -> TestMessage<T>
+where
+    T: From<OneHeader>,
+    HMap<T>: From<HMap<header_plz::OneHeader>>,
+{
     let headers = format!(
         "Host: example.com\r\n\
         {}: br\r\n\

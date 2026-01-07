@@ -1,58 +1,36 @@
 pub use body_plz::variants::Body;
 pub use bytes::BytesMut;
 use decompression_plz::DecompressTrait;
+use header_plz::message_head::header_map::Hmap;
 use std::io::Write;
 
 use flate2::Compression;
 use header_plz::{
-    HeaderMap,
+    OneHeader, OneHeaderMap,
     body_headers::{
         BodyHeader, content_encoding::ContentEncoding,
         encoding_info::EncodingInfo,
     },
+    message_head::header_map::HMap,
 };
 
 pub const INPUT: &[u8] = b"hello world";
-
 pub const ALL_COMPRESSIONS: &str = "br, deflate, gzip, zstd";
 
-/*
-const VERIFY_SINGLE_HEADER_BODY_ONLY: &str = "Host: example.com\r\n\
-                                              Content-Type: text/html; charset=utf-8\r\n\
-                                              Content-Length: 11\r\n\r\n\
-                                              hello world";
-
-const VERIFY_SINGLE_HEADER_BODY_AND_EXTRA: &str = "Host: example.com\r\n\
-                                                   Content-Type: text/html; charset=utf-8\r\n\
-                                                   Content-Length: 22\r\n\r\n\
-                                                   hello worldhello world";
-
-const VERIFY_MULTI_HEADER: &str = "Host: example.com\r\n\
-                                   Content-Type: text/html; charset=utf-8\r\n\
-                                   random: random\r\n\
-                                   another-random: random\r\n\
-                                   test-header: test-header\r\n\
-                                   Content-Length: 11\r\n\r\n\
-                                   hello world";
-
-const VERIFY_MULTI_HEADER_EXTRA: &str = "Host: example.com\r\n\
-                                   Content-Type: text/html; charset=utf-8\r\n\
-                                   random: random\r\n\
-                                   another-random: random\r\n\
-                                   test-header: test-header\r\n\
-                                   Content-Length: 22\r\n\r\n\
-                                   hello worldhello world";
-                                   */
-
 #[derive(Debug, PartialEq)]
-pub struct TestMessage {
-    header_map: HeaderMap,
+pub struct TestMessage<T> {
+    pub header_map: HMap<T>,
     body_header: Option<BodyHeader>,
-    body: Option<Body>,
+    pub body: Option<Body>,
     extra_body: Option<BytesMut>,
 }
 
-impl DecompressTrait for TestMessage {
+impl<T> DecompressTrait for TestMessage<T>
+where
+    T: Hmap + std::fmt::Debug + for<'a> From<(&'a str, &'a str)>,
+{
+    type HmapType = T;
+
     fn get_body(&mut self) -> Body {
         self.body.take().unwrap()
     }
@@ -69,29 +47,41 @@ impl DecompressTrait for TestMessage {
         self.body_header.as_mut()
     }
 
-    fn header_map(&self) -> &HeaderMap {
-        &self.header_map
-    }
-
-    fn header_map_as_mut(&mut self) -> &mut HeaderMap {
-        &mut self.header_map
-    }
-
     fn body_headers(&self) -> Option<&BodyHeader> {
         self.body_header.as_ref()
     }
+
+    fn header_map(&self) -> &HMap<Self::HmapType> {
+        &self.header_map
+    }
+
+    fn header_map_as_mut(&mut self) -> &mut HMap<Self::HmapType> {
+        &mut self.header_map
+    }
 }
 
-impl TestMessage {
+impl TestMessage<OneHeader> {
+    pub fn into_bytes(self) -> BytesMut {
+        let mut bytes = self.header_map.into_bytes();
+        bytes.unsplit(self.body.unwrap().into_bytes().unwrap());
+        bytes
+    }
+}
+
+impl<H> TestMessage<H>
+where
+    H: From<OneHeader>,
+    HMap<H>: From<HMap<OneHeader>>,
+{
     pub fn new(
         headers: BytesMut,
         body: Body,
         extra: Option<BytesMut>,
     ) -> Self {
-        let header_map = HeaderMap::from(headers);
+        let header_map = OneHeaderMap::from(headers);
         let body_header = BodyHeader::from(&header_map);
         Self {
-            header_map,
+            header_map: header_map.into(),
             body_header: Some(body_header),
             body: Some(body),
             extra_body: extra,
@@ -103,13 +93,7 @@ impl TestMessage {
         body: Body,
         extra: Option<BytesMut>,
     ) -> (Self, BytesMut) {
-        (TestMessage::new(headers, body, extra), BytesMut::new())
-    }
-
-    pub fn into_bytes(self) -> BytesMut {
-        let mut bytes = self.header_map.into_bytes();
-        bytes.unsplit(self.body.unwrap().into_bytes().unwrap());
-        bytes
+        (Self::new(headers, body, extra), BytesMut::new())
     }
 
     pub fn build_tm_single_header(
@@ -125,7 +109,7 @@ impl TestMessage {
             Content-Length: {}\r\n\r\n",
             body.len()
         );
-        TestMessage::new(headers.as_bytes().into(), Body::Raw(body), extra)
+        Self::new(headers.as_bytes().into(), Body::Raw(body), extra)
     }
 
     pub fn build_tm_sh_single_compression(
@@ -246,7 +230,7 @@ impl TestMessage {
             Content-Length: {}\r\n\r\n",
             body.len()
         );
-        TestMessage::new(headers.as_bytes().into(), Body::Raw(body), extra)
+        Self::new(headers.as_bytes().into(), Body::Raw(body), extra)
     }
 }
 

@@ -1,10 +1,9 @@
 use decompression_plz::MultiDecompressErrorReason;
 use header_plz::body_headers::content_encoding::ContentEncoding;
+use rstest::rstest;
 use tests_utils::INPUT;
 
 use super::*;
-mod ce;
-mod te;
 
 fn assert_corrupt_encoding(
     encoding: &str,
@@ -71,4 +70,36 @@ fn test_corrupt_te_gzip_extra() {
 #[test]
 fn test_corrupt_ce_gzip() {
     assert_corrupt_encoding(CONTENT_ENCODING, &ContentEncoding::Gzip, None);
+}
+
+#[rstest]
+fn test_corrupt_body_only(
+    #[values(TRANSFER_ENCODING, CONTENT_ENCODING)] header_type: &str,
+    #[values(
+        ContentEncoding::Brotli,
+        ContentEncoding::Compress,
+        ContentEncoding::Deflate,
+        ContentEncoding::Gzip,
+        ContentEncoding::Zstd
+    )]
+    encoding: ContentEncoding,
+) {
+    assert_corrupt_encoding(header_type, &encoding, None);
+}
+
+#[rstest]
+fn test_corrupt_extra(
+    #[values(TRANSFER_ENCODING, CONTENT_ENCODING)] header_type: &str,
+    #[values(
+        ContentEncoding::Brotli,
+        ContentEncoding::Compress,
+        ContentEncoding::Deflate,
+        ContentEncoding::Gzip,
+        ContentEncoding::Zstd
+    )]
+    encoding: ContentEncoding,
+) {
+    use tests_utils::INPUT;
+
+    assert_corrupt_encoding(header_type, &encoding, Some(INPUT.into()));
 }
