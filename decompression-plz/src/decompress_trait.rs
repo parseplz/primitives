@@ -1,8 +1,13 @@
 use body_plz::variants::Body;
 use bytes::BytesMut;
-use header_plz::{Header, HeaderMap, body_headers::BodyHeader};
+use header_plz::{
+    body_headers::BodyHeader,
+    message_head::header_map::{HMap, Hmap},
+};
 
 pub trait DecompressTrait {
+    type HmapType: Hmap + std::fmt::Debug + for<'a> From<(&'a str, &'a str)>;
+
     // Body
     fn get_body(&mut self) -> Body;
 
@@ -15,20 +20,23 @@ pub trait DecompressTrait {
     fn body_headers_as_mut(&mut self) -> Option<&mut BodyHeader>;
 
     /// header
-    fn header_map(&self) -> &HeaderMap;
+    fn header_map(&self) -> &HMap<Self::HmapType>;
 
-    fn header_map_as_mut(&mut self) -> &mut HeaderMap;
+    fn header_map_as_mut(&mut self) -> &mut HMap<Self::HmapType>;
 
-    // entire header
-    fn add_header(&mut self, key: &str, value: &str) {
-        self.header_map_as_mut().add_header(Header::from((key, value)));
+    fn insert_header(&mut self, key: &str, value: &str) {
+        self.header_map_as_mut().insert(key, value);
     }
 
-    fn add_multi_headers(&mut self, mut headers: Vec<Header>) {
-        self.header_map_as_mut().headers_as_mut().append(&mut headers);
+    fn extend<I>(&mut self, headers: I)
+    where
+        I: IntoIterator<Item = Self::HmapType>,
+    {
+        self.header_map_as_mut().extend(headers);
     }
-    fn remove_header_on_position(&mut self, position: usize) {
-        self.header_map_as_mut().remove_header_on_position(position);
+
+    fn remove_header_on_position(&mut self, pos: usize) {
+        self.header_map_as_mut().remove_header_on_position(pos);
     }
 
     // key
@@ -45,6 +53,15 @@ pub trait DecompressTrait {
         self.header_map_as_mut().update_header_value_on_position(pos, value);
     }
 
+    fn update_header_value_on_position_multiple_values(
+        &mut self,
+        pos: usize,
+        value: impl Iterator<Item: AsRef<[u8]>>,
+    ) {
+        self.header_map_as_mut()
+            .update_header_value_on_position_multiple_values(pos, value);
+    }
+
     fn truncate_header_value_on_position<T>(
         &mut self,
         pos: usize,
@@ -53,12 +70,6 @@ pub trait DecompressTrait {
         T: AsRef<str>,
     {
         self.header_map_as_mut()
-            .truncate_header_value_on_position(pos, truncate_at);
+            .truncate_header_value_at_position(pos, truncate_at);
     }
-
-    //fn update_header_value_on_position(
-    //    &mut self,
-    //    position: usize,
-    //    value: &str,
-    //); // depends - header_map_as_mut
 }
