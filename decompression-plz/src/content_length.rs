@@ -23,6 +23,6 @@ where
     let len_string = len.to_string();
     match message.has_header_key(CONTENT_LENGTH) {
         Some(pos) => message.update_header_value_on_position(pos, &len_string),
-        None => message.add_header(CONTENT_LENGTH, len_string.as_str()),
+        None => message.insert_header(CONTENT_LENGTH, len_string.as_str()),
     }
 }

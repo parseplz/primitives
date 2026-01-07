@@ -13,13 +13,14 @@ use body_plz::variants::{
     chunked::{ChunkType, total_chunk_size},
 };
 use bytes::BytesMut;
-use header_plz::const_headers::TRAILER;
+use header_plz::{Header, OneHeader, const_headers::TRAILER};
 
-use crate::DecompressTrait;
+use crate::{DecompressTrait, decode_struct::DecodeStruct};
+
 
 pub fn chunked_to_raw<T>(message: &mut T, buf: &mut BytesMut)
 where
-    T: DecompressTrait,
+    T: DecompressTrait<HmapType = OneHeader>,
 {
     let body = message.get_body().into_chunks();
     buf.reserve(total_chunk_size(&body));
@@ -34,8 +35,7 @@ where
                 // 2.a. Remove trailer header
                 message.remove_header_on_key(TRAILER);
                 // 2.b. Add trailer to header_map
-                let trailer_header = trailer.into_header_vec();
-                message.add_multi_headers(trailer_header);
+                message.extend(trailer);
             }
             _ => (),
         }

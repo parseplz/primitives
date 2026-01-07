@@ -199,7 +199,7 @@ where
                         decode_struct
                             .message
                             .header_map_as_mut()
-                            .update_header_multiple_values_on_position(
+                            .update_header_value_on_position_multiple_values(
                                 einfo.header_index,
                                 iter,
                             );
