@@ -3,7 +3,7 @@ use bytes::BytesMut;
 use header_plz::body_headers::encoding_info::EncodingInfo;
 use header_plz::body_headers::transfer_types::TransferType;
 
-use crate::chunked::chunked_to_raw;
+use crate::chunked::ChunkedConverter;
 use crate::content_length::add_body_and_update_cl;
 use crate::decompress_trait::DecompressTrait;
 
@@ -19,6 +19,7 @@ pub struct DecodeStruct<'a, T> {
 impl<'a, T> DecodeStruct<'a, T>
 where
     T: DecompressTrait + std::fmt::Debug,
+    Self: ChunkedConverter<T::HmapType>,
 {
     pub fn new(message: &'a mut T, buf: &'a mut BytesMut) -> Self {
         let body = match message.get_body() {
@@ -37,6 +38,10 @@ where
         }
     }
 
+    pub fn chunked_to_raw(&mut self) {
+        self.convert_chunked();
+    }
+
     // TODO: implement new method in BodyHeader
     pub fn is_chunked_te(&self) -> bool {
         self.message
@@ -50,11 +55,6 @@ where
             .body_headers()
             .map(|b| b.transfer_type == Some(TransferType::Close))
             .unwrap_or(false)
-    }
-
-    pub fn chunked_to_raw(&mut self) {
-        chunked_to_raw(self.message, self.buf);
-        self.body = self.message.get_body().into_bytes().unwrap();
     }
 
     pub fn transfer_encoding_is_some(&self) -> bool {

@@ -5,6 +5,7 @@ use header_plz::body_headers::{
 };
 
 use crate::{
+    chunked::ChunkedConverter,
     decode_struct::DecodeStruct,
     decompress_trait::DecompressTrait,
     decompression::{
@@ -26,6 +27,7 @@ pub enum DecodeState<'a, T> {
 impl<'a, T> DecodeState<'a, T>
 where
     T: DecompressTrait + 'a + std::fmt::Debug,
+    DecodeStruct<'a, T>: ChunkedConverter<T::HmapType>,
 {
     pub fn init(message: &'a mut T, buf: &'a mut BytesMut) -> Self {
         Self::Start(DecodeStruct::new(message, buf))
