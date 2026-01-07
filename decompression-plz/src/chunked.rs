@@ -17,6 +17,27 @@ use header_plz::{Header, OneHeader, const_headers::TRAILER};
 
 use crate::{DecompressTrait, decode_struct::DecodeStruct};
 
+pub trait ChunkedConverter<T> {
+    fn convert_chunked(&mut self);
+}
+
+impl<'a, T> ChunkedConverter<OneHeader> for DecodeStruct<'a, T>
+where
+    T: DecompressTrait<HmapType = OneHeader> + std::fmt::Debug,
+{
+    fn convert_chunked(&mut self) {
+        chunked_to_raw(self.message, self.buf);
+        self.body = self.message.get_body().into_bytes().unwrap();
+    }
+}
+
+impl<'a, T> ChunkedConverter<Header> for DecodeStruct<'a, T>
+where
+    T: DecompressTrait<HmapType = Header> + std::fmt::Debug,
+{
+    #[inline(always)]
+    fn convert_chunked(&mut self) {}
+}
 
 pub fn chunked_to_raw<T>(message: &mut T, buf: &mut BytesMut)
 where
