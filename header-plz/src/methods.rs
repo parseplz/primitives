@@ -22,12 +22,12 @@ pub enum Method {
     POST,
     PUT,
     TRACE,
-    UNKNOWN(Bytes),
+    UNKNOWN(Box<Bytes>),
 }
 
 impl Method {
     fn unknown(src: &[u8]) -> Self {
-        Self::UNKNOWN(Bytes::from_owner(src.to_owned()))
+        Self::UNKNOWN(Box::new(Bytes::from_owner(src.to_owned())))
     }
 }
 
