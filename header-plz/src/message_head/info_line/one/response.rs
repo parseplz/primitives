@@ -67,6 +67,10 @@ impl ResponseLine {
     pub fn is_ws_handshake(&self) -> Result<bool, StatusCodeError> {
         self.status_as_u8().map(|x| x == 101)
     }
+
+    pub fn into_parts(self) -> (BytesMut, BytesMut, BytesMut) {
+        (self.version, self.status, self.reason)
+    }
 }
 
 #[cfg(test)]

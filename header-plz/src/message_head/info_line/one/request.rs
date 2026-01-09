@@ -83,6 +83,10 @@ impl RequestLine {
     pub fn uri(&self) -> Result<PathAndQuery, InvalidUri> {
         PathAndQuery::try_from(self.uri.as_ref())
     }
+
+    pub fn into_parts(self) -> (BytesMut, BytesMut, BytesMut) {
+        (self.method, self.uri, self.version)
+    }
 }
 
 #[cfg(test)]
