@@ -379,6 +379,14 @@ where
     pub fn is_empty(&self) -> bool {
         self.entries.is_empty()
     }
+
+    pub fn iter(&self) -> std::slice::Iter<'_, T> {
+        self.into_iter()
+    }
+
+    pub fn iter_mut(&mut self) -> std::slice::IterMut<'_, T> {
+        self.into_iter()
+    }
 }
 
 /* Steps:
@@ -550,6 +558,8 @@ mod tests {
         assert_eq!(map.entries.len(), 1);
         assert_eq!(map.entries[0].key_as_ref(), b"key");
         assert_eq!(map.entries[0].value_as_ref(), b"value");
+        let size: usize = map.iter().map(|s: &OneHeader| s.len()).sum();
+        assert_eq!(size, 12);
     }
 
     #[test]
@@ -559,6 +569,8 @@ mod tests {
         assert_eq!(map.entries.len(), 1);
         assert_eq!(map.entries[0].key_as_ref(), b"key");
         assert_eq!(map.entries[0].value_as_ref(), b"value");
+        let size: usize = map.iter().map(|s: &Header| s.len()).sum();
+        assert_eq!(size, 8);
     }
 
     #[test]
