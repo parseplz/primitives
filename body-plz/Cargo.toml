@@ -11,5 +11,5 @@ edition = "2024"
 buffer-plz = "0.0.3"
 bytes = { workspace = true }
 header-plz =  "0.0.29"
-9hiserror = { workspace = true }
+thiserror = { workspace = true }
 tracing = { workspace = true }
