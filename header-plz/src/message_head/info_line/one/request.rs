@@ -2,10 +2,11 @@ use std::borrow::Cow;
 use std::str::{self};
 
 use bytes::BytesMut;
-use http::uri::{InvalidUri, PathAndQuery};
 
 use super::{InfoLine, InfoLineError};
 use crate::abnf::SP;
+use crate::uri::InvalidUri;
+use crate::uri::path::PathAndQuery;
 
 // Request Info Line
 #[derive(Debug)]
@@ -174,20 +175,21 @@ mod tests {
     }
 
     #[test]
-    fn test_return_queries() -> Result<(), Box<dyn Error>> {
+    fn test_return_queries() {
         let req = "GET /users?param=value&param2=value2 HTTP/1.1\r\n\r\n";
         let buf = BytesMut::from(req);
-        let info_line = RequestLine::try_build_infoline(buf)?;
-        let uri = info_line.uri()?;
+        let info_line = RequestLine::try_build_infoline(buf).unwrap();
+        let uri = info_line.uri().unwrap();
         let query = uri.query().unwrap();
         assert_eq!("param=value&param2=value2", query);
-        Ok(())
     }
 
     /*
     #[test]
     fn it_should_return_first_line_query_params() {
-        let raw = HttpRaw::new(b"GET /users?param=value&param2=value2 HTTP/1.1\r\n\r\n".to_vec());
+        let raw = HttpRaw::new(
+            b"GET /users?param=value&param2=value2 HTTP/1.1\r\n\r\n".to_vec(),
+        );
         let mut params = raw.first_line().unwrap().query().unwrap().params();
         assert_eq!(2, params.len());
 
