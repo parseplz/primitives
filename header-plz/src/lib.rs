@@ -6,6 +6,7 @@ pub mod const_headers;
 pub mod error;
 pub mod message_head;
 pub mod methods;
+pub mod status;
 pub mod uri;
 
 // control lines
