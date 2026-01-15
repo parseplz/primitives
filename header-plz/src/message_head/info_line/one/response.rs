@@ -1,5 +1,6 @@
 use bytes::BytesMut;
-use thiserror::Error;
+
+use crate::status::{InvalidStatusCode, StatusCode};
 
 use super::{InfoLine, InfoLineError};
 
@@ -45,16 +46,6 @@ impl InfoLine for ResponseLine {
     }
 }
 
-#[derive(Error, Debug)]
-pub enum StatusCodeError {
-    // Utf8 Error
-    #[error("Not valid utf8| {0}")]
-    Utf8(#[from] std::str::Utf8Error),
-    // Parse int
-    #[error("Parse int| {0}")]
-    ParseInt(#[from] std::num::ParseIntError),
-}
-
 impl ResponseLine {
     pub fn new(version: BytesMut, status: BytesMut, reason: BytesMut) -> Self {
         Self {
@@ -64,16 +55,12 @@ impl ResponseLine {
         }
     }
 
-    pub fn status(&self) -> &[u8] {
-        &self.status
+    pub fn status(&self) -> Result<StatusCode, InvalidStatusCode> {
+        StatusCode::from_bytes(&self.status)
     }
 
-    pub fn status_as_u8(&self) -> Result<u16, StatusCodeError> {
-        Ok(std::str::from_utf8(&self.status)?.parse::<u16>()?)
-    }
-
-    pub fn is_ws_handshake(&self) -> Result<bool, StatusCodeError> {
-        self.status_as_u8().map(|x| x == 101)
+    pub fn is_ws_handshake(&self) -> Result<bool, InvalidStatusCode> {
+        self.status().map(|x| x == 101)
     }
 
     pub fn into_parts(self) -> (BytesMut, BytesMut, BytesMut) {

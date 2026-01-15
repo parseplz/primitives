@@ -68,7 +68,7 @@ mod tests {
         let buf = BytesMut::from(input);
         let org = buf.as_ptr_range();
         let result = OneMessageHead::<OneResponseLine>::try_from(buf).unwrap();
-        assert_eq!(result.info_line.status(), b"200");
+        assert_eq!(result.info_line.status().unwrap(), 200);
         let verify = result.into_bytes();
         assert_eq!(verify, input);
         assert_eq!(verify.as_ptr_range(), org);

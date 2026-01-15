@@ -26,8 +26,8 @@ impl ParseBodyHeaders for OneMessageHead<OneRequestLine> {
 // BodyHeader from HeaderMap
 impl ParseBodyHeaders for OneMessageHead<OneResponseLine> {
     fn parse_body_headers(&self) -> Option<BodyHeader> {
-        match self.infoline().status_as_u8() {
-            Ok(scode) => match scode {
+        match self.infoline().status() {
+            Ok(scode) => match scode.into() {
                 100..=199 | 204 | 304 => None,
                 _ => Option::<BodyHeader>::from(self.header_map()),
             },
