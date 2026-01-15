@@ -1,6 +1,6 @@
 use crate::status::StatusCode;
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub struct ResponseLine {
     status: StatusCode,
 }

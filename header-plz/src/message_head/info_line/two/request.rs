@@ -2,7 +2,7 @@ use bytes::Bytes;
 
 use crate::{methods::Method, uri::Uri};
 
-#[derive(Debug, Default)]
+#[derive(Debug, Default, PartialEq)]
 pub struct RequestLine {
     method: Method,
     uri: Uri,

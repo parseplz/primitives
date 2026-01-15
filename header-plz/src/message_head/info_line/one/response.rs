@@ -4,7 +4,7 @@ use thiserror::Error;
 use super::{InfoLine, InfoLineError};
 
 // Response Info Line
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub struct ResponseLine {
     version: BytesMut, // Version + space
     status: BytesMut,  // status
