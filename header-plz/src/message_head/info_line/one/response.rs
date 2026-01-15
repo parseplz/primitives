@@ -56,6 +56,14 @@ pub enum StatusCodeError {
 }
 
 impl ResponseLine {
+    pub fn new(version: BytesMut, status: BytesMut, reason: BytesMut) -> Self {
+        Self {
+            version,
+            status,
+            reason,
+        }
+    }
+
     pub fn status(&self) -> &[u8] {
         &self.status
     }

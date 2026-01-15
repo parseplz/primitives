@@ -14,6 +14,12 @@ impl Default for ResponseLine {
 }
 
 impl ResponseLine {
+    pub fn new(status: StatusCode) -> Self {
+        Self {
+            status,
+        }
+    }
+
     pub fn into_parts(self) -> StatusCode {
         self.status
     }

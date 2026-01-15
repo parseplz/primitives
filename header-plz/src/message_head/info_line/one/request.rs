@@ -60,6 +60,14 @@ impl InfoLine for RequestLine {
 }
 
 impl RequestLine {
+    pub fn new(method: BytesMut, uri: BytesMut, version: BytesMut) -> Self {
+        Self {
+            method,
+            uri,
+            version,
+        }
+    }
+
     pub fn method(&self) -> &[u8] {
         self.method.trim_ascii_end()
     }

@@ -10,6 +10,14 @@ pub struct RequestLine {
 }
 
 impl RequestLine {
+    pub fn new(method: Method, uri: Uri) -> Self {
+        Self {
+            method,
+            uri,
+            ..Default::default()
+        }
+    }
+
     pub fn into_parts(self) -> (Method, Uri) {
         (self.method, self.uri)
     }
