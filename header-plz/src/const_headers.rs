@@ -9,3 +9,4 @@ pub const TRAILER: &str = "trailer";
 pub const TRANSFER_ENCODING: &str = "Transfer-Encoding";
 pub const UPGRDAE: &str = "upgrade";
 pub const WS_EXT: &str = "Sec-WebSocket-Extensions";
+pub const HOST: &str = "Host";
