@@ -58,6 +58,12 @@ where
     }
 }
 
+impl<I, H> MessageHead<I, H> {
+    pub fn into_parts(self) -> (I, HMap<H>) {
+        (self.info_line, self.header_map)
+    }
+}
+
 /* Steps:
  *      1. Find HEADER_DELIMITER ( 2 * CRLF ).
  *      2. If found, set buf position to index + 4 and return true.
