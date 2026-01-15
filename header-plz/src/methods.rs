@@ -26,6 +26,17 @@ pub enum Method {
 }
 
 impl Method {
+    pub fn len(&self) -> usize {
+        match self {
+            Method::GET | Method::PUT => 3,
+            Method::HEAD | Method::POST => 4,
+            Method::PATCH | Method::TRACE => 5,
+            Method::DELETE => 6,
+            Method::CONNECT | Method::OPTIONS => 7,
+            Method::UNKNOWN(bytes) => bytes.len(),
+        }
+    }
+
     fn unknown(src: &[u8]) -> Self {
         Self::UNKNOWN(Box::new(Bytes::from_owner(src.to_owned())))
     }
@@ -61,6 +72,23 @@ impl From<&[u8]> for Method {
                 _ => Method::unknown(src),
             },
             _ => Method::unknown(src),
+        }
+    }
+}
+
+impl AsRef<[u8]> for Method {
+    fn as_ref(&self) -> &[u8] {
+        match self {
+            Method::CONNECT => CONNECT,
+            Method::DELETE => DELETE,
+            Method::GET => GET,
+            Method::HEAD => HEAD,
+            Method::OPTIONS => OPTIONS,
+            Method::PATCH => PATCH,
+            Method::POST => POST,
+            Method::PUT => PUT,
+            Method::TRACE => TRACE,
+            Method::UNKNOWN(bytes) => bytes,
         }
     }
 }
