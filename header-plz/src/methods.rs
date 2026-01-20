@@ -41,6 +41,22 @@ impl Method {
     fn unknown(src: &[u8]) -> Self {
         Self::UNKNOWN(Box::new(Bytes::from_owner(src.to_owned())))
     }
+
+    pub fn as_str(&self) -> &str {
+        use Method::*;
+        match self {
+            OPTIONS => "OPTIONS",
+            GET => "GET",
+            POST => "POST",
+            PUT => "PUT",
+            DELETE => "DELETE",
+            HEAD => "HEAD",
+            TRACE => "TRACE",
+            CONNECT => "CONNECT",
+            PATCH => "PATCH",
+            UNKNOWN(bytes) => str::from_utf8(bytes).unwrap_or_default(),
+        }
+    }
 }
 
 impl From<&[u8]> for Method {
