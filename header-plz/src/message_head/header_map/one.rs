@@ -2,7 +2,8 @@ use bytes::{BufMut, Bytes, BytesMut};
 
 use crate::{
     abnf::*,
-    message_head::header_map::{Hmap, two::Header},
+    message_head::header_map::{HeaderStr, HeaderVersion, Hmap, two::Header},
+    version::Version,
 };
 
 #[derive(Debug, PartialEq, Eq, Clone)]
@@ -39,15 +40,31 @@ impl OneHeader {
     pub fn value_len(&self) -> usize {
         self.value.len()
     }
+}
 
-    pub fn key_as_str(&self) -> Option<&str> {
+impl HeaderStr for OneHeader {
+    fn key_as_str(&self) -> Option<&str> {
         str::from_utf8(&self.key)
             .ok()
             .and_then(|s| s.split(COLON as char).nth(0))
     }
 
-    pub fn value_as_str(&self) -> Option<&str> {
+    fn value_as_str(&self) -> Option<&str> {
         str::from_utf8(&self.value).ok().and_then(|s| s.split(CRLF).nth(0))
+    }
+}
+
+impl HeaderVersion for OneHeader {
+    fn version(&self) -> crate::version::Version {
+        Version::H11
+    }
+
+    fn is_one_one(&self) -> bool {
+        true
+    }
+
+    fn is_two(&self) -> bool {
+        false
     }
 }
 

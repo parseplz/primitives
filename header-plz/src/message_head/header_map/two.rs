@@ -2,7 +2,10 @@ use bytes::{Bytes, BytesMut};
 
 use crate::{
     abnf::*,
-    message_head::header_map::{Hmap, one::OneHeader, split_header},
+    message_head::header_map::{
+        HeaderStr, HeaderVersion, Hmap, one::OneHeader, split_header,
+    },
+    version::Version,
 };
 
 #[derive(Debug, PartialEq, Eq, Clone)]
@@ -23,6 +26,30 @@ impl Header {
 
     pub fn is_empty(&self) -> bool {
         self.key.is_empty() && self.value.is_empty() && self.is_removed
+    }
+}
+
+impl HeaderStr for Header {
+    fn key_as_str(&self) -> Option<&str> {
+        (!self.is_removed).then(|| str::from_utf8(&self.key).ok()).flatten()
+    }
+
+    fn value_as_str(&self) -> Option<&str> {
+        (!self.is_removed).then(|| str::from_utf8(&self.value).ok()).flatten()
+    }
+}
+
+impl HeaderVersion for Header {
+    fn version(&self) -> crate::version::Version {
+        Version::H2
+    }
+
+    fn is_one_one(&self) -> bool {
+        false
+    }
+
+    fn is_two(&self) -> bool {
+        true
     }
 }
 

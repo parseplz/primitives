@@ -1,4 +1,4 @@
-use crate::abnf::*;
+use crate::{abnf::*, version::Version};
 use one::OneHeader;
 use std::str::{self};
 use two::Header;
@@ -23,6 +23,20 @@ pub trait Hmap {
     fn len(&self) -> usize;
 
     fn truncate_value(&mut self, pos: usize);
+}
+
+pub trait HeaderStr {
+    fn key_as_str(&self) -> Option<&str>;
+
+    fn value_as_str(&self) -> Option<&str>;
+}
+
+pub trait HeaderVersion {
+    fn version(&self) -> Version;
+
+    fn is_one_one(&self) -> bool;
+
+    fn is_two(&self) -> bool;
 }
 
 pub type OneHeaderMap = HMap<OneHeader>;
