@@ -1,28 +1,20 @@
+use crate::HeaderMap;
+use crate::message_head::header_map::HMap;
+use crate::message_head::header_map::{HeaderStr, HeaderVersion};
 use mime_plz::ContentType;
 
 use super::{BodyHeader, transfer_types::TransferType};
 use crate::{
     OneHeaderMap, body_headers::encoding_info::EncodingInfo, const_headers::*,
-    message_head::header_map::one::OneHeader,
 };
 
 impl From<&OneHeaderMap> for Option<BodyHeader> {
     fn from(header_map: &OneHeaderMap) -> Self {
-        let bh = BodyHeader::from(header_map);
-        bh.sanitize()
-    }
-}
+        let mut bh = BodyHeader::from(header_map);
 
-impl From<&OneHeaderMap> for BodyHeader {
-    #[inline(always)]
-    fn from(header_map: &OneHeaderMap) -> BodyHeader {
-        let mut bh = BodyHeader::default();
-        header_map.into_iter().enumerate().for_each(|(index, header)| {
-            parse_body_headers(&mut bh, index, header)
-        });
-
-        // if TransferType is Unknown, and if content_encoding or transfer_encoding
-        // or content_type is present, then set TransferType to Close
+        // if TransferType is Unknown, and if content_encoding or
+        // transfer_encoding or content_type is present, then set TransferType
+        // to Close
         if bh.transfer_type.is_none()
             && (bh.content_encoding.is_some()
                 || bh.transfer_encoding.is_some()
@@ -30,35 +22,58 @@ impl From<&OneHeaderMap> for BodyHeader {
         {
             bh.transfer_type = Some(TransferType::Close);
         }
+
+        bh.sanitize()
+    }
+}
+
+impl From<&HeaderMap> for Option<BodyHeader> {
+    fn from(header_map: &HeaderMap) -> Self {
+        let bh = BodyHeader::from(header_map);
+        bh.sanitize()
+    }
+}
+
+impl<T> From<&HMap<T>> for BodyHeader
+where
+    T: HeaderStr + HeaderVersion,
+{
+    #[inline(always)]
+    fn from(header_map: &HMap<T>) -> BodyHeader {
+        let mut bh = BodyHeader::default();
+        header_map.into_iter().enumerate().for_each(|(index, header)| {
+            parse_body_headers(&mut bh, index, header)
+        });
         bh
     }
 }
 
-pub fn parse_body_headers(
-    bh: &mut BodyHeader,
-    index: usize,
-    header: &OneHeader,
-) {
-    if let Some(key) = header.key_as_str()
-        && let Some(value) = header.value_as_str()
+pub fn parse_body_headers<T>(bh: &mut BodyHeader, index: usize, header: &T)
+where
+    T: HeaderStr + HeaderVersion,
+{
+    let (key, value) = match (header.key_as_str(), header.value_as_str()) {
+        (Some(key), Some(value)) => (key, value),
+        _ => return,
+    };
+    if key.eq_ignore_ascii_case(CONTENT_LENGTH) {
+        let transfer_type = TransferType::from_cl(value);
+        bh.update_transfer_type(transfer_type);
+    } else if header.is_one_one()
+        && key.eq_ignore_ascii_case(TRANSFER_ENCODING)
     {
-        if key.eq_ignore_ascii_case(CONTENT_LENGTH) {
-            let transfer_type = TransferType::from_cl(value);
-            bh.update_transfer_type(transfer_type);
-        } else if key.eq_ignore_ascii_case(TRANSFER_ENCODING) {
-            let einfo = EncodingInfo::from((index, value));
-            bh.transfer_encoding.get_or_insert_with(Vec::new).push(einfo);
-            if bh.chunked_te_position().is_some() {
-                bh.transfer_type = Some(TransferType::Chunked)
-            }
-        } else if key.eq_ignore_ascii_case(CONTENT_ENCODING) {
-            let einfo = EncodingInfo::from((index, value));
-            bh.content_encoding.get_or_insert_with(Vec::new).push(einfo);
-        } else if key.eq_ignore_ascii_case(CONTENT_TYPE)
-            && let Some((main_type, _)) = value.split_once('/')
-        {
-            bh.content_type = Some(ContentType::from(main_type));
+        let einfo = EncodingInfo::from((index, value));
+        bh.transfer_encoding.get_or_insert_with(Vec::new).push(einfo);
+        if bh.chunked_te_position().is_some() {
+            bh.transfer_type = Some(TransferType::Chunked)
         }
+    } else if key.eq_ignore_ascii_case(CONTENT_ENCODING) {
+        let einfo = EncodingInfo::from((index, value));
+        bh.content_encoding.get_or_insert_with(Vec::new).push(einfo);
+    } else if key.eq_ignore_ascii_case(CONTENT_TYPE)
+        && let Some((main_type, _)) = value.split_once('/')
+    {
+        bh.content_type = Some(ContentType::from(main_type));
     }
 }
 
@@ -191,20 +206,35 @@ mod tests {
 
     // ----- Content Encoding
     #[test]
-    fn test_body_headers_from_header_map_ce_only() {
+    fn test_body_headers_from_header_map_ce_only_one() {
         let input = "Content-Encoding: gzip\r\n\r\n";
-        let result = build_body_header(input);
+        let header_map = OneHeaderMap::from(BytesMut::from(input));
+        let result = Option::<BodyHeader>::from(&header_map);
         let einfo = EncodingInfo::new(0, vec![ContentEncoding::Gzip]);
         let verify = BodyHeader {
             content_encoding: Some(vec![einfo]),
             transfer_type: Some(TransferType::Close),
             ..Default::default()
         };
-        assert_eq!(result, verify);
+        assert_eq!(result.unwrap(), verify);
     }
 
     #[test]
-    fn test_body_header_from_header_map_ce_multiple() {
+    fn test_body_headers_from_header_map_ce_only_two() {
+        let input = "Content-Encoding: gzip\r\n\r\n";
+        let header_map =
+            HeaderMap::from(OneHeaderMap::from(BytesMut::from(input)));
+        let result = Option::<BodyHeader>::from(&header_map);
+        let einfo = EncodingInfo::new(0, vec![ContentEncoding::Gzip]);
+        let verify = BodyHeader {
+            content_encoding: Some(vec![einfo]),
+            ..Default::default()
+        };
+        assert_eq!(result.unwrap(), verify);
+    }
+
+    #[test]
+    fn test_body_header_from_header_map_ce_multiple_one() {
         let input = "Host: localhost\r\n\
                      Content-Encoding: br, compress\r\n\
                      Content-Length: 20\r\n\
@@ -235,16 +265,64 @@ mod tests {
         assert_eq!(result, verify);
     }
 
+    #[test]
+    fn test_body_header_from_header_map_ce_multiple_two() {
+        let input = "Host: localhost\r\n\
+                     Content-Encoding: br, compress\r\n\
+                     Content-Length: 20\r\n\
+                     Content-Encoding: deflate, gzip\r\n\
+                     Authentication: bool\r\n\
+                     Content-Encoding: identity, zstd\r\n\
+                     Connection: close\r\n\r\n";
+        let header_map =
+            HeaderMap::from(OneHeaderMap::from(BytesMut::from(input)));
+        let result = Option::<BodyHeader>::from(&header_map);
+        let einfo = vec![
+            EncodingInfo::new(
+                1,
+                vec![ContentEncoding::Brotli, ContentEncoding::Compress],
+            ),
+            EncodingInfo::new(
+                3,
+                vec![ContentEncoding::Deflate, ContentEncoding::Gzip],
+            ),
+            EncodingInfo::new(
+                5,
+                vec![ContentEncoding::Identity, ContentEncoding::Zstd],
+            ),
+        ];
+        let verify = BodyHeader {
+            content_encoding: Some(einfo),
+            transfer_type: Some(TransferType::ContentLength(20)),
+            ..Default::default()
+        };
+        assert_eq!(result.unwrap(), verify);
+    }
+
     // ----- Content type
     #[test]
-    fn test_body_header_from_header_map_ct_only() {
+    fn test_body_header_from_header_map_ct_only_one() {
         let input = "Content-Type: application/json\r\n\r\n";
-        let result = build_body_header(input);
+        let header_map = OneHeaderMap::from(BytesMut::from(input));
+        let result = Option::<BodyHeader>::from(&header_map);
         let verify = BodyHeader {
             content_type: Some(ContentType::Application),
             transfer_type: Some(TransferType::Close),
             ..Default::default()
         };
-        assert_eq!(result, verify);
+        assert_eq!(result.unwrap(), verify);
+    }
+
+    #[test]
+    fn test_body_header_from_header_map_ct_only_two() {
+        let input = "Content-Type: application/json\r\n\r\n";
+        let header_map =
+            HeaderMap::from(OneHeaderMap::from(BytesMut::from(input)));
+        let result = Option::<BodyHeader>::from(&header_map);
+        let verify = BodyHeader {
+            content_type: Some(ContentType::Application),
+            ..Default::default()
+        };
+        assert_eq!(result.unwrap(), verify);
     }
 }
