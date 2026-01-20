@@ -1,7 +1,6 @@
 use crate::HeaderMap;
 use crate::message_head::header_map::HMap;
 use crate::message_head::header_map::{HeaderStr, HeaderVersion};
-use mime_plz::ContentType;
 
 use super::{BodyHeader, transfer_types::TransferType};
 use crate::{
@@ -48,6 +47,14 @@ where
     }
 }
 
+enum BodyHeaderId {
+    ContentLength,
+    TransferEncoding,
+    ContentEncoding,
+    ContentType,
+    None,
+}
+
 pub fn parse_body_headers<T>(bh: &mut BodyHeader, index: usize, header: &T)
 where
     T: HeaderStr + HeaderVersion,
@@ -56,25 +63,50 @@ where
         (Some(key), Some(value)) => (key, value),
         _ => return,
     };
-    if key.eq_ignore_ascii_case(CONTENT_LENGTH) {
-        let transfer_type = TransferType::from_cl(value);
-        bh.update_transfer_type(transfer_type);
-    } else if header.is_one_one()
-        && key.eq_ignore_ascii_case(TRANSFER_ENCODING)
-    {
-        let einfo = EncodingInfo::from((index, value));
-        bh.transfer_encoding.get_or_insert_with(Vec::new).push(einfo);
-        if bh.chunked_te_position().is_some() {
-            bh.transfer_type = Some(TransferType::Chunked)
+
+    use BodyHeaderId::*;
+    match identify_header(header.is_one_one(), key) {
+        ContentLength => {
+            let transfer_type = TransferType::from_cl(value);
+            bh.update_transfer_type(transfer_type);
         }
-    } else if key.eq_ignore_ascii_case(CONTENT_ENCODING) {
-        let einfo = EncodingInfo::from((index, value));
-        bh.content_encoding.get_or_insert_with(Vec::new).push(einfo);
-    } else if key.eq_ignore_ascii_case(CONTENT_TYPE)
-        && let Some((main_type, _)) = value.split_once('/')
-    {
-        bh.content_type = Some(ContentType::from(main_type));
+        TransferEncoding => {
+            let einfo = EncodingInfo::from((index, value));
+            bh.transfer_encoding.get_or_insert_with(Vec::new).push(einfo);
+            if bh.chunked_te_position().is_some() {
+                bh.transfer_type = Some(TransferType::Chunked);
+            }
+        }
+        ContentEncoding => {
+            let einfo = EncodingInfo::from((index, value));
+            bh.content_encoding.get_or_insert_with(Vec::new).push(einfo);
+        }
+        ContentType => {
+            if let Some((main_type, _)) = value.split_once('/') {
+                bh.content_type = Some(mime_plz::ContentType::from(main_type));
+            }
+        }
+        None => {}
     }
+}
+
+#[inline(always)]
+fn identify_header(is_one_one: bool, key: &str) -> BodyHeaderId {
+    if is_one_one {
+        if key.eq_ignore_ascii_case(CONTENT_LENGTH) {
+            return BodyHeaderId::ContentLength;
+        }
+        if key.eq_ignore_ascii_case(TRANSFER_ENCODING) {
+            return BodyHeaderId::TransferEncoding;
+        }
+    }
+    if key.eq_ignore_ascii_case(CONTENT_ENCODING) {
+        return BodyHeaderId::ContentEncoding;
+    }
+    if key.eq_ignore_ascii_case(CONTENT_TYPE) {
+        return BodyHeaderId::ContentType;
+    }
+    BodyHeaderId::None
 }
 
 #[cfg(test)]
@@ -82,6 +114,7 @@ mod tests {
     use super::*;
     use crate::body_headers::ContentEncoding;
     use bytes::BytesMut;
+    use mime_plz::ContentType;
 
     fn build_body_header(input: &str) -> BodyHeader {
         let header_map = OneHeaderMap::from(BytesMut::from(input));
@@ -293,7 +326,6 @@ mod tests {
         ];
         let verify = BodyHeader {
             content_encoding: Some(einfo),
-            transfer_type: Some(TransferType::ContentLength(20)),
             ..Default::default()
         };
         assert_eq!(result.unwrap(), verify);
