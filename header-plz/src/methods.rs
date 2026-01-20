@@ -27,13 +27,14 @@ pub enum Method {
 
 impl Method {
     pub fn len(&self) -> usize {
+        use Method::*;
         match self {
-            Method::GET | Method::PUT => 3,
-            Method::HEAD | Method::POST => 4,
-            Method::PATCH | Method::TRACE => 5,
-            Method::DELETE => 6,
-            Method::CONNECT | Method::OPTIONS => 7,
-            Method::UNKNOWN(bytes) => bytes.len(),
+            GET | PUT => 3,
+            HEAD | POST => 4,
+            PATCH | TRACE => 5,
+            DELETE => 6,
+            CONNECT | OPTIONS => 7,
+            UNKNOWN(bytes) => bytes.len(),
         }
     }
 

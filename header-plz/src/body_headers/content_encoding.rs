@@ -20,30 +20,32 @@ pub enum ContentEncoding {
 
 impl AsRef<str> for ContentEncoding {
     fn as_ref(&self) -> &str {
+        use ContentEncoding::*;
         match self {
-            ContentEncoding::Brotli => BROTLI,
-            ContentEncoding::Chunked => CHUNKED,
-            ContentEncoding::Compress => COMPRESS,
-            ContentEncoding::Deflate => DEFLATE,
-            ContentEncoding::Gzip => GZIP,
-            ContentEncoding::Identity => IDENTITY,
-            ContentEncoding::Zstd => ZSTD,
-            ContentEncoding::Unknown(s) => s,
+            Brotli => BROTLI,
+            Chunked => CHUNKED,
+            Compress => COMPRESS,
+            Deflate => DEFLATE,
+            Gzip => GZIP,
+            Identity => IDENTITY,
+            Zstd => ZSTD,
+            Unknown(s) => s,
         }
     }
 }
 
 impl From<&str> for ContentEncoding {
     fn from(s: &str) -> Self {
+        use ContentEncoding::*;
         match s {
-            BROTLI => ContentEncoding::Brotli,
-            CHUNKED => ContentEncoding::Chunked,
-            COMPRESS => ContentEncoding::Compress,
-            DEFLATE => ContentEncoding::Deflate,
-            GZIP => ContentEncoding::Gzip,
-            IDENTITY => ContentEncoding::Identity,
-            ZSTD => ContentEncoding::Zstd,
-            &_ => ContentEncoding::Unknown(s.to_string()),
+            BROTLI => Brotli,
+            CHUNKED => Chunked,
+            COMPRESS => Compress,
+            DEFLATE => Deflate,
+            GZIP => Gzip,
+            IDENTITY => Identity,
+            ZSTD => Zstd,
+            &_ => Unknown(s.to_string()),
         }
     }
 }
