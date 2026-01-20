@@ -27,6 +27,10 @@ impl Header {
     pub fn is_empty(&self) -> bool {
         self.key.is_empty() && self.value.is_empty() && self.is_removed
     }
+
+    pub fn into_inner(self) -> (Bytes, Bytes) {
+        (self.key, self.value)
+    }
 }
 
 impl HeaderStr for Header {
