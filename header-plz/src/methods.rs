@@ -10,7 +10,7 @@ pub const POST: &[u8] = b"POST";
 pub const PUT: &[u8] = b"PUT";
 pub const TRACE: &[u8] = b"TRACE";
 
-#[derive(PartialEq, Debug, Default)]
+#[derive(PartialEq, Debug, Default, Clone, Eq)]
 pub enum Method {
     CONNECT,
     DELETE,
