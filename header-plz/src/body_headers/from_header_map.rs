@@ -1,5 +1,5 @@
 use crate::HeaderMap;
-use crate::message_head::header_map::HMap;
+use crate::message_head::header_map::{HMap, Hmap};
 use crate::message_head::header_map::{HeaderStr, HeaderVersion};
 
 use super::{BodyHeader, transfer_types::TransferType};
@@ -35,7 +35,7 @@ impl From<&HeaderMap> for Option<BodyHeader> {
 
 impl<T> From<&HMap<T>> for BodyHeader
 where
-    T: HeaderStr + HeaderVersion,
+    T: Hmap + HeaderVersion + HeaderStr,
 {
     #[inline(always)]
     fn from(header_map: &HMap<T>) -> BodyHeader {
@@ -57,12 +57,14 @@ enum BodyHeaderId {
 
 pub fn parse_body_headers<T>(bh: &mut BodyHeader, index: usize, header: &T)
 where
-    T: HeaderStr + HeaderVersion,
+    T: Hmap + HeaderVersion + HeaderStr,
 {
-    let (key, value) = match (header.key_as_str(), header.value_as_str()) {
-        (Some(key), Some(value)) => (key, value),
-        _ => return,
+    let value = if let Some(v) = header.value_as_str() {
+        v
+    } else {
+        return;
     };
+    let key = header.key_as_ref();
 
     use BodyHeaderId::*;
     match identify_header(header.is_one_one(), key) {
@@ -91,7 +93,7 @@ where
 }
 
 #[inline(always)]
-fn identify_header(is_one_one: bool, key: &str) -> BodyHeaderId {
+fn identify_header(is_one_one: bool, key: &[u8]) -> BodyHeaderId {
     if is_one_one {
         if key.eq_ignore_ascii_case(CONTENT_LENGTH) {
             return BodyHeaderId::ContentLength;
