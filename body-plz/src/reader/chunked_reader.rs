@@ -120,7 +120,7 @@ impl ChunkReaderState {
             }
             Self::ReadTrailers => {
                 // 4.a. If Empty Header
-                if buf.remaining() == CRLF.as_bytes() {
+                if buf.remaining() == CRLF {
                     buf.set_position(buf.position() + 2);
                     *self = Self::End;
                     return Some(ChunkType::EndCRLF(
@@ -141,7 +141,7 @@ impl ChunkReaderState {
                 if let Some(index) = buf
                     .remaining()
                     .windows(2)
-                    .position(|window| window == CRLF.as_bytes())
+                    .position(|window| window == CRLF)
                 {
                     buf.set_position(index + 2);
                     *self = Self::End;
@@ -156,10 +156,8 @@ impl ChunkReaderState {
 
     // find the position of CRLF in size chunk.
     fn mark_size_chunk(buf: &mut Cursor) -> bool {
-        if let Some(index) = buf
-            .remaining()
-            .windows(2)
-            .position(|window| window == CRLF.as_bytes())
+        if let Some(index) =
+            buf.remaining().windows(2).position(|window| window == CRLF)
         {
             // size_index
             buf.set_position(index);
