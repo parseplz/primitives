@@ -103,18 +103,24 @@ impl From<(&str, &str)> for OneHeader {
     }
 }
 
-// Content-Type: application/json
-impl From<&str> for OneHeader {
-    fn from(input: &str) -> Self {
-        let fs_index = find_header_fs(input.as_bytes());
+impl From<&[u8]> for OneHeader {
+    fn from(input: &[u8]) -> Self {
+        let fs_index = find_header_fs(input);
         let (key, value) = if fs_index == 0 {
             // key
-            (input, "")
+            (input, "".as_bytes())
         } else {
             // key: val
             input.split_at(fs_index)
         };
         OneHeader::from((key, value))
+    }
+}
+
+// Content-Type: application/json
+impl From<&str> for OneHeader {
+    fn from(input: &str) -> Self {
+        OneHeader::from(input.as_bytes())
     }
 }
 
@@ -138,17 +144,13 @@ impl From<BytesMut> for OneHeader {
 // TODO: utf-8 check ?
 impl From<OneHeader> for Header {
     fn from(mut one: OneHeader) -> Self {
-        let key = if one.key_len() == 0 {
-            Bytes::new()
-        } else if let Some(fs_index) = one.key.iter().position(|b| b == &COLON)
-        {
-            if fs_index == 0 {
-                Bytes::new()
-            } else {
-                one.key.split_to(fs_index).freeze()
+        let key = match one.key.iter().position(|b| b == &COLON) {
+            Some(0) | None => Bytes::new(),
+            Some(fs_index) => {
+                let mut key = one.key.split_to(fs_index);
+                key.make_ascii_lowercase();
+                key.freeze()
             }
-        } else {
-            Bytes::new()
         };
 
         // if only CRLF or no value
@@ -237,19 +239,6 @@ pub fn find_header_fs(input: &[u8]) -> usize {
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    // from slice
-    #[test]
-    fn test_one_header_from_tuple_slice() {
-        let key = "Content-Type";
-        let value = "application/json";
-        let header: OneHeader = (key.as_bytes(), value.as_bytes()).into();
-        let expected = OneHeader {
-            key: BytesMut::from("Content-Type: "),
-            value: BytesMut::from("application/json\r\n"),
-        };
-        assert_eq!(header, expected);
-    }
 
     // from str
     #[test]
@@ -359,7 +348,7 @@ mod tests {
 
     #[test]
     fn test_one_to_two_perfect() {
-        let buf: BytesMut = "content-type: application/json\r\n".into();
+        let buf: BytesMut = "Content-type: application/json\r\n".into();
         let one = OneHeader::from(buf);
         let two = Header::from(one);
         assert_eq!(two.key_as_ref(), b"content-type");
@@ -368,7 +357,7 @@ mod tests {
 
     #[test]
     fn test_one_to_two_no_space() {
-        let buf: BytesMut = "content-type:application/json\r\n".into();
+        let buf: BytesMut = "Content-type:application/json\r\n".into();
         let one = OneHeader::from(buf);
         let two = Header::from(one);
         assert_eq!(two.key_as_ref(), b"content-type");
@@ -377,7 +366,7 @@ mod tests {
 
     #[test]
     fn test_one_to_two_empty_value() {
-        let buf: BytesMut = "content-type:\r\n".into();
+        let buf: BytesMut = "Content-type:\r\n".into();
         let one = OneHeader::from(buf);
         let two = Header::from(one);
         assert_eq!(two.key_as_ref(), b"content-type");

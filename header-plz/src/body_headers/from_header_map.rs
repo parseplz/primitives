@@ -59,9 +59,7 @@ pub fn parse_body_headers<T>(bh: &mut BodyHeader, index: usize, header: &T)
 where
     T: Hmap + HeaderVersion + HeaderStr,
 {
-    let value = if let Some(v) = header.value_as_str() {
-        v
-    } else {
+    let Some(value) = header.value_as_str() else {
         return;
     };
     let key = header.key_as_ref();

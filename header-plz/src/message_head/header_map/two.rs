@@ -1,12 +1,11 @@
-use bytes::{Bytes, BytesMut};
-
 use crate::{
     abnf::*,
     message_head::header_map::{
-        HeaderStr, HeaderVersion, Hmap, one::OneHeader, split_header,
+        HeaderStr, HeaderVersion, Hmap, one::OneHeader,
     },
     version::Version,
 };
+use bytes::{Bytes, BytesMut};
 
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub struct Header {
@@ -99,20 +98,67 @@ impl From<(Bytes, Bytes)> for Header {
     }
 }
 
+fn split_header(header: &[u8]) -> (&[u8], &[u8]) {
+    let Some(p) = header.iter().position(|&b| b == COLON) else {
+        return (header, b"");
+    };
+
+    let value = &header
+        .get(p + 1..)
+        .and_then(|v| {
+            if v.first() == Some(&SP) {
+                v.get(1..)
+            } else {
+                Some(v)
+            }
+        })
+        .map(|v| v.trim_ascii_end())
+        .unwrap_or_default();
+    (&header[..p], value)
+}
+
+fn check_utf8_and_to_lowercase_bytes(src: &[u8]) -> Bytes {
+    match str::from_utf8(src) {
+        Ok(s) => to_lowercase_bytes(s.as_bytes()),
+        Err(e) => {
+            eprintln!("h2 not valid utf| {}", e);
+            to_lowercase_bytes(String::from_utf8_lossy(src).as_bytes())
+        }
+    }
+}
+
 impl From<(&[u8], &[u8])> for Header {
     fn from((key, value): (&[u8], &[u8])) -> Self {
         Header {
-            key: Bytes::from(key.to_owned()),
+            key: check_utf8_and_to_lowercase_bytes(key),
             value: Bytes::from(value.to_owned()),
             is_removed: false,
         }
     }
 }
 
+impl From<&[u8]> for Header {
+    fn from(hdr: &[u8]) -> Self {
+        let (key, val) = split_header(hdr);
+        Header {
+            key: check_utf8_and_to_lowercase_bytes(key),
+            value: Bytes::copy_from_slice(val),
+            is_removed: false,
+        }
+    }
+}
+
+fn to_lowercase_bytes(src: &[u8]) -> Bytes {
+    let mut key = BytesMut::from(src);
+    key.make_ascii_lowercase();
+    key.freeze()
+}
+
 impl From<(&str, &str)> for Header {
     fn from((key, value): (&str, &str)) -> Self {
+        let key = to_lowercase_bytes(key.as_bytes());
         Header {
-            key: Bytes::from(key.to_owned()),
+            key,
             value: Bytes::from(value.to_owned()),
             is_removed: false,
         }
@@ -121,10 +167,13 @@ impl From<(&str, &str)> for Header {
 
 impl From<&str> for Header {
     fn from(hdr: &str) -> Self {
-        let (key, val) = split_header(hdr);
+        let (key, value) = hdr
+            .split_once(COLON as char)
+            .map(|(k, v)| (k, v.trim()))
+            .unwrap_or((hdr, ""));
         Header {
-            key: Bytes::copy_from_slice(key.as_bytes()),
-            value: Bytes::copy_from_slice(val.as_bytes()),
+            key: to_lowercase_bytes(key.as_bytes()),
+            value: Bytes::from(value.as_bytes().to_owned()),
             is_removed: false,
         }
     }
@@ -143,16 +192,16 @@ impl From<Header> for OneHeader {
 #[cfg(test)]
 mod tests {
     use super::*;
+    const CT: &str = "content-type";
 
     // from
-
     #[test]
     fn test_two_header_from_tuple_slice() {
         let key = "Content-Type";
         let value = "application/json";
         let header: Header = (key.as_bytes(), value.as_bytes()).into();
         let expected = Header {
-            key: Bytes::from(key.to_owned()),
+            key: Bytes::from(CT),
             value: Bytes::from(value.to_owned()),
             is_removed: false,
         };
@@ -165,7 +214,7 @@ mod tests {
         let value = "application/json";
         let header: Header = (key, value).into();
         let expected = Header {
-            key: Bytes::from(key.to_owned()),
+            key: Bytes::from(CT),
             value: Bytes::from(value.to_owned()),
             is_removed: false,
         };
@@ -177,7 +226,7 @@ mod tests {
         let input = "Content-Type: application/json\r\n";
         let header: Header = (input).into();
         let expected = Header {
-            key: Bytes::from("Content-Type".to_owned()),
+            key: Bytes::from(CT),
             value: Bytes::from("application/json".to_owned()),
             is_removed: false,
         };
@@ -189,7 +238,19 @@ mod tests {
         let input = "Content-Type:";
         let header: Header = (input).into();
         let expected = Header {
-            key: Bytes::from("Content-Type".to_owned()),
+            key: Bytes::from(CT),
+            value: Bytes::from("".to_owned()),
+            is_removed: false,
+        };
+        assert_eq!(header, expected);
+    }
+
+    #[test]
+    fn test_two_header_from_str_key_only_no_colon() {
+        let input = "Content-Type";
+        let header: Header = (input).into();
+        let expected = Header {
+            key: Bytes::from(CT),
             value: Bytes::from("".to_owned()),
             is_removed: false,
         };
@@ -208,6 +269,9 @@ mod tests {
         let buf = "content-type: application/json\r\n";
         let header = Header::from(buf);
         assert_eq!(header.len(), 28);
+        let buf = "a: b\r\n";
+        let header = Header::from(buf);
+        assert_eq!(header.len(), 2);
     }
 
     #[test]

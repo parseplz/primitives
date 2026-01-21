@@ -1,4 +1,4 @@
-use crate::{abnf::*, version::Version};
+use crate::version::Version;
 use one::OneHeader;
 use std::str::{self};
 use two::Header;
@@ -442,13 +442,6 @@ impl HMap<OneHeader> {
     }
 }
 
-pub fn split_header(header: &str) -> (&str, &str) {
-    header
-        .split_once(COLON as char)
-        .map(|(k, v)| (k, v.trim()))
-        .unwrap_or_default()
-}
-
 impl From<HMap<OneHeader>> for HMap<Header> {
     fn from(one: HMap<OneHeader>) -> Self {
         let entries = one
@@ -540,18 +533,18 @@ mod tests {
     }
 
     fn build_from_two_verifier() -> HMap<OneHeader> {
-        let input = "Host: localhost\r\n\
-                     Content-Length: 20\r\n\
-                     Content-type: application/json\r\n\
-                     Transfer-encoding: chunked\r\n\
-                     Content-Length: 20\r\n\
-                     Content-Type: application/json\r\n\
-                     Content-encoding: gzip\r\n\
-                     Content-Length: 20\r\n\
-                     Content-Type: application/json\r\n\
-                     Trailer: Some\r\n\
-                     Connection: keep-alive\r\n\
-                     X-custom-header: somevalue\r\n\r\n";
+        let input = "host: localhost\r\n\
+                     content-length: 20\r\n\
+                     content-type: application/json\r\n\
+                     transfer-encoding: chunked\r\n\
+                     content-length: 20\r\n\
+                     content-type: application/json\r\n\
+                     content-encoding: gzip\r\n\
+                     content-length: 20\r\n\
+                     content-type: application/json\r\n\
+                     trailer: Some\r\n\
+                     connection: keep-alive\r\n\
+                     x-custom-header: somevalue\r\n\r\n";
         HMap::from(BytesMut::from(input))
     }
 
@@ -708,8 +701,8 @@ mod tests {
     #[test]
     fn test_hmap_update_header_all_two() {
         let mut map = build_test_two();
-        let old = "Content-Length: 20";
-        let new = "Content-Length: 10";
+        let old = "content-length: 20";
+        let new = "content-length: 10";
         let result = map.update_header_all(old, new);
         assert!(result);
         let mut verify = build_test_two();
@@ -722,8 +715,8 @@ mod tests {
     #[test]
     fn test_hmap_update_header_two() {
         let mut map = build_test_two();
-        let old = "Content-Length: 20";
-        let new = "Content-Length: 10";
+        let old = "Content-length: 20";
+        let new = "content-length: 10";
         let result = map.update_header(old, new);
         assert!(result);
         let mut verify = build_test_two();
