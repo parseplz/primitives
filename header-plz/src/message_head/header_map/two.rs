@@ -88,16 +88,6 @@ impl Hmap for Header {
     }
 }
 
-impl From<(Bytes, Bytes)> for Header {
-    fn from((key, value): (Bytes, Bytes)) -> Self {
-        Header {
-            key,
-            value,
-            is_removed: false,
-        }
-    }
-}
-
 fn split_header(header: &[u8]) -> (&[u8], &[u8]) {
     let Some(p) = header.iter().position(|&b| b == COLON) else {
         return (header, b"");
@@ -127,11 +117,15 @@ fn check_utf8_and_to_lowercase_bytes(src: &[u8]) -> Bytes {
     }
 }
 
-impl From<(&[u8], &[u8])> for Header {
-    fn from((key, value): (&[u8], &[u8])) -> Self {
+impl<T, E> From<(T, E)> for Header
+where
+    T: AsRef<[u8]>,
+    E: AsRef<[u8]>,
+{
+    fn from((key, value): (T, E)) -> Self {
         Header {
-            key: check_utf8_and_to_lowercase_bytes(key),
-            value: Bytes::from(value.to_owned()),
+            key: check_utf8_and_to_lowercase_bytes(key.as_ref()),
+            value: Bytes::from(value.as_ref().to_owned()),
             is_removed: false,
         }
     }
@@ -154,17 +148,6 @@ fn to_lowercase_bytes(src: &[u8]) -> Bytes {
     key.freeze()
 }
 
-impl From<(&str, &str)> for Header {
-    fn from((key, value): (&str, &str)) -> Self {
-        let key = to_lowercase_bytes(key.as_bytes());
-        Header {
-            key,
-            value: Bytes::from(value.to_owned()),
-            is_removed: false,
-        }
-    }
-}
-
 impl From<&str> for Header {
     fn from(hdr: &str) -> Self {
         let (key, value) = hdr
@@ -185,16 +168,30 @@ impl From<Header> for OneHeader {
         key.extend_from_slice(HEADER_FS);
         let mut value = BytesMut::from(two.value);
         value.extend_from_slice(CRLF);
-        OneHeader::from((key, value))
+        OneHeader::new(key, value)
     }
 }
 
 #[cfg(test)]
 mod tests {
+    use crate::const_headers::CONTENT_TYPE;
+
     use super::*;
     const CT: &str = "content-type";
 
     // from
+    #[test]
+    fn test_two_header_from_tuple_mixed() {
+        let value = "application/json";
+        let header: Header = (CONTENT_TYPE, value.as_bytes()).into();
+        let expected = Header {
+            key: Bytes::from(CT),
+            value: Bytes::from(value.to_owned()),
+            is_removed: false,
+        };
+        assert_eq!(header, expected);
+    }
+
     #[test]
     fn test_two_header_from_tuple_slice() {
         let key = "Content-Type";

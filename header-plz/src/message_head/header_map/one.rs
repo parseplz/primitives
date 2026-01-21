@@ -70,22 +70,17 @@ impl HeaderVersion for OneHeader {
     }
 }
 
-impl From<(BytesMut, BytesMut)> for OneHeader {
-    fn from((key, value): (BytesMut, BytesMut)) -> Self {
-        OneHeader {
-            key,
-            value,
-        }
-    }
-}
-
-impl From<(&[u8], &[u8])> for OneHeader {
-    fn from((key, value): (&[u8], &[u8])) -> Self {
-        let mut key = BytesMut::from(key);
+impl<T, E> From<(T, E)> for OneHeader
+where
+    T: AsRef<[u8]>,
+    E: AsRef<[u8]>,
+{
+    fn from((key, value): (T, E)) -> Self {
+        let mut key = BytesMut::from(key.as_ref());
         if !key.ends_with(HEADER_FS) {
             key.extend_from_slice(HEADER_FS);
         }
-        let mut value = BytesMut::from(value);
+        let mut value = BytesMut::from(value.as_ref());
         if !value.ends_with(CRLF) {
             value.extend_from_slice(CRLF);
         }
@@ -93,13 +88,6 @@ impl From<(&[u8], &[u8])> for OneHeader {
             key,
             value,
         }
-    }
-}
-
-// (Content-Type, application/json)
-impl From<(&str, &str)> for OneHeader {
-    fn from((key, value): (&str, &str)) -> Self {
-        OneHeader::from((key.as_bytes(), value.as_bytes()))
     }
 }
 
@@ -137,7 +125,7 @@ impl From<BytesMut> for OneHeader {
         } else {
             input.split_to(fs_index)
         };
-        OneHeader::from((key, input))
+        OneHeader::new(key, input)
     }
 }
 
@@ -238,9 +226,35 @@ pub fn find_header_fs(input: &[u8]) -> usize {
 
 #[cfg(test)]
 mod tests {
+    use crate::const_headers::CONTENT_TYPE;
+
     use super::*;
 
-    // from str
+    // from
+    #[test]
+    fn test_one_header_from_tuple_mixed() {
+        let value = "application/json";
+        let header: OneHeader = (CONTENT_TYPE, value).into();
+        let expected = OneHeader {
+            key: BytesMut::from("content-type: "),
+            value: BytesMut::from("application/json\r\n"),
+        };
+
+        assert_eq!(header, expected);
+    }
+
+    #[test]
+    fn test_one_header_from_tuple_slice() {
+        let value = "application/json";
+        let header: OneHeader = (CONTENT_TYPE, value.as_bytes()).into();
+        let expected = OneHeader {
+            key: BytesMut::from("content-type: "),
+            value: BytesMut::from("application/json\r\n"),
+        };
+
+        assert_eq!(header, expected);
+    }
+
     #[test]
     fn test_one_header_from_tuple() {
         let key = "Content-Type";

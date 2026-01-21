@@ -559,7 +559,7 @@ mod tests {
     #[test]
     fn test_hmap_one_insert() {
         let mut map: HMap<OneHeader> = HMap::new();
-        map.insert(BytesMut::from("key: "), BytesMut::from("value\r\n"));
+        map.insert("key: ", "value\r\n");
         assert_eq!(map.entries.len(), 1);
         assert_eq!(map.entries[0].key_as_ref(), b"key");
         assert_eq!(map.entries[0].value_as_ref(), b"value");
@@ -581,11 +581,10 @@ mod tests {
     #[test]
     fn test_hmap_one_extend() {
         let mut map: HMap<OneHeader> = HMap::new();
-        map.insert(BytesMut::from("key: "), BytesMut::from("value\r\n"));
+        map.insert("key: ", "value\r\n");
 
         let mut to_extend: HMap<OneHeader> = HMap::new();
-        to_extend
-            .insert(BytesMut::from("key2: "), BytesMut::from("value2\r\n"));
+        to_extend.insert("key2: ", "value2\r\n");
         map.extend(to_extend);
         assert_eq!(map.entries.len(), 2);
         assert_eq!(map.entries[0].key_as_ref(), b"key");
