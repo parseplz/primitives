@@ -125,9 +125,9 @@ impl From<&str> for Header {
 impl From<Header> for OneHeader {
     fn from(two: Header) -> OneHeader {
         let mut key = BytesMut::from(two.key);
-        key.extend_from_slice(HEADER_FS.as_bytes());
+        key.extend_from_slice(HEADER_FS);
         let mut value = BytesMut::from(two.value);
-        value.extend_from_slice(CRLF.as_bytes());
+        value.extend_from_slice(CRLF);
         OneHeader::from((key, value))
     }
 }

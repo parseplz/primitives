@@ -418,10 +418,8 @@ impl From<BytesMut> for HMap<OneHeader> {
         let crlf = input.split_off(input.len() - 2);
         let mut entries = Vec::new();
         while !input.is_empty() {
-            let crlf_index = input
-                .windows(2)
-                .position(|b| b == CRLF.as_bytes())
-                .unwrap_or(0);
+            let crlf_index =
+                input.windows(2).position(|b| b == CRLF).unwrap_or(0);
             let header = input.split_to(crlf_index + 2);
             entries.push(OneHeader::from(header))
         }

@@ -50,7 +50,9 @@ impl HeaderStr for OneHeader {
     }
 
     fn value_as_str(&self) -> Option<&str> {
-        str::from_utf8(&self.value).ok().and_then(|s| s.split(CRLF).nth(0))
+        str::from_utf8(&self.value)
+            .ok()
+            .and_then(|s| s.split(str::from_utf8(CRLF).unwrap()).nth(0))
     }
 }
 
@@ -176,7 +178,7 @@ impl Hmap for OneHeader {
         let ows = self.key.last().map(|b| *b == SP).unwrap_or(false);
         reuse_or_swap(key.len() + ows as usize + 1, &mut self.key, key);
         if ows {
-            self.key.extend_from_slice(HEADER_FS.as_bytes());
+            self.key.extend_from_slice(HEADER_FS);
         } else {
             self.key.put_u8(COLON);
         }
@@ -184,7 +186,7 @@ impl Hmap for OneHeader {
 
     fn change_value(&mut self, value: &[u8]) {
         reuse_or_swap(value.len() + 2, &mut self.value, value);
-        self.value.extend_from_slice(CRLF.as_bytes());
+        self.value.extend_from_slice(CRLF);
     }
 
     fn clear(&mut self) {
@@ -198,7 +200,7 @@ impl Hmap for OneHeader {
 
     fn truncate_value(&mut self, pos: usize) {
         self.value.truncate(pos);
-        self.value.extend_from_slice(CRLF.as_bytes());
+        self.value.extend_from_slice(CRLF);
     }
 }
 
