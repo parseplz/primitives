@@ -1,15 +1,15 @@
 [package]
-name = "body-plz"
-version = "0.0.37"
+name = "header-plz"
+version = "0.0.34"
 authors = ["darkseid", "sytten <emile@caido.io>"]
-description = "Body for the ParsePlz ecosystem"
+description = "Header for the ParsePlz ecosystem"
 repository = "https://github.com/parseplz/primitives"
 license = "MIT"
 edition = "2024"
 
 [dependencies]
 buffer-plz = "0.0.3"
+mime-plz = "0.0.2"
 bytes = { workspace = true }
-header-plz =  "0.0.34"
 thiserror = { workspace = true }
 tracing = { workspace = true }
