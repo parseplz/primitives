@@ -13,7 +13,7 @@ use body_plz::variants::{
     chunked::{ChunkType, total_chunk_size},
 };
 use bytes::BytesMut;
-use header_plz::{Header, OneHeader, const_headers::TRAILER};
+use header_plz::{Header, OneHeader};
 
 use crate::{DecompressTrait, decode_struct::DecodeStruct};
 
@@ -54,7 +54,7 @@ where
             // 2. If trailer is present,
             ChunkType::Trailers(trailer) => {
                 // 2.a. Remove trailer header
-                message.remove_header_on_key(TRAILER);
+                message.remove_header_on_key("trailer");
                 // 2.b. Add trailer to header_map
                 message.extend(trailer);
             }

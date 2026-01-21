@@ -1,8 +1,9 @@
 use body_plz::variants::Body;
 use bytes::BytesMut;
-use header_plz::const_headers::CONTENT_LENGTH;
 
 use crate::decompress_trait::DecompressTrait;
+
+const CONTENT_LENGTH: &str = "Content-Length";
 
 pub fn add_body_and_update_cl<T>(message: &mut T, body: BytesMut)
 where
