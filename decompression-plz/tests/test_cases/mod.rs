@@ -1,5 +1,3 @@
-use header_plz::const_headers::{CONTENT_ENCODING, TRANSFER_ENCODING};
-
 use super::*;
 pub mod both_te_ce;
 pub mod chunked;

@@ -1,8 +1,4 @@
-use header_plz::{
-    OneHeader,
-    const_headers::{CONTENT_ENCODING, TRANSFER_ENCODING},
-    message_head::header_map::HMap,
-};
+use header_plz::{OneHeader, message_head::header_map::HMap};
 
 use super::*;
 mod body_only;

@@ -1,8 +1,6 @@
 use decompression_plz::DecompressTrait;
 use header_plz::{
-    Header, OneHeader,
-    body_headers::content_encoding::ContentEncoding,
-    const_headers::{CONTENT_ENCODING, CONTENT_LENGTH, TRANSFER_ENCODING},
+    Header, OneHeader, body_headers::content_encoding::ContentEncoding,
 };
 use tests_utils::single_compression;
 
@@ -92,7 +90,7 @@ pub fn assert_case_single_compression_two(
     assert!(
         verify
             .header_map_as_mut()
-            .update_header_value_on_key(CONTENT_LENGTH, "11")
+            .update_header_value_on_key("Content-Length", "11")
     );
 
     assert_eq!(tm, verify);

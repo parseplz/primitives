@@ -53,7 +53,7 @@ fn assert_case_multi_compression_two(
     assert!(
         verify
             .header_map_as_mut()
-            .update_header_value_on_key(CONTENT_LENGTH, "11")
+            .update_header_value_on_key(CONTENT_LENGTH, b"11")
     );
     assert_eq!(verify, tm);
 }
@@ -83,7 +83,7 @@ fn assert_case_multi_compression_two_multi_headers(
     assert!(
         verify
             .header_map_as_mut()
-            .update_header_value_on_key(CONTENT_LENGTH, "11")
+            .update_header_value_on_key(CONTENT_LENGTH, b"11")
     );
     assert_eq!(verify, tm);
 }
