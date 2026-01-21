@@ -79,16 +79,15 @@ impl From<(BytesMut, BytesMut)> for OneHeader {
     }
 }
 
-// (Content-Type, application/json)
-impl From<(&str, &str)> for OneHeader {
-    fn from((key, value): (&str, &str)) -> Self {
+impl From<(&[u8], &[u8])> for OneHeader {
+    fn from((key, value): (&[u8], &[u8])) -> Self {
         let mut key = BytesMut::from(key);
-        if !key.ends_with(HEADER_FS.as_bytes()) {
-            key.extend_from_slice(HEADER_FS.as_bytes());
+        if !key.ends_with(HEADER_FS) {
+            key.extend_from_slice(HEADER_FS);
         }
         let mut value = BytesMut::from(value);
-        if !value.ends_with(CRLF.as_bytes()) {
-            value.extend_from_slice(CRLF.as_bytes());
+        if !value.ends_with(CRLF) {
+            value.extend_from_slice(CRLF);
         }
         OneHeader {
             key,
@@ -97,11 +96,17 @@ impl From<(&str, &str)> for OneHeader {
     }
 }
 
+// (Content-Type, application/json)
+impl From<(&str, &str)> for OneHeader {
+    fn from((key, value): (&str, &str)) -> Self {
+        OneHeader::from((key.as_bytes(), value.as_bytes()))
+    }
+}
+
 // Content-Type: application/json
 impl From<&str> for OneHeader {
     fn from(input: &str) -> Self {
         let fs_index = find_header_fs(input.as_bytes());
-
         let (key, value) = if fs_index == 0 {
             // key
             (input, "")
@@ -109,7 +114,6 @@ impl From<&str> for OneHeader {
             // key: val
             input.split_at(fs_index)
         };
-
         OneHeader::from((key, value))
     }
 }
@@ -233,6 +237,19 @@ pub fn find_header_fs(input: &[u8]) -> usize {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    // from slice
+    #[test]
+    fn test_one_header_from_tuple_slice() {
+        let key = "Content-Type";
+        let value = "application/json";
+        let header: OneHeader = (key.as_bytes(), value.as_bytes()).into();
+        let expected = OneHeader {
+            key: BytesMut::from("Content-Type: "),
+            value: BytesMut::from("application/json\r\n"),
+        };
+        assert_eq!(header, expected);
+    }
 
     // from str
     #[test]

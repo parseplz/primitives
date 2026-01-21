@@ -99,13 +99,21 @@ impl From<(Bytes, Bytes)> for Header {
     }
 }
 
+impl From<(&[u8], &[u8])> for Header {
+    fn from((key, value): (&[u8], &[u8])) -> Self {
+        Header {
+            key: Bytes::from(key.to_owned()),
+            value: Bytes::from(value.to_owned()),
+            is_removed: false,
+        }
+    }
+}
+
 impl From<(&str, &str)> for Header {
     fn from((key, value): (&str, &str)) -> Self {
-        let key = Bytes::from(key.to_owned());
-        let value = Bytes::from(value.to_owned());
         Header {
-            key,
-            value,
+            key: Bytes::from(key.to_owned()),
+            value: Bytes::from(value.to_owned()),
             is_removed: false,
         }
     }
@@ -139,16 +147,29 @@ mod tests {
     // from
 
     #[test]
-    fn test_two_header_from_tuple() {
+    fn test_two_header_from_tuple_slice() {
         let key = "Content-Type";
         let value = "application/json";
-
-        let _header: Header = (key, value).into();
-        let _expected = Header {
+        let header: Header = (key.as_bytes(), value.as_bytes()).into();
+        let expected = Header {
             key: Bytes::from(key.to_owned()),
             value: Bytes::from(value.to_owned()),
             is_removed: false,
         };
+        assert_eq!(header, expected);
+    }
+
+    #[test]
+    fn test_two_header_from_tuple() {
+        let key = "Content-Type";
+        let value = "application/json";
+        let header: Header = (key, value).into();
+        let expected = Header {
+            key: Bytes::from(key.to_owned()),
+            value: Bytes::from(value.to_owned()),
+            is_removed: false,
+        };
+        assert_eq!(header, expected);
     }
 
     #[test]
