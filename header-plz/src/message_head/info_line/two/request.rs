@@ -18,8 +18,8 @@ impl RequestLine {
         }
     }
 
-    pub fn into_parts(self) -> (Method, Uri) {
-        (self.method, self.uri)
+    pub fn into_parts(self) -> (Method, Uri, Option<Box<Bytes>>) {
+        (self.method, self.uri, self.extension)
     }
 
     // getters
