@@ -55,6 +55,10 @@ impl BytesStr {
         // Invariant: assumed by the safety requirements of this function.
         BytesStr(bytes)
     }
+
+    pub fn is_empty(&self) -> bool {
+        self.0.is_empty()
+    }
 }
 
 impl From<&str> for BytesStr {
