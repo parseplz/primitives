@@ -182,6 +182,10 @@ impl PathAndQuery {
         }
         ret
     }
+
+    pub fn into_inner(self) -> BytesStr {
+        self.data
+    }
 }
 
 impl<'a> TryFrom<&'a [u8]> for PathAndQuery {
