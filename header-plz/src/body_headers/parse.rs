@@ -2,7 +2,7 @@ use tracing::error;
 
 use crate::{
     OneMessageHead, OneRequestLine, OneResponseLine,
-    methods::{METHODS_WITH_BODY, Method},
+    method::{METHODS_WITH_BODY, Method},
 };
 
 use super::BodyHeader;

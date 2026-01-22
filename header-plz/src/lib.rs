@@ -5,10 +5,15 @@ pub mod bytes_str;
 pub mod const_headers;
 pub mod error;
 pub mod message_head;
-pub mod methods;
+pub mod method;
 pub mod status;
 pub mod uri;
 pub mod version;
+
+pub use method::Method;
+pub use status::StatusCode;
+pub use uri::Uri;
+pub use version::Version;
 
 // control lines
 use message_head::info_line;

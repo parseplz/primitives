@@ -93,6 +93,12 @@ impl From<&[u8]> for Method {
     }
 }
 
+impl From<&str> for Method {
+    fn from(value: &str) -> Self {
+        Method::from(value.as_bytes())
+    }
+}
+
 impl AsRef<[u8]> for Method {
     fn as_ref(&self) -> &[u8] {
         match self {
