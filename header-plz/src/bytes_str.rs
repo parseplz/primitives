@@ -84,3 +84,9 @@ impl TryFrom<&[u8]> for BytesStr {
         Ok(BytesStr::from(str::from_utf8(value)?))
     }
 }
+
+impl From<Bytes> for BytesStr {
+    fn from(value: Bytes) -> Self {
+        BytesStr(value)
+    }
+}
