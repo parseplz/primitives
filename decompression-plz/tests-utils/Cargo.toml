@@ -4,8 +4,8 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-header-plz = "0.0.35"
-body-plz = "0.0.39"
+header-plz = "0.0.36"
+body-plz = "0.0.40"
 
 # Compression
 brotli = "8.0.0"
