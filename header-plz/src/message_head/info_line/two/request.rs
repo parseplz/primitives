@@ -44,6 +44,36 @@ impl RequestLine {
         self.uri = uri
     }
 
+    pub fn try_set_scheme<T>(&mut self, scheme: T) -> Result<(), InvalidUri>
+    where
+        T: TryInto<Scheme>,
+        <T as TryInto<Scheme>>::Error: Into<InvalidUri>,
+    {
+        self.uri.scheme = scheme.try_into().map_err(Into::into)?;
+        Ok(())
+    }
+
+    pub fn try_set_path<T>(&mut self, path: T) -> Result<(), InvalidUri>
+    where
+        T: TryInto<PathAndQuery>,
+        <T as TryInto<PathAndQuery>>::Error: Into<InvalidUri>,
+    {
+        self.uri.path_and_query = path.try_into().map_err(Into::into)?;
+        Ok(())
+    }
+
+    pub fn try_set_authority<T>(
+        &mut self,
+        authority: T,
+    ) -> Result<(), InvalidUri>
+    where
+        T: TryInto<BytesStr>,
+    {
+        self.uri.authority =
+            authority.try_into().map_err(|_| InvalidUri::Authority)?;
+        Ok(())
+    }
+
     pub fn set_extension(&mut self, ext: Bytes) {
         self.extension = Some(Box::new(ext));
     }
