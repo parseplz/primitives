@@ -186,6 +186,10 @@ impl PathAndQuery {
     pub fn into_inner(self) -> BytesStr {
         self.data
     }
+
+    pub fn is_empty(&self) -> bool {
+        self.data.is_empty()
+    }
 }
 
 impl<'a> TryFrom<&'a [u8]> for PathAndQuery {
