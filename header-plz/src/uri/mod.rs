@@ -24,9 +24,9 @@ impl From<Infallible> for InvalidUri {
 
 #[derive(Debug, Clone)]
 pub struct Uri {
-    scheme: Scheme,
-    authority: BytesStr,
-    path_and_query: PathAndQuery,
+    pub(crate) scheme: Scheme,
+    pub(crate) authority: BytesStr,
+    pub(crate) path_and_query: PathAndQuery,
 }
 
 impl Default for Uri {
@@ -73,8 +73,12 @@ impl Uri {
         }
     }
 
-    fn has_path(&self) -> bool {
+    pub fn has_path(&self) -> bool {
         !self.path_and_query.data.is_empty() || !self.scheme.is_none()
+    }
+
+    pub fn into_parts(self) -> (Scheme, BytesStr, PathAndQuery) {
+        (self.scheme, self.authority, self.path_and_query)
     }
 }
 
