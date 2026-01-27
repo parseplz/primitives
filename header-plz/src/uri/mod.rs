@@ -7,6 +7,15 @@ mod builder;
 pub mod path;
 pub mod scheme;
 
+/*
+
+abc://username:password@example.com:123/path/data?key=value&key2=value2#fragid1
+|-|   |-------------------------------||--------| |-------------------| |-----|
+ |                  |                       |               |              |
+scheme          authority                 path            query         fragment
+
+*/
+
 #[derive(Debug)]
 pub enum InvalidUri {
     InvalidScheme,

@@ -1,6 +1,6 @@
 use bytes::BytesMut;
 
-use crate::{FRAGMENT, QMARK, query::Query};
+use crate::{query::Query, FRAGMENT, QMARK};
 
 /*
 
@@ -183,8 +183,8 @@ mod tests {
     }
 
     #[test]
-    fn test_uri_parse_query_only_with_empty_key_and_value_and_trailing_ampersand()
-     {
+    fn test_uri_parse_query_only_with_empty_key_and_value_and_trailing_ampersand(
+    ) {
         let buf = BytesMut::from("/?=value&key=&");
         let verify = buf.as_ptr_range();
         let uri = Uri::parse(buf);

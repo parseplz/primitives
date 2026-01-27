@@ -1,8 +1,8 @@
-use std::{cmp::Ordering, fmt, hash, str::FromStr};
-
-use bytes::Bytes;
-
 use crate::{bytes_str::BytesStr, uri::InvalidUri};
+use bytes::Bytes;
+use std::{cmp::Ordering, fmt, hash, str::FromStr};
+pub mod path_mut;
+pub mod query;
 
 const NONE: u16 = u16::MAX;
 
@@ -10,7 +10,6 @@ const NONE: u16 = u16::MAX;
 pub struct PathAndQuery {
     pub(crate) data: BytesStr,
     query: u16,
-    fragment: u16,
 }
 
 impl Default for PathAndQuery {
@@ -18,17 +17,16 @@ impl Default for PathAndQuery {
         Self {
             data: BytesStr::new(),
             query: NONE,
-            fragment: NONE,
         }
     }
 }
 
 impl PathAndQuery {
-    pub fn from_shared(src: Bytes) -> Result<Self, InvalidUri> {
+    pub fn from_shared(mut src: Bytes) -> Result<Self, InvalidUri> {
         // TODO: utf8 check
         let mut iter = src.as_ref().iter().enumerate();
         let mut query = NONE;
-        let mut fragment = NONE;
+        let mut fragment = None;
         let mut is_maybe_not_utf8 = false;
 
         for (i, &b) in &mut iter {
@@ -39,7 +37,7 @@ impl PathAndQuery {
                     break;
                 }
                 b'#' => {
-                    fragment = i as u16;
+                    fragment = Some(i);
                     break;
                 }
 
@@ -95,12 +93,16 @@ impl PathAndQuery {
                     }
 
                     b'#' => {
-                        fragment = i as u16;
+                        fragment = Some(i);
                         break;
                     }
                     _ => return Err(InvalidUri::InvalidPath),
                 }
             }
+        }
+
+        if let Some(i) = fragment {
+            src.truncate(i);
         }
 
         let data = if is_maybe_not_utf8 {
@@ -112,7 +114,6 @@ impl PathAndQuery {
         Ok(PathAndQuery {
             data,
             query,
-            fragment,
         })
     }
 
@@ -165,12 +166,7 @@ impl PathAndQuery {
         if self.query == NONE {
             None
         } else {
-            let i = self.query + 1;
-            if self.fragment == NONE {
-                Some(&self.data[i as usize..])
-            } else {
-                Some(&self.data[i as usize..self.fragment as usize])
-            }
+            Some(&self.data[(self.query + 1) as usize..])
         }
     }
 

@@ -6,3 +6,8 @@ pub const HEADER_DELIMITER: &[u8; 4] = b"\r\n\r\n";
 pub const HEADER_FS: &[u8] = b": ";
 pub const LF: u8 = b'\n';
 pub const SP: u8 = b' ';
+
+pub const FRAGMENT: u8 = b'#';
+pub const QMARK: u8 = b'?';
+pub const AMBER: u8 = b'&';
+pub const EQUAL: u8 = b'=';
