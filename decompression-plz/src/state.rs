@@ -30,7 +30,18 @@ where
     DecodeStruct<'a, T>: ChunkedConverter<T::HmapType>,
 {
     pub fn init(message: &'a mut T, buf: &'a mut BytesMut) -> Self {
-        Self::Start(DecodeStruct::new(message, buf))
+        let Some(body) = message.take_body() else {
+            return Self::End;
+        };
+
+        let body = match body {
+            Body::Raw(data) => data,
+            Body::Chunked(chunks) => {
+                message.set_body(Body::Chunked(chunks));
+                buf.split()
+            }
+        };
+        Self::Start(DecodeStruct::new(body, message, buf))
     }
 
     pub fn try_next(self) -> Result<Self, MultiDecompressErrorReason> {

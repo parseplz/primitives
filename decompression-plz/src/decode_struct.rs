@@ -1,4 +1,3 @@
-use body_plz::variants::Body;
 use bytes::BytesMut;
 use header_plz::body_headers::encoding_info::EncodingInfo;
 use header_plz::body_headers::transfer_types::TransferType;
@@ -21,15 +20,12 @@ where
     T: DecompressTrait + std::fmt::Debug,
     Self: ChunkedConverter<T::HmapType>,
 {
-    pub fn new(message: &'a mut T, buf: &'a mut BytesMut) -> Self {
-        let body = match message.get_body() {
-            Body::Raw(data) => data,
-            Body::Chunked(chunks) => {
-                message.set_body(Body::Chunked(chunks));
-                buf.split()
-            }
-        };
-        let extra_body = message.get_extra_body();
+    pub fn new(
+        body: BytesMut,
+        message: &'a mut T,
+        buf: &'a mut BytesMut,
+    ) -> Self {
+        let extra_body = message.take_extra_body();
         Self {
             body,
             buf,
