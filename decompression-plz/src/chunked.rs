@@ -27,11 +27,9 @@ where
 {
     fn convert_chunked(&mut self) {
         chunked_to_raw(self.message, self.buf);
-        self.body = self
-            .message
-            .get_body()
-            .into_bytes()
-            .expect("chunked to raw| no body");
+        if let Some(body) = self.message.take_body() {
+            self.body = body.into_bytes().expect("chunked to raw| no body");
+        }
     }
 }
 
@@ -47,7 +45,11 @@ pub fn chunked_to_raw<T>(message: &mut T, buf: &mut BytesMut)
 where
     T: DecompressTrait<HmapType = OneHeader>,
 {
-    let body = message.get_body().into_chunks();
+    let body = if let Some(body) = message.take_body() {
+        body.into_chunks()
+    } else {
+        return;
+    };
     buf.reserve(total_chunk_size(&body));
     body.into_iter().for_each(|chunk| {
         match chunk {

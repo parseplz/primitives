@@ -121,7 +121,8 @@ impl<'a> DecompressionStruct<'a> {
     pub fn try_decompress_main_plus_extra(
         &mut self,
     ) -> Result<BytesMut, MultiDecompressError> {
-        let last_encoding = self.pop_last_encoding().expect("no encoding");
+        let last_encoding =
+            self.pop_last_encoding().expect("no last encoding");
         let chained = Cursor::new(self.main)
             .chain(Cursor::new(self.extra.expect("no extra")));
         let len = self.len() as u64;
