@@ -10,7 +10,7 @@ edition = "2024"
 [dependencies]
 buffer-plz = "0.0.3"
 bytes = { workspace = true }
-header-plz =  "0.0.37"
+header-plz =  "0.0.38"
 thiserror = { workspace = true }
 tracing = { workspace = true }
 
