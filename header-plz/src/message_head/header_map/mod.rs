@@ -432,7 +432,7 @@ impl From<BytesMut> for HMap<OneHeader> {
 
 impl HMap<OneHeader> {
     pub fn into_bytes(self) -> BytesMut {
-        let mut buf = self.crlf.unwrap();
+        let mut buf = self.crlf.unwrap_or(BytesMut::from(CRLF));
         for header in self.entries.into_iter().rev() {
             let mut data = header.into_bytes();
             data.unsplit(buf);

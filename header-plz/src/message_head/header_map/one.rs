@@ -50,9 +50,9 @@ impl HeaderStr for OneHeader {
     }
 
     fn value_as_str(&self) -> Option<&str> {
-        str::from_utf8(&self.value)
-            .ok()
-            .and_then(|s| s.split(str::from_utf8(CRLF).unwrap()).nth(0))
+        str::from_utf8(&self.value).ok().and_then(|s| {
+            s.split(str::from_utf8(CRLF).unwrap_or_default()).nth(0)
+        })
     }
 }
 

@@ -1,4 +1,3 @@
-#![allow(clippy::len_without_is_empty)]
 pub mod abnf;
 pub mod body_headers;
 pub mod bytes_str;
@@ -17,6 +16,7 @@ pub use version::Version;
 
 // control lines
 use message_head::info_line;
+
 // http1
 pub use info_line::one::InfoLine as OneInfoLine;
 pub use info_line::one::request::RequestLine as OneRequestLine;
