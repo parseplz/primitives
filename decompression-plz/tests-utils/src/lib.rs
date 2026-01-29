@@ -31,11 +31,11 @@ where
 {
     type HmapType = T;
 
-    fn get_body(&mut self) -> Body {
-        self.body.take().unwrap()
+    fn take_body(&mut self) -> std::option::Option<body_plz::variants::Body> {
+        self.body.take()
     }
 
-    fn get_extra_body(&mut self) -> Option<BytesMut> {
+    fn take_extra_body(&mut self) -> Option<BytesMut> {
         self.extra_body.take()
     }
 

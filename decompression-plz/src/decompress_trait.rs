@@ -9,9 +9,9 @@ pub trait DecompressTrait {
     type HmapType: Hmap + std::fmt::Debug + for<'a> From<(&'a str, &'a str)>;
 
     // Body
-    fn get_body(&mut self) -> Body;
+    fn take_body(&mut self) -> Option<Body>;
 
-    fn get_extra_body(&mut self) -> Option<BytesMut>;
+    fn take_extra_body(&mut self) -> Option<BytesMut>;
 
     fn set_body(&mut self, body: Body);
 
