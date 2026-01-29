@@ -19,3 +19,7 @@ tracing = { version = "0.1" }
 # dev
 criterion = { version = "0.6" }
 tracing-subscriber = { version = "0.3" }
+
+[workspace.lints.clippy]
+unwrap_used = "deny"
+len_without_is_empty = "allow"

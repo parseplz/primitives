@@ -25,3 +25,6 @@ tracing = { workspace = true }
 [dev-dependencies]
 tests-utils = { path = "tests-utils" }
 rstest = "0.26.1"
+
+[lints]
+workspace = true

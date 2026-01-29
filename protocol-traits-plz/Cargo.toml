@@ -10,3 +10,6 @@ edition = "2024"
 [dependencies]
 buffer-plz = "0.0.3"
 bytes = { workspace = true }
+
+[lints]
+workspace = true

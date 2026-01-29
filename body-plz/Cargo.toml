@@ -13,3 +13,6 @@ bytes = { workspace = true }
 header-plz =  "0.0.37"
 thiserror = { workspace = true }
 tracing = { workspace = true }
+
+[lints]
+workspace = true
