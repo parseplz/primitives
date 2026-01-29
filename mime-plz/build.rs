@@ -11,12 +11,12 @@ use serde_json::Value;
 const LABELS: [&str; 8] =
     ["APP", "AUDIO", "FONT", "IMAGE", "MESSAGE", "MODEL", "TEXT", "VIDEO"];
 
-fn main() {
+fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("cargo:rerun-if-changed=./artifacts/db.json");
     println!("Building mime type database");
     let file_content =
         fs::read_to_string("./artifacts/db.json").expect("error reading file");
-    let result: Value = serde_json::from_str::<Value>(&file_content).unwrap();
+    let result: Value = serde_json::from_str::<Value>(&file_content)?;
     let mut app_vec: Vec<&str> = Vec::new();
     let mut audio_vec: Vec<&str> = Vec::new();
     let mut font_vec: Vec<&str> = Vec::new();
@@ -32,31 +32,40 @@ fn main() {
             if !extension.is_null()
                 && let Value::Array(arr) = extension
             {
-                let result = arr
+                let result: Vec<&str> = arr
                     .iter()
-                    .map(|x| x.as_str().unwrap())
-                    .collect::<Vec<&str>>();
-                match entry.0.split_once('/').unwrap().0 {
-                    "application" => app_vec.extend(result),
-                    "audio" => audio_vec.extend(result),
-                    "font" => font_vec.extend(result),
-                    "image" => image_vec.extend(result),
-                    "message" => message_vec.extend(result),
-                    "model" => model_vec.extend(result),
-                    "text" => text_vec.extend(result),
-                    "video" => video_vec.extend(result),
-                    _ => (),
-                };
+                    .filter_map(|x| {
+                        let s = x.as_str();
+                        if s.is_none() {
+                            eprintln!("non-string element in array| {:?}", x);
+                        }
+                        s
+                    })
+                    .collect();
+                if let Some((category, _)) = entry.0.split_once('/') {
+                    match category {
+                        "application" => app_vec.extend(result),
+                        "audio" => audio_vec.extend(result),
+                        "font" => font_vec.extend(result),
+                        "image" => image_vec.extend(result),
+                        "message" => message_vec.extend(result),
+                        "model" => model_vec.extend(result),
+                        "text" => text_vec.extend(result),
+                        "video" => video_vec.extend(result),
+                        _ => eprintln!("Unknown MIME category: {}", category),
+                    }
+                } else {
+                    eprintln!(
+                        "Malformed MIME type (missing '/'): {}",
+                        entry.0
+                    );
+                }
             }
         }
 
         // https://github.com/jshttp/mime-db/issues/207
         // remove mp4 from application
-        let mp4_index = app_vec
-            .iter()
-            .position(|&x| x == "mp4")
-            .expect("mp4 not found in application mime types");
-        app_vec.remove(mp4_index);
+        app_vec.retain(|&x| x != "mp4");
 
         // unique across vectors
         let mut vectors = vec![
@@ -80,9 +89,12 @@ fn main() {
 
         for (label, vec) in LABELS.iter().zip(vectors.into_iter()) {
             let string = vec_to_string(label, vec);
-            write_file(label.to_lowercase().as_str(), string);
+            if let Err(e) = write_file(label.to_lowercase().as_str(), string) {
+                eprintln!("error writing file| {label}| {e}");
+            }
         }
     }
+    Ok(())
 }
 
 fn vec_to_string(content_type: &str, vec: Vec<&str>) -> String {
@@ -98,11 +110,12 @@ fn vec_to_string(content_type: &str, vec: Vec<&str>) -> String {
     ct_string
 }
 
-fn write_file(name: &str, data: String) {
+fn write_file(name: &str, data: String) -> Result<(), std::io::Error> {
     let path = format!("./src/mime_type/{name}.rs");
-    let mut file = File::create(path).unwrap();
-    file.write_all(data.as_bytes()).unwrap();
-    file.write_all("\n".as_bytes()).unwrap();
+    let mut file = File::create(path)?;
+    file.write_all(data.as_bytes())?;
+    file.write_all("\n".as_bytes())?;
+    Ok(())
 }
 
 fn unique_across_vectors(vectors: Vec<Vec<&str>>) -> Vec<Vec<&str>> {
