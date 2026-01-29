@@ -36,11 +36,11 @@ where
     pub fn try_next(self) -> Result<Self, MultiDecompressErrorReason> {
         match self {
             DecodeState::Start(mut ds) => {
-                let next_state = if ds.transfer_encoding_is_some() {
-                    let encodings = ds.get_transfer_encoding();
+                let next_state = if let Some(encodings) =
+                    ds.take_transfer_encoding()
+                {
                     Self::TransferEncoding(ds, encodings)
-                } else if ds.content_encoding_is_some() {
-                    let encodings = ds.get_content_encoding();
+                } else if let Some(encodings) = ds.take_content_encoding() {
                     Self::ContentEncoding(ds, encodings)
                 } else if ds.extra_body_is_some()
                     || ds.is_transfer_type_close()
@@ -58,32 +58,36 @@ where
                     ds.chunked_to_raw();
                     // remove chunked TE
                     // Chunked TE must be the last
-                    let last_info = encoding_infos.last_mut().unwrap();
-                    last_info.encodings_as_mut().pop();
+                    if let Some(last_info) = encoding_infos.last_mut() {
+                        last_info.encodings_as_mut().pop();
+                        if last_info.encodings().is_empty() {
+                            ds.message.remove_header_on_position(
+                                last_info.header_index,
+                            );
+                            // remove the last encoding_info
+                            encoding_infos.pop();
+                        }
+                    }
 
                     // if after removing TE it is empty, remove the header
-                    if last_info.encodings().is_empty() {
-                        ds.message
-                            .remove_header_on_position(last_info.header_index);
-                        // remove the last encoding_info
-                        encoding_infos.pop();
-                    }
                 }
                 // If only chunked was present then Vec<EncodingInfo> is empty
                 let mut next_state = if encoding_infos.is_empty() {
-                    if ds.content_encoding_is_some() {
-                        let encodings = ds.get_content_encoding();
+                    if let Some(encodings) = ds.take_content_encoding() {
                         Self::ContentEncoding(ds, encodings)
                     } else {
                         Self::UpdateContentLength(ds)
                     }
                 } else {
                     match apply_encoding(&mut ds, &mut encoding_infos) {
-                        Ok(()) if ds.content_encoding_is_some() => {
-                            let encodings = ds.get_content_encoding();
-                            Self::ContentEncoding(ds, encodings)
+                        Ok(()) => {
+                            if let Some(encodings) = ds.take_content_encoding()
+                            {
+                                Self::ContentEncoding(ds, encodings)
+                            } else {
+                                Self::UpdateContentLength(ds)
+                            }
                         }
-                        Ok(()) => Self::UpdateContentLength(ds),
                         Err(e) => Self::UpdateContentLengthAndErr(ds, e),
                     }
                 };

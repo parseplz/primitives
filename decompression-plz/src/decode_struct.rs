@@ -71,32 +71,28 @@ where
             .unwrap_or(false)
     }
 
-    pub fn get_transfer_encoding(&mut self) -> Vec<EncodingInfo> {
+    pub fn take_transfer_encoding(&mut self) -> Option<Vec<EncodingInfo>> {
         self.message
             .body_headers_as_mut()
-            .unwrap()
-            .transfer_encoding
-            .take()
-            .unwrap()
+            .and_then(|bh| bh.transfer_encoding.take())
     }
 
-    pub fn get_content_encoding(&mut self) -> Vec<EncodingInfo> {
+    pub fn take_content_encoding(&mut self) -> Option<Vec<EncodingInfo>> {
         self.message
             .body_headers_as_mut()
-            .unwrap()
-            .content_encoding
-            .take()
-            .unwrap()
+            .and_then(|bh| bh.content_encoding.take())
     }
 
     pub fn set_transfer_encoding(&mut self, te: Vec<EncodingInfo>) {
-        self.message.body_headers_as_mut().unwrap().transfer_encoding =
-            Some(te);
+        if let Some(bh) = self.message.body_headers_as_mut() {
+            bh.transfer_encoding = Some(te)
+        }
     }
 
     pub fn set_content_encoding(&mut self, ce: Vec<EncodingInfo>) {
-        self.message.body_headers_as_mut().unwrap().content_encoding =
-            Some(ce);
+        if let Some(bh) = self.message.body_headers_as_mut() {
+            bh.content_encoding = Some(ce)
+        }
     }
 
     pub fn extra_body_is_some(&self) -> bool {

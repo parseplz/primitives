@@ -33,25 +33,20 @@ impl<'a> DecompressionStruct<'a> {
         }
     }
 
-    pub fn last_encoding(&self) -> &ContentEncoding {
-        self.encoding_info.last().unwrap().encodings().last().unwrap()
+    pub fn last_encoding(&self) -> Option<&ContentEncoding> {
+        self.encoding_info.last().and_then(|einfo| einfo.encodings().last())
     }
 
-    pub fn pop_last_encoding(&mut self) -> ContentEncoding {
+    pub fn pop_last_encoding(&mut self) -> Option<ContentEncoding> {
         self.encoding_info
             .last_mut()
-            .unwrap()
-            .encodings_as_mut()
-            .pop()
-            .unwrap()
+            .and_then(|einfo| einfo.encodings_as_mut().pop())
     }
 
     pub fn push_last_encoding(&mut self, encoding: ContentEncoding) {
-        self.encoding_info
-            .last_mut()
-            .unwrap()
-            .encodings_as_mut()
-            .push(encoding);
+        if let Some(einfo) = self.encoding_info.last_mut() {
+            einfo.encodings_as_mut().push(encoding)
+        }
     }
 
     pub fn is_encodings_empty(&self) -> bool {
@@ -77,31 +72,37 @@ impl<'a> DecompressionStruct<'a> {
      *          - (0, 1)
      */
     pub fn last_header_compression_index(&self) -> (usize, usize) {
-        let (last, _) = self.encoding_info.split_last().unwrap();
-        if last.encodings().is_empty() {
-            (1, 0)
-        } else {
-            (0, 1)
+        if let Some((last, _)) = self.encoding_info.split_last()
+            && last.encodings().is_empty()
+        {
+            return (1, 0);
         }
+        (0, 1)
     }
 
     pub fn clear_buf(&mut self) {
         self.writer.get_mut().clear();
     }
 
-    pub fn extra(&self) -> &[u8] {
-        self.extra.as_ref().unwrap()
+    pub fn extra(&self) -> Option<&[u8]> {
+        self.extra
     }
 
     pub fn is_extra_compressed(&self) -> bool {
-        is_compressed(self.extra(), self.last_encoding())
+        if let Some(encoding) = self.last_encoding()
+            && let Some(extra) = self.extra()
+        {
+            is_compressed(extra, encoding)
+        } else {
+            false
+        }
     }
 
     pub fn try_decompress_extra(
         &mut self,
     ) -> Result<BytesMut, MultiDecompressError> {
         decompress_multi(
-            self.extra.as_ref().unwrap(),
+            self.extra.as_ref().expect("no extra"),
             &mut self.writer,
             &mut self.encoding_info.iter(),
         )
@@ -120,9 +121,9 @@ impl<'a> DecompressionStruct<'a> {
     pub fn try_decompress_main_plus_extra(
         &mut self,
     ) -> Result<BytesMut, MultiDecompressError> {
-        let last_encoding = self.pop_last_encoding();
-        let chained =
-            Cursor::new(self.main).chain(Cursor::new(self.extra.unwrap()));
+        let last_encoding = self.pop_last_encoding().expect("no encoding");
+        let chained = Cursor::new(self.main)
+            .chain(Cursor::new(self.extra.expect("no extra")));
         let len = self.len() as u64;
         let result = Self::try_decompress_chain_first(
             chained,
@@ -216,8 +217,8 @@ mod tests {
             &mut encoding_info,
             (&mut buf).writer(),
         );
-        assert_eq!(d.last_encoding(), &expected_last,);
-        assert_eq!(d.pop_last_encoding(), expected_last,);
+        assert_eq!(d.last_encoding().unwrap(), &expected_last,);
+        assert_eq!(d.pop_last_encoding().unwrap(), expected_last,);
     }
 
     #[test]
