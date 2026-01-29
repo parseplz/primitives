@@ -12,7 +12,7 @@ pub enum ChunkType {
 }
 
 impl ChunkType {
-    fn len(&self) -> usize {
+    pub fn len(&self) -> usize {
         match self {
             ChunkType::Size(buf) | ChunkType::Chunk(buf) => buf.len(),
             ChunkType::LastChunk(_) => 3,
