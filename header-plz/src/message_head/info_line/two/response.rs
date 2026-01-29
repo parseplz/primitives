@@ -8,7 +8,7 @@ pub struct ResponseLine {
 impl Default for ResponseLine {
     fn default() -> Self {
         Self {
-            status: StatusCode::from_u16(200).unwrap(),
+            status: StatusCode::OK,
         }
     }
 }
