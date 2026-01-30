@@ -18,6 +18,50 @@ impl Scheme {
     pub const HTTPS: Scheme = Scheme::Standard(Protocol::Https);
     pub const EMPTY: Scheme = Scheme::None;
 
+    pub fn parse(s: &[u8]) -> Scheme<usize> {
+        if s.len() >= 7 {
+            // Check for HTTP
+            if s[..7].eq_ignore_ascii_case(b"http://") {
+                // Prefix will be striped
+                return Protocol::Http.into();
+            }
+        }
+
+        if s.len() >= 8 {
+            // Check for HTTPs
+            if s[..8].eq_ignore_ascii_case(b"https://") {
+                return Protocol::Https.into();
+            }
+        }
+
+        if s.len() > 3 {
+            for i in 0..s.len() {
+                let b = s[i];
+
+                match b {
+                    b':' => {
+                        // Not enough data remaining
+                        if s.len() < i + 3 {
+                            break;
+                        }
+
+                        // Not a scheme
+                        if &s[i + 1..i + 3] != b"//" {
+                            break;
+                        }
+
+                        // Return scheme
+                        return Scheme::Other(i);
+                    }
+                    // Invalid scheme character, abort
+                    0 => break,
+                    _ => {}
+                }
+            }
+        }
+        Scheme::None
+    }
+
     pub fn parse_exact(value: &[u8]) -> Self {
         match value {
             b"http" => Protocol::Http.into(),
@@ -124,7 +168,7 @@ impl Protocol {
     }
 }
 
-impl From<Protocol> for Scheme {
+impl<T> From<Protocol> for Scheme<T> {
     fn from(src: Protocol) -> Self {
         Scheme::Standard(src)
     }
