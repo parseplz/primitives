@@ -1,12 +1,13 @@
 use std::borrow::Cow;
 use std::str::{self};
 
-use bytes::BytesMut;
+use bytes::{BufMut, BytesMut};
 
 use super::{InfoLine, InfoLineError};
 use crate::abnf::SP;
 use crate::uri::InvalidUri;
 use crate::uri::path::PathAndQuery;
+use crate::{Method, Version};
 
 // Request Info Line
 #[derive(Debug, PartialEq)]
@@ -14,6 +15,21 @@ pub struct RequestLine {
     method: BytesMut,  // Method + Space
     uri: BytesMut,     //  Uri
     version: BytesMut, // Space + Version + CRLF
+}
+
+impl Default for RequestLine {
+    fn default() -> Self {
+        let mut method = BytesMut::with_capacity(4);
+        method.put_slice(Method::GET.as_ref());
+        method.put_u8(SP);
+        let uri = BytesMut::from("/");
+        let version = BytesMut::from(Version::H11.for_request_line());
+        Self {
+            method,
+            uri,
+            version,
+        }
+    }
 }
 
 /* Steps:
@@ -102,6 +118,13 @@ impl RequestLine {
 mod tests {
     use super::*;
     use std::error::Error;
+
+    #[test]
+    fn test_request_default() {
+        let verify = RequestLine::default().into_bytes();
+        let expected = "GET / HTTP/1.1\r\n";
+        assert_eq!(verify, expected);
+    }
 
     #[test]
     fn test_infoline_request_basic() -> Result<(), Box<dyn Error>> {

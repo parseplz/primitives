@@ -1,6 +1,9 @@
 use bytes::BytesMut;
 
-use crate::status::{InvalidStatusCode, StatusCode};
+use crate::{
+    Version,
+    status::{InvalidStatusCode, StatusCode},
+};
 
 use super::{InfoLine, InfoLineError};
 
@@ -12,12 +15,24 @@ pub struct ResponseLine {
     reason: BytesMut,  // space + Reason + CRLF
 }
 
+impl Default for ResponseLine {
+    fn default() -> Self {
+        let version = BytesMut::from(Version::H11.for_response_line());
+        let status = BytesMut::from("200");
+        let reason = BytesMut::from(" OK\r\n");
+        Self {
+            version,
+            status,
+            reason,
+        }
+    }
+}
+
 /* Steps:
  *      1. For http/1.1 | http/1.0  => version = len(http/1.*) + space + 1 = 9
  *      2. Status code is always 3 digits
  *      3. Remainder is reason + CRLF
  */
-
 impl InfoLine for ResponseLine {
     fn try_build_infoline(
         mut data: BytesMut,
@@ -71,6 +86,13 @@ impl ResponseLine {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn test_response_default() {
+        let verify = ResponseLine::default().into_bytes();
+        let expected = "HTTP/1.1 200 OK\r\n";
+        assert_eq!(verify, expected);
+    }
 
     #[test]
     fn test_infoline_response_oneone() {
