@@ -17,21 +17,6 @@ pub struct RequestLine {
     version: BytesMut, // Space + Version + CRLF
 }
 
-impl Default for RequestLine {
-    fn default() -> Self {
-        let mut method = BytesMut::with_capacity(4);
-        method.put_slice(Method::GET.as_ref());
-        method.put_u8(SP);
-        let uri = BytesMut::from("/");
-        let version = BytesMut::from(Version::H11.for_request_line());
-        Self {
-            method,
-            uri,
-            version,
-        }
-    }
-}
-
 /* Steps:
  *      1. Find first OWS
  *      2. Call split_to(index)
@@ -84,29 +69,32 @@ impl RequestLine {
         }
     }
 
-    pub fn method(&self) -> &[u8] {
+    pub fn method_bytes(&self) -> &[u8] {
         self.method.trim_ascii_end()
     }
 
-    pub fn method_raw(&self) -> &BytesMut {
-        &self.method
+    pub fn method_enum(&self) -> Method {
+        Method::from(self.method_bytes())
     }
 
-    pub fn set_method_raw(&mut self, method: BytesMut) {
-        self.method = method;
+    pub fn set_method(&mut self, method: Method) {
+        self.method.clear();
+        self.method.extend_from_slice(method.as_str().as_bytes());
+        self.method.put_u8(SP);
     }
 
     // Uri Related
-    pub fn uri_as_mut(&mut self) -> &mut BytesMut {
-        &mut self.uri
+    pub fn set_uri(&mut self, uri: &[u8]) {
+        self.uri.clear();
+        self.uri.extend_from_slice(uri);
     }
 
     pub fn uri_as_string(&self) -> Cow<'_, str> {
         String::from_utf8_lossy(&self.uri)
     }
 
-    pub fn uri(&self) -> Result<PathAndQuery, InvalidUri> {
-        PathAndQuery::try_from(self.uri.as_ref())
+    pub fn uri(&self) -> Result<Uri, InvalidUri> {
+        Uri::try_from(self.uri.as_ref())
     }
 
     pub fn into_parts(self) -> (BytesMut, BytesMut, BytesMut) {
@@ -118,13 +106,6 @@ impl RequestLine {
 mod tests {
     use super::*;
     use std::error::Error;
-
-    #[test]
-    fn test_request_default() {
-        let verify = RequestLine::default().into_bytes();
-        let expected = "GET / HTTP/1.1\r\n";
-        assert_eq!(verify, expected);
-    }
 
     #[test]
     fn test_infoline_request_basic() -> Result<(), Box<dyn Error>> {
