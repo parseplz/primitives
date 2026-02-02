@@ -6,8 +6,7 @@ use bytes::{BufMut, BytesMut};
 use super::{InfoLine, InfoLineError};
 use crate::abnf::SP;
 use crate::uri::InvalidUri;
-use crate::uri::path::PathAndQuery;
-use crate::{Method, Version};
+use crate::{Method, Uri, Version};
 
 // Request Info Line
 #[derive(Debug, PartialEq)]
@@ -102,9 +101,29 @@ impl RequestLine {
     }
 }
 
+impl From<(Method, &Uri, Version)> for RequestLine {
+    fn from((method, uri, version): (Method, &Uri, Version)) -> Self {
+        let mut method_bytes = BytesMut::with_capacity(method.len() + 1);
+        method_bytes.extend_from_slice(method.as_ref());
+        method_bytes.put_u8(b' ');
+        RequestLine::new(
+            method_bytes,
+            uri.path_and_query().as_str().into(),
+            version.for_request_line().into(),
+        )
+    }
+}
+
+impl From<(Method, &Uri)> for RequestLine {
+    fn from((method, uri): (Method, &Uri)) -> Self {
+        RequestLine::from((method, uri, Version::H11))
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::uri::path::PathAndQuery;
     use std::error::Error;
 
     #[test]
@@ -114,7 +133,7 @@ mod tests {
         let verify = buf[0..20].to_owned();
         let verify_ptr = buf[0..20].as_ptr_range();
         let request = RequestLine::try_build_infoline(buf)?;
-        assert_eq!(request.method(), b"GET");
+        assert_eq!(request.method_bytes(), b"GET");
         assert_eq!(request.uri_as_string(), "/echo");
         assert_eq!(request.version, " HTTP/1.1\r\n");
         let toverify = request.into_bytes();
@@ -192,8 +211,60 @@ mod tests {
         let buf = BytesMut::from(req);
         let info_line = RequestLine::try_build_infoline(buf).unwrap();
         let uri = info_line.uri().unwrap();
-        let query = uri.query().unwrap();
+        let query = uri.path_and_query().query().unwrap();
         assert_eq!("param=value&param2=value2", query);
+    }
+
+    #[test]
+    fn test_one_request_set_method() {
+        let input = "GET / HTTP/1.1\r\n";
+        let mut line = RequestLine::try_build_infoline(input.into()).unwrap();
+        line.set_method(Method::POST);
+        assert_eq!(line.method_bytes(), b"POST");
+        assert_eq!(line.method_enum(), Method::POST);
+    }
+
+    #[test]
+    fn test_one_request_uri() {
+        let input = "GET / HTTP/1.1\r\n";
+        let mut line = RequestLine::try_build_infoline(input.into()).unwrap();
+        let uri = b"/dead_end";
+        line.set_uri(uri);
+        let verify = "GET /dead_end HTTP/1.1\r\n";
+        assert_eq!(line.into_bytes(), verify);
+    }
+
+    #[test]
+    fn test_one_request_line_from_method_uri() {
+        let uri = Uri::builder().path("/foo?a=1&b=2#23").build().unwrap();
+        let line = RequestLine::from((Method::GET, &uri, Version::H11));
+        let input = "GET /foo?a=1&b=2 HTTP/1.1\r\n";
+        let verify = RequestLine::try_build_infoline(input.into()).unwrap();
+        assert_eq!(line, verify);
+    }
+
+    #[test]
+    fn test_build_one_request_line_minimal() {
+        let uri = Uri::default();
+        let line = RequestLine::from((Method::GET, &uri, Version::H2));
+        let input = "GET / HTTP/2\r\n";
+        let verify = RequestLine::try_build_infoline(input.into()).unwrap();
+        assert_eq!(line, verify);
+    }
+
+    #[test]
+    fn test_build_one_request_line_encoded_query() {
+        let method = Method::GET;
+        let path = PathAndQuery::from_shared(
+            "/search?q=hello%20world&lang=en".into(),
+        )
+        .unwrap();
+        let uri = Uri::builder().path(path).build().unwrap();
+        let line = RequestLine::from((method, &uri, Version::H3));
+
+        let input = "GET /search?q=hello%20world&lang=en HTTP/3\r\n";
+        let verify = RequestLine::try_build_infoline(input.into()).unwrap();
+        assert_eq!(line, verify);
     }
 
     /*
