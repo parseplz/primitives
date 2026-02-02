@@ -15,19 +15,6 @@ pub struct ResponseLine {
     reason: BytesMut,  // space + Reason + CRLF
 }
 
-impl Default for ResponseLine {
-    fn default() -> Self {
-        let version = BytesMut::from(Version::H11.for_response_line());
-        let status = BytesMut::from("200");
-        let reason = BytesMut::from(" OK\r\n");
-        Self {
-            version,
-            status,
-            reason,
-        }
-    }
-}
-
 /* Steps:
  *      1. For http/1.1 | http/1.0  => version = len(http/1.*) + space + 1 = 9
  *      2. Status code is always 3 digits
