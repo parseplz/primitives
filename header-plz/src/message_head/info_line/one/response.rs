@@ -1,7 +1,8 @@
-use bytes::BytesMut;
+use bytes::{BufMut, BytesMut};
 
 use crate::{
     Version,
+    abnf::CRLF,
     status::{InvalidStatusCode, StatusCode},
 };
 
@@ -70,14 +71,52 @@ impl ResponseLine {
     }
 }
 
+impl From<(StatusCode, Version)> for ResponseLine {
+    fn from((status, version): (StatusCode, Version)) -> Self {
+        let version = BytesMut::from(version.for_response_line());
+        let reason_str =
+            StatusCode::canonical_reason(&status).unwrap_or_default();
+        let mut reason = BytesMut::with_capacity(1 + reason_str.len() + 2);
+        reason.put_u8(b' ');
+        reason.extend_from_slice(reason_str.as_bytes());
+        reason.extend_from_slice(CRLF.as_ref());
+
+        let status = status.as_str().into();
+
+        Self {
+            version,
+            reason,
+            status,
+        }
+    }
+}
+
+impl From<StatusCode> for ResponseLine {
+    fn from(status: StatusCode) -> Self {
+        Self::from((status, Version::H11))
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
 
     #[test]
-    fn test_response_default() {
-        let verify = ResponseLine::default().into_bytes();
+    fn test_from_status_code_for_response_line() {
+        let status = StatusCode::OK;
+        let response = ResponseLine::from(status);
+        let verify = response.into_bytes();
         let expected = "HTTP/1.1 200 OK\r\n";
+        assert_eq!(verify, expected);
+    }
+
+    #[test]
+    fn test_from_status_code_and_version_for_response_line() {
+        let status = StatusCode::OK;
+        let version = Version::H2;
+        let response = ResponseLine::from((status, version));
+        let verify = response.into_bytes();
+        let expected = "HTTP/2 200 OK\r\n";
         assert_eq!(verify, expected);
     }
 
