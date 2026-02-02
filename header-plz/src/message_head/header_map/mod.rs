@@ -48,12 +48,17 @@ pub struct HMap<T> {
     crlf: Option<BytesMut>,
 }
 
-impl<T> Default for HMap<T>
-where
-    T: Hmap + std::fmt::Debug,
-{
+impl Default for HeaderMap {
     fn default() -> Self {
         Self::new()
+    }
+}
+
+impl Default for OneHeaderMap {
+    fn default() -> Self {
+        let mut s = Self::new();
+        s.crlf = Some(CRLF.into());
+        s
     }
 }
 
@@ -432,7 +437,7 @@ impl From<BytesMut> for HMap<OneHeader> {
 
 impl HMap<OneHeader> {
     pub fn into_bytes(self) -> BytesMut {
-        let mut buf = self.crlf.unwrap_or(BytesMut::from(CRLF));
+        let mut buf = self.crlf.unwrap_or(CRLF.into());
         for header in self.entries.into_iter().rev() {
             let mut data = header.into_bytes();
             data.unsplit(buf);

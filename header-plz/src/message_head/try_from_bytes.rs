@@ -52,7 +52,7 @@ mod tests {
         let buf = BytesMut::from(input);
         let org = buf.as_ptr_range();
         let result = OneMessageHead::<OneRequestLine>::try_from(buf).unwrap();
-        assert_eq!(result.info_line.method(), b"GET");
+        assert_eq!(result.info_line.method_bytes(), b"GET");
         assert_eq!(result.info_line.uri_as_string(), "/");
         let verify = result.into_bytes();
         assert_eq!(verify, input);
