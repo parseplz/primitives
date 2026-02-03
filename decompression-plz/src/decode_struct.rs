@@ -38,7 +38,6 @@ where
         self.convert_chunked();
     }
 
-    // TODO: implement new method in BodyHeader
     pub fn is_chunked_te(&self) -> bool {
         self.message
             .body_headers()

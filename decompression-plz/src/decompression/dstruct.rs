@@ -463,8 +463,6 @@ mod tests {
 
             let err = ds.try_decompress_main_plus_extra().unwrap_err();
             assert_eq!(err.reason, MultiDecompressErrorReason::Corrupt);
-            // TODO: FIX test
-            // matches!(err.error, assert_error);
             assert!(!ds.writer.get_ref().is_empty());
             assert_eq!(ds.encoding_info, original_info);
         }
