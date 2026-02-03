@@ -68,6 +68,11 @@ impl ResponseLine {
     pub fn into_parts(self) -> (BytesMut, BytesMut, BytesMut) {
         (self.version, self.status, self.reason)
     }
+
+    pub fn set_status(&mut self, status: u16) {
+        self.status.clear();
+        self.status.extend_from_slice(status.to_string().as_bytes());
+    }
 }
 
 impl From<(StatusCode, Version)> for ResponseLine {
@@ -163,5 +168,15 @@ mod tests {
         let buf = BytesMut::from(response);
         let response = ResponseLine::try_build_infoline(buf).unwrap();
         assert!(!response.is_ws_handshake().unwrap());
+    }
+
+    #[test]
+    fn test_infoline_response_set_status() {
+        let response = "HTTP/1.1 200 OK\r\n";
+        let buf = BytesMut::from(response);
+        let mut response = ResponseLine::try_build_infoline(buf).unwrap();
+        response.set_status(300);
+        let expected = "HTTP/1.1 300 OK\r\n";
+        assert_eq!(expected, response.into_bytes());
     }
 }
