@@ -45,11 +45,11 @@ where
         &self.header_map
     }
 
-    pub fn infoline(&self) -> &T {
+    pub fn info_line(&self) -> &T {
         &self.info_line
     }
 
-    pub fn infoline_as_mut(&mut self) -> &mut T {
+    pub fn info_line_as_mut(&mut self) -> &mut T {
         &mut self.info_line
     }
 

@@ -14,13 +14,13 @@ pub trait ParseBodyHeaders {
 
 impl ParseBodyHeaders for OneMessageHead<OneRequestLine> {
     fn parse_body_headers(&self) -> Option<BodyHeader> {
-        parse_body_headers_request(self.infoline(), self.header_map())
+        parse_body_headers_request(self.info_line(), self.header_map())
     }
 }
 
 impl ParseBodyHeaders for OneMessageHead<OneResponseLine> {
     fn parse_body_headers(&self) -> Option<BodyHeader> {
-        parse_body_headers_response(self.infoline(), self.header_map())
+        parse_body_headers_response(self.info_line(), self.header_map())
     }
 }
 

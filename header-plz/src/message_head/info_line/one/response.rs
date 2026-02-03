@@ -17,7 +17,7 @@ pub struct ResponseLine {
 }
 
 /* Steps:
- *      1. For http/1.1 | http/1.0  => version = len(http/1.*) + space + 1 = 9
+ *      1. For http/1.1 | http/1.0 | http/0.9  => version = len(http/1.*) + space + 1 = 9
  *      2. Status code is always 3 digits
  *      3. Remainder is reason + CRLF
  */
@@ -29,7 +29,6 @@ impl InfoLine for ResponseLine {
         let index = if data[5] == 49 {
             9
         } else {
-            // TODO: Add Checks for http/2 and http/3
             7
         };
         let version = data.split_to(index);
