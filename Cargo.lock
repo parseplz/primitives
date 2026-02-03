@@ -58,13 +58,11 @@ checksum = "1b8e56985ec62d17e9c1001dc89c88ecd7dc08e47eba5ec7c29c7b5eeecde967"
 
 [[package]]
 name = "body-plz"
-version = "0.0.44"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b3558a11b45166638b389df8411c3a9875c07e940d496794db63c18863dd4abb"
+version = "0.0.45"
 dependencies = [
  "buffer-plz 0.0.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "bytes",
- "header-plz 0.0.40",
+ "header-plz 0.0.41 (registry+https://github.com/rust-lang/crates.io-index)",
  "thiserror",
  "tracing",
 ]
@@ -72,6 +70,8 @@ dependencies = [
 [[package]]
 name = "body-plz"
 version = "0.0.45"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1c79347045232ee1e9e9a3782697ffcd5230c7b5b925ee99bdd2fb18dcde9f3c"
 dependencies = [
  "buffer-plz 0.0.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "bytes",
@@ -281,11 +281,11 @@ checksum = "460fbee9c2c2f33933d720630a6a0bac33ba7053db5344fac858d4b8952d77d5"
 name = "decompression-plz"
 version = "0.0.22"
 dependencies = [
- "body-plz 0.0.44",
+ "body-plz 0.0.45 (registry+https://github.com/rust-lang/crates.io-index)",
  "brotli",
  "bytes",
  "flate2",
- "header-plz 0.0.40",
+ "header-plz 0.0.41 (registry+https://github.com/rust-lang/crates.io-index)",
  "rstest",
  "tests-utils",
  "thiserror",
@@ -391,20 +391,6 @@ name = "hashbrown"
 version = "0.16.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "841d1cc9bed7f9236f321df977030373f4a4163ae1a7dbfe1a51a2c1a51d9100"
-
-[[package]]
-name = "header-plz"
-version = "0.0.40"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9290e5c631ee8899934852d4713dfd9f627db9bb888f28762ba9968d6c93456f"
-dependencies = [
- "buffer-plz 0.0.3 (registry+https://github.com/rust-lang/crates.io-index)",
- "bytes",
- "mime-plz 0.0.2 (registry+https://github.com/rust-lang/crates.io-index)",
- "percent-encoding",
- "thiserror",
- "tracing",
-]
 
 [[package]]
 name = "header-plz"
@@ -844,12 +830,12 @@ dependencies = [
 name = "tests-utils"
 version = "0.1.0"
 dependencies = [
- "body-plz 0.0.44",
+ "body-plz 0.0.45 (registry+https://github.com/rust-lang/crates.io-index)",
  "brotli",
  "bytes",
  "decompression-plz",
  "flate2",
- "header-plz 0.0.40",
+ "header-plz 0.0.41 (registry+https://github.com/rust-lang/crates.io-index)",
  "zstd",
 ]
 
