@@ -49,11 +49,11 @@ where
         &self.info_line
     }
 
-    pub fn info_line_as_mut(&mut self) -> &mut T {
+    pub fn info_line_mut(&mut self) -> &mut T {
         &mut self.info_line
     }
 
-    pub fn header_map_as_mut(&mut self) -> &mut OneHeaderMap {
+    pub fn header_map_mut(&mut self) -> &mut OneHeaderMap {
         &mut self.header_map
     }
 }
