@@ -62,7 +62,7 @@ impl Method {
 impl From<&[u8]> for Method {
     fn from(src: &[u8]) -> Method {
         match src.len() {
-            0 => todo!(),
+            0 => Method::UNKNOWN(Box::new(Bytes::new())),
             3 => match src {
                 GET => Method::GET,
                 PUT => Method::PUT,
