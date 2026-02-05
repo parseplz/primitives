@@ -1,5 +1,5 @@
 use buffer_plz::Cursor;
-use bytes::BytesMut;
+use bytes::{Buf, BytesMut};
 
 use crate::{
     abnf::HEADER_DELIMITER,
@@ -56,6 +56,10 @@ where
     pub fn header_map_mut(&mut self) -> &mut OneHeaderMap {
         &mut self.header_map
     }
+
+    pub fn as_chain(&self) -> impl Buf {
+        self.info_line().as_chain().chain(self.header_map.as_chain())
+    }
 }
 
 impl<I, H> MessageHead<I, H> {
@@ -93,6 +97,8 @@ impl MessageHead<(), ()> {
 #[cfg(test)]
 mod tests {
     use bytes::BytesMut;
+
+    use crate::{OneRequestLine, OneResponseLine};
 
     use super::*;
 
@@ -137,5 +143,36 @@ mod tests {
         status = MessageHead::is_complete(&mut cur);
         assert!(status);
         assert_eq!(cur.position(), cur.as_ref().len());
+    }
+
+    #[test]
+    fn test_message_head_req_chain() {
+        let input = "GET / HTTP/1.1\r\n\
+                       Host: localhost\r\n\
+                       Accept: text/html\r\n\
+                       Accept-Language: en-US,en;q=0.5\r\n\
+                       Accept-Encoding: gzip, deflate\r\n\
+                       User-Agent: curl/7.29.0\r\n\
+                       Connection: keep-alive\r\n\r\n";
+        let buf = BytesMut::from(input);
+        let msg_head =
+            OneMessageHead::<OneRequestLine>::try_from(buf).unwrap();
+        let mut chain = msg_head.as_chain();
+        let verify = chain.copy_to_bytes(chain.remaining());
+        assert_eq!(verify, input);
+    }
+
+    #[test]
+    fn test_message_head_res_chain() {
+        let input = "HTTP/1.1 200 OK\r\n\
+                        Host: localhost\r\n\
+                        Content-Type: text/plain\r\n\
+                        Content-Length: 12\r\n\r\n";
+        let buf = BytesMut::from(input);
+        let msg_head =
+            OneMessageHead::<OneResponseLine>::try_from(buf).unwrap();
+        let mut chain = msg_head.as_chain();
+        let verify = chain.copy_to_bytes(chain.remaining());
+        assert_eq!(verify, input);
     }
 }

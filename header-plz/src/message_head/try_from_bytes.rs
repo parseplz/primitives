@@ -44,7 +44,7 @@ mod tests {
     fn test_message_head_request_try_from() {
         let input = "GET / HTTP/1.1\r\n\
                        Host: localhost\r\n\
-                       Accept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8\r\n\
+                       Accept: text/html\r\n\
                        Accept-Language: en-US,en;q=0.5\r\n\
                        Accept-Encoding: gzip, deflate\r\n\
                        User-Agent: curl/7.29.0\r\n\
