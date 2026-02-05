@@ -12,3 +12,12 @@ pub enum MessageHeadError {
     #[error("infoline| {0}")]
     ParseInfoLine(#[from] InfoLineError),
 }
+
+impl MessageHeadError {
+    pub fn into_bytes(self) -> BytesMut {
+        match self {
+            MessageHeadError::NoInfoLine(buf) => buf,
+            MessageHeadError::ParseInfoLine(e) => e.into_bytes(),
+        }
+    }
+}

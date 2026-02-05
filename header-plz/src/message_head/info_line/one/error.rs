@@ -25,6 +25,10 @@ impl InfoLineError {
             error: InfoLineErrorKind::SecondOws,
         }
     }
+
+    pub fn into_bytes(self) -> BytesMut {
+        self.bytes
+    }
 }
 
 #[cfg_attr(any(test, debug_assertions), derive(PartialEq))]
