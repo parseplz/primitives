@@ -1,7 +1,7 @@
 use super::MessageHead;
 use crate::{
     OneMessageHead,
-    error::HeaderReadError,
+    error::MessageHeadError,
     message_head::{OneHeaderMap, info_line::one::InfoLine},
 };
 use bytes::BytesMut;
@@ -20,17 +20,15 @@ impl<T> TryFrom<BytesMut> for OneMessageHead<T>
 where
     T: InfoLine,
 {
-    type Error = HeaderReadError;
+    type Error = MessageHeadError;
 
-    fn try_from(mut data: BytesMut) -> Result<Self, HeaderReadError> {
+    fn try_from(mut data: BytesMut) -> Result<Self, MessageHeadError> {
         if let Some(infoline_index) = data.iter().position(|&x| x == 13) {
             let raw = data.split_to(infoline_index + 2);
             let info_line = T::try_build_infoline(raw)?;
             return Ok(MessageHead::new(info_line, OneHeaderMap::from(data)));
         }
-        Err(HeaderReadError::HeaderStruct(
-            String::from_utf8_lossy(&data).to_string(),
-        ))
+        Err(MessageHeadError::NoInfoLine(data))
     }
 }
 
@@ -80,7 +78,7 @@ mod tests {
         let buf = BytesMut::from(input);
         let result = OneMessageHead::<OneRequestLine>::try_from(buf);
         if let Err(e) = result {
-            let err = HeaderReadError::HeaderStruct(input.to_string());
+            let err = MessageHeadError::NoInfoLine(input.into());
             assert_eq!(e, err);
         } else {
             panic!("Expected error");
