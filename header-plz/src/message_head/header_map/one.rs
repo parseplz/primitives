@@ -1,3 +1,5 @@
+use bytes::Buf;
+use bytes::buf::Chain;
 use bytes::{BufMut, Bytes, BytesMut};
 
 use crate::{
@@ -39,6 +41,10 @@ impl OneHeader {
 
     pub fn value_len(&self) -> usize {
         self.value.len()
+    }
+
+    pub fn as_chain(&self) -> Chain<&[u8], &[u8]> {
+        self.key[..].chain(&self.value[..])
     }
 }
 
@@ -239,8 +245,11 @@ mod tests {
             key: BytesMut::from("content-type: "),
             value: BytesMut::from("application/json\r\n"),
         };
-
         assert_eq!(header, expected);
+        let mut chain = expected.as_chain();
+        let verify = chain.copy_to_bytes(chain.remaining());
+        drop(chain);
+        assert_eq!(verify, expected.into_bytes());
     }
 
     #[test]
@@ -251,22 +260,27 @@ mod tests {
             key: BytesMut::from("content-type: "),
             value: BytesMut::from("application/json\r\n"),
         };
-
         assert_eq!(header, expected);
+        let mut chain = expected.as_chain();
+        let verify = chain.copy_to_bytes(chain.remaining());
+        drop(chain);
+        assert_eq!(verify, expected.into_bytes());
     }
 
     #[test]
     fn test_one_header_from_tuple() {
         let key = "Content-Type";
         let value = "application/json";
-
         let header: OneHeader = (key, value).into();
         let expected = OneHeader {
             key: BytesMut::from("Content-Type: "),
             value: BytesMut::from("application/json\r\n"),
         };
-
         assert_eq!(header, expected);
+        let mut chain = expected.as_chain();
+        let verify = chain.copy_to_bytes(chain.remaining());
+        drop(chain);
+        assert_eq!(verify, expected.into_bytes());
     }
 
     #[test]
@@ -278,6 +292,10 @@ mod tests {
             value: BytesMut::from("application/json\r\n"),
         };
         assert_eq!(header, expected);
+        let mut chain = expected.as_chain();
+        let verify = chain.copy_to_bytes(chain.remaining());
+        drop(chain);
+        assert_eq!(verify, expected.into_bytes());
     }
 
     #[test]
@@ -289,6 +307,10 @@ mod tests {
             value: BytesMut::from(CRLF),
         };
         assert_eq!(header, expected);
+        let mut chain = expected.as_chain();
+        let verify = chain.copy_to_bytes(chain.remaining());
+        drop(chain);
+        assert_eq!(verify, expected.into_bytes());
     }
 
     #[test]
@@ -300,6 +322,10 @@ mod tests {
             value: BytesMut::from("application/json\r\n"),
         };
         assert_eq!(header, expected);
+        let mut chain = expected.as_chain();
+        let verify = chain.copy_to_bytes(chain.remaining());
+        drop(chain);
+        assert_eq!(verify, expected.into_bytes());
     }
 
     #[test]
@@ -326,7 +352,12 @@ mod tests {
         assert_eq!(&header.value[..], b"application/json\r\n");
         assert_eq!(header.key_as_ref(), b"content-type");
         assert_eq!(header.value_as_ref(), b"application/json");
-        assert_eq!(verify_ptr, header.into_bytes().as_ptr_range());
+        let mut chain = header.as_chain();
+        let verify = chain.copy_to_bytes(chain.remaining());
+        drop(chain);
+        let toverify = header.into_bytes();
+        assert_eq!(verify, toverify);
+        assert_eq!(verify_ptr, toverify.as_ptr_range());
     }
 
     #[test]
@@ -338,7 +369,12 @@ mod tests {
         assert_eq!(&header.value[..], b"application/json\r\n");
         assert_eq!(header.key_as_ref(), b"content-type");
         assert_eq!(header.value_as_ref(), b"application/json");
-        assert_eq!(verify_ptr, header.into_bytes().as_ptr_range());
+        let mut chain = header.as_chain();
+        let verify = chain.copy_to_bytes(chain.remaining());
+        drop(chain);
+        let toverify = header.into_bytes();
+        assert_eq!(verify, toverify);
+        assert_eq!(verify_ptr, toverify.as_ptr_range());
     }
 
     #[test]
@@ -350,7 +386,12 @@ mod tests {
         assert_eq!(&header.value[..], b"\r\n");
         assert_eq!(header.key_as_ref(), b"");
         assert_eq!(header.value_as_ref(), b"");
-        assert_eq!(verify_ptr, header.into_bytes().as_ptr_range());
+        let mut chain = header.as_chain();
+        let verify = chain.copy_to_bytes(chain.remaining());
+        drop(chain);
+        let toverify = header.into_bytes();
+        assert_eq!(verify, toverify);
+        assert_eq!(verify_ptr, toverify.as_ptr_range());
     }
 
     #[test]
