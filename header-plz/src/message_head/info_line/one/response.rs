@@ -1,4 +1,4 @@
-use bytes::{BufMut, BytesMut};
+use bytes::{Buf, BufMut, BytesMut};
 
 use crate::{
     Version,
@@ -45,6 +45,10 @@ impl InfoLine for ResponseLine {
         self.status.unsplit(self.reason);
         self.version.unsplit(self.status);
         self.version
+    }
+
+    fn as_chain(&self) -> impl Buf {
+        (self.version[..].chain(&self.status[..])).chain(&self.reason[..])
     }
 }
 
@@ -107,20 +111,28 @@ mod tests {
 
     #[test]
     fn test_from_status_code_for_response_line() {
+        let expected = "HTTP/1.1 200 OK\r\n";
         let status = StatusCode::OK;
         let response = ResponseLine::from(status);
+        let mut chain = response.as_chain();
+        let result = chain.copy_to_bytes(chain.remaining());
+        drop(chain);
         let verify = response.into_bytes();
-        let expected = "HTTP/1.1 200 OK\r\n";
+        assert_eq!(result, verify);
         assert_eq!(verify, expected);
     }
 
     #[test]
     fn test_from_status_code_and_version_for_response_line() {
+        let expected = "HTTP/2 200 OK\r\n";
         let status = StatusCode::OK;
         let version = Version::H2;
         let response = ResponseLine::from((status, version));
+        let mut chain = response.as_chain();
+        let result = chain.copy_to_bytes(chain.remaining());
+        drop(chain);
         let verify = response.into_bytes();
-        let expected = "HTTP/2 200 OK\r\n";
+        assert_eq!(result, verify);
         assert_eq!(verify, expected);
     }
 
@@ -134,6 +146,10 @@ mod tests {
         assert_eq!(response.version, "HTTP/1.1 ");
         assert_eq!(response.status, "200");
         assert_eq!(response.reason, " OK\r\n");
+        let mut chain = response.as_chain();
+        let result = chain.copy_to_bytes(chain.remaining());
+        drop(chain);
+        assert_eq!(result, verify);
         let toverify = response.into_bytes();
         assert_eq!(toverify.as_ptr_range(), initial_ptr);
         assert_eq!(toverify, verify);
@@ -149,7 +165,11 @@ mod tests {
         assert_eq!(response.version, "HTTP/2 ");
         assert_eq!(response.status, "200");
         assert_eq!(response.reason, " OK\r\n");
+        let mut chain = response.as_chain();
+        let result = chain.copy_to_bytes(chain.remaining());
+        drop(chain);
         let toverify = response.into_bytes();
+        assert_eq!(result, verify);
         assert_eq!(toverify.as_ptr_range(), initial_ptr);
         assert_eq!(toverify, verify);
     }

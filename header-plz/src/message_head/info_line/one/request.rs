@@ -1,7 +1,6 @@
+use bytes::{Buf, BufMut, BytesMut};
 use std::borrow::Cow;
 use std::str::{self};
-
-use bytes::{BufMut, BytesMut};
 
 use super::{InfoLine, InfoLineError};
 use crate::abnf::SP;
@@ -56,6 +55,10 @@ impl InfoLine for RequestLine {
         self.uri.unsplit(self.version);
         self.method.unsplit(self.uri);
         self.method
+    }
+
+    fn as_chain(&self) -> impl Buf {
+        (self.method[..].chain(&self.uri[..])).chain(&self.version[..])
     }
 }
 
@@ -128,22 +131,24 @@ impl From<(Method, &Uri)> for RequestLine {
 mod tests {
     use super::*;
     use crate::uri::path::PathAndQuery;
-    use std::error::Error;
 
     #[test]
-    fn test_infoline_request_basic() -> Result<(), Box<dyn Error>> {
+    fn test_infoline_request_basic() {
         let req = "GET /echo HTTP/1.1\r\n";
         let buf = BytesMut::from(req);
         let verify = buf[0..20].to_owned();
         let verify_ptr = buf[0..20].as_ptr_range();
-        let request = RequestLine::try_build_infoline(buf)?;
+        let request = RequestLine::try_build_infoline(buf).unwrap();
         assert_eq!(request.method_bytes(), b"GET");
         assert_eq!(request.uri_as_string(), "/echo");
         assert_eq!(request.version, " HTTP/1.1\r\n");
+        let mut chain = request.as_chain();
+        let result = chain.copy_to_bytes(chain.remaining());
+        drop(chain);
+        assert_eq!(result, verify);
         let toverify = request.into_bytes();
         assert_eq!(verify_ptr, toverify.as_ptr_range());
         assert_eq!(toverify, verify);
-        Ok(())
     }
 
     #[test]
@@ -152,19 +157,17 @@ mod tests {
         let buf = BytesMut::from(req);
         let verify_ptr = buf[..37].as_ptr_range();
         let verify = buf.clone();
-        match RequestLine::try_build_infoline(buf) {
-            Ok(info_line) => {
-                assert_eq!(info_line.method, "CONNECT ");
-                assert_eq!(info_line.uri, "www.google.com:443");
-                assert_eq!(info_line.version, " HTTP/1.1\r\n");
-                let assembled = info_line.into_bytes();
-                assert_eq!(assembled, verify);
-                assert_eq!(verify_ptr, assembled.as_ptr_range());
-            }
-            _ => {
-                panic!();
-            }
-        }
+        let info_line = RequestLine::try_build_infoline(buf).unwrap();
+        assert_eq!(info_line.method, "CONNECT ");
+        assert_eq!(info_line.uri, "www.google.com:443");
+        assert_eq!(info_line.version, " HTTP/1.1\r\n");
+        let mut chain = info_line.as_chain();
+        let result = chain.copy_to_bytes(chain.remaining());
+        drop(chain);
+        assert_eq!(result, verify);
+        let assembled = info_line.into_bytes();
+        assert_eq!(assembled, verify);
+        assert_eq!(verify_ptr, assembled.as_ptr_range());
     }
 
     #[test]
@@ -173,19 +176,17 @@ mod tests {
         let buf = BytesMut::from(req);
         let verify_ptr = buf[..].as_ptr_range();
         let verify = buf.clone();
-        match RequestLine::try_build_infoline(buf) {
-            Ok(info_line) => {
-                assert_eq!(info_line.method, "GET ");
-                assert_eq!(info_line.uri, "http://www.google.com/");
-                assert_eq!(info_line.version, " HTTP/1.1\r\n");
-                let assembled = info_line.into_bytes();
-                assert_eq!(assembled, verify);
-                assert_eq!(verify_ptr, assembled.as_ptr_range());
-            }
-            _ => {
-                panic!();
-            }
-        }
+        let info_line = RequestLine::try_build_infoline(buf).unwrap();
+        assert_eq!(info_line.method, "GET ");
+        assert_eq!(info_line.uri, "http://www.google.com/");
+        assert_eq!(info_line.version, " HTTP/1.1\r\n");
+        let mut chain = info_line.as_chain();
+        let result = chain.copy_to_bytes(chain.remaining());
+        drop(chain);
+        assert_eq!(result, verify);
+        let assembled = info_line.into_bytes();
+        assert_eq!(assembled, verify);
+        assert_eq!(verify_ptr, assembled.as_ptr_range());
     }
 
     #[test]
@@ -194,19 +195,17 @@ mod tests {
         let buf = BytesMut::from(req);
         let verify_ptr = buf[..].as_ptr_range();
         let verify = buf.clone();
-        match RequestLine::try_build_infoline(buf) {
-            Ok(info_line) => {
-                assert_eq!(info_line.method, "GET ");
-                assert_eq!(info_line.uri, "http://www.google.com:8080/");
-                assert_eq!(info_line.version, " HTTP/1.1\r\n");
-                let assembled = info_line.into_bytes();
-                assert_eq!(assembled, verify);
-                assert_eq!(verify_ptr, assembled.as_ptr_range());
-            }
-            _ => {
-                panic!();
-            }
-        }
+        let info_line = RequestLine::try_build_infoline(buf).unwrap();
+        assert_eq!(info_line.method, "GET ");
+        assert_eq!(info_line.uri, "http://www.google.com:8080/");
+        assert_eq!(info_line.version, " HTTP/1.1\r\n");
+        let mut chain = info_line.as_chain();
+        let result = chain.copy_to_bytes(chain.remaining());
+        drop(chain);
+        assert_eq!(result, verify);
+        let assembled = info_line.into_bytes();
+        assert_eq!(assembled, verify);
+        assert_eq!(verify_ptr, assembled.as_ptr_range());
     }
 
     #[test]

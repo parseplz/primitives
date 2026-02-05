@@ -1,6 +1,6 @@
 pub mod request;
 pub mod response;
-use bytes::BytesMut;
+use bytes::{Buf, BytesMut};
 pub mod error;
 use error::*;
 
@@ -11,4 +11,6 @@ pub trait InfoLine {
         Self: Sized;
 
     fn into_bytes(self) -> BytesMut;
+
+    fn as_chain(&self) -> impl Buf;
 }
