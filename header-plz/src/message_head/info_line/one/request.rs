@@ -31,18 +31,20 @@ impl InfoLine for RequestLine {
     fn try_build_infoline(
         mut data: BytesMut,
     ) -> Result<RequestLine, InfoLineError> {
-        let mut index = data.iter().position(|&x| x == SP).ok_or(
-            InfoLineError::FirstOWS(
-                String::from_utf8_lossy(&data).to_string(),
-            ),
-        )?;
-        let method = data.split_to(index + 1);
-        // 2. Second OWS
-        index = data.iter().position(|&x| x == SP).ok_or(
-            InfoLineError::SecondOWS(
-                String::from_utf8_lossy(&data).to_string(),
-            ),
-        )?;
+        let index = match data.iter().position(|&x| x == SP) {
+            Some(i) => i,
+            None => {
+                return Err(InfoLineError::first_ows(data));
+            }
+        };
+        let mut method = data.split_to(index + 1);
+        let index = match data.iter().position(|&x| x == SP) {
+            Some(i) => i,
+            None => {
+                method.unsplit(data);
+                return Err(InfoLineError::second_ows(method));
+            }
+        };
         let uri = data.split_to(index);
         Ok(RequestLine {
             method,
@@ -268,6 +270,25 @@ mod tests {
         let input = "GET /search?q=hello%20world&lang=en HTTP/3\r\n";
         let verify = RequestLine::try_build_infoline(input.into()).unwrap();
         assert_eq!(line, verify);
+    }
+
+    #[test]
+    fn test_missing_first_space_returns_full_input() {
+        let raw = "GET/index.htmlHTTP/1.1";
+        let input = BytesMut::from(raw);
+        let expected = input.clone();
+        let err = RequestLine::try_build_infoline(input).unwrap_err();
+        let verify = InfoLineError::first_ows(expected);
+        assert_eq!(verify, err);
+    }
+    #[test]
+    fn test_missing_second_space_unsplit_works() {
+        let raw = "GET /index.htmlHTTP/1.1";
+        let input = BytesMut::from(raw);
+        let expected = input.clone();
+        let err = RequestLine::try_build_infoline(input).unwrap_err();
+        let verify = InfoLineError::second_ows(expected);
+        assert_eq!(verify, err);
     }
 
     /*

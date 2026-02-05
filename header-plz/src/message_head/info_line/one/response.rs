@@ -17,7 +17,7 @@ pub struct ResponseLine {
 }
 
 /* Steps:
- *      1. For http/1.1 | http/1.0 | http/0.9  => version = len(http/1.*) + space + 1 = 9
+ *      1. For http/1.1 | http/1.0 | http/0.9  => version = len(http/ *) + space + 1 = 9
  *      2. Status code is always 3 digits
  *      3. Remainder is reason + CRLF
  */
@@ -26,13 +26,20 @@ impl InfoLine for ResponseLine {
         mut data: BytesMut,
     ) -> Result<ResponseLine, InfoLineError> {
         // "1" in decimal
-        let index = if data[5] == 49 {
+        let index = if data[5] == 49 || data[5] == 48 {
             9
         } else {
             7
         };
-        let version = data.split_to(index);
+        if index > data.len() {
+            return Err(InfoLineError::first_ows(data));
+        }
+        let mut version = data.split_to(index);
         // status code always 3 digits
+        if data.len() < 3 {
+            version.unsplit(data);
+            return Err(InfoLineError::second_ows(version));
+        }
         let status = data.split_to(3);
         Ok(ResponseLine {
             version,
@@ -198,5 +205,25 @@ mod tests {
         response.set_status(300);
         let expected = "HTTP/1.1 300 OK\r\n";
         assert_eq!(expected, response.into_bytes());
+    }
+
+    #[test]
+    fn test_error_too_short_for_version() {
+        let raw = "HTTP/1.1";
+        let input = BytesMut::from(raw);
+        let expected = input.clone();
+        let err = ResponseLine::try_build_infoline(input).unwrap_err();
+        let verify = InfoLineError::first_ows(expected);
+        assert_eq!(verify, err);
+    }
+
+    #[test]
+    fn test_error_too_short_for_status() {
+        let raw = "HTTP/1.1 20";
+        let input = BytesMut::from(raw);
+        let expected = input.clone();
+        let err = ResponseLine::try_build_infoline(input).unwrap_err();
+        let verify = InfoLineError::second_ows(expected);
+        assert_eq!(verify, err);
     }
 }
