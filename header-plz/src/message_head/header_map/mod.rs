@@ -1,4 +1,5 @@
 use crate::version::Version;
+use bytes::{Buf, buf::Chain};
 use one::OneHeader;
 use std::str::{self};
 use two::Header;
@@ -405,6 +406,99 @@ where
 
     pub fn iter_mut(&mut self) -> std::slice::IterMut<'_, T> {
         self.into_iter()
+    }
+}
+
+impl OneHeaderMap {
+    pub fn as_chain(&'_ self) -> HmapBuf<'_> {
+        let mut iter = self.entries.iter();
+        let crlf = self.crlf.as_deref().unwrap_or(b"\r\n");
+        let (current_chain, in_final_phase) = loop {
+            match iter.next() {
+                Some(h) => {
+                    let c = h.as_chain();
+                    if c.has_remaining() {
+                        break (c, false);
+                    }
+                }
+                None => {
+                    break (crlf.chain([].as_slice()), true);
+                }
+            }
+        };
+
+        HmapBuf {
+            iter,
+            current_chain,
+            final_crlf: crlf,
+            in_final_phase,
+        }
+    }
+}
+
+pub struct HmapBuf<'a> {
+    iter: std::slice::Iter<'a, OneHeader>,
+    current_chain: Chain<&'a [u8], &'a [u8]>,
+    final_crlf: &'a [u8],
+    in_final_phase: bool,
+}
+
+impl<'a> Buf for HmapBuf<'a> {
+    fn remaining(&self) -> usize {
+        if self.in_final_phase {
+            return self.current_chain.remaining();
+        }
+        let current = self.current_chain.remaining();
+        let rem: usize = self.iter.as_slice().iter().map(|h| h.len()).sum();
+        current + rem + 2 // crlf.len()
+    }
+
+    fn chunk(&self) -> &[u8] {
+        self.current_chain.chunk()
+    }
+
+    fn advance(&mut self, mut cnt: usize) {
+        while cnt > 0 {
+            let rem = self.current_chain.remaining();
+            if rem > cnt {
+                // advance within current header
+                self.current_chain.advance(cnt);
+                return;
+            } else {
+                // Consume current header entirely
+                self.current_chain.advance(rem);
+                cnt -= rem;
+
+                loop {
+                    if self.in_final_phase {
+                        if cnt > 0 {
+                            panic!("advance past end of stream");
+                        }
+                        return;
+                    }
+
+                    match self.iter.next() {
+                        Some(next_header) => {
+                            let next_chain = next_header.as_chain();
+                            // If this header has data, set it and break the
+                            // inner loop
+                            if next_chain.has_remaining() {
+                                self.current_chain = next_chain;
+                                break;
+                            }
+                            // If empty, loop continues to the next header
+                        }
+                        None => {
+                            // No more headers. Load Final CRLF.
+                            self.in_final_phase = true;
+                            self.current_chain =
+                                self.final_crlf.chain([].as_slice());
+                            break;
+                        }
+                    }
+                }
+            }
+        }
     }
 }
 
@@ -1315,5 +1409,103 @@ mod tests {
             Bytes::from("gzip, deflate, br"),
         );
         assert_eq!(map, verify);
+    }
+
+    #[test]
+    fn test_one_header_map_chain() {
+        let one = build_test_one();
+        let mut chain = one.as_chain();
+        let result = chain.copy_to_bytes(chain.remaining());
+        assert_eq!(result, one.into_bytes());
+    }
+
+    #[test]
+    fn test_one_header_map_chain_empty() {
+        let one = OneHeaderMap::default(); // crlf only
+        let mut chain = one.as_chain();
+        let result = chain.copy_to_bytes(chain.remaining());
+        assert_eq!(result, one.into_bytes());
+    }
+
+    #[test]
+    fn test_one_header_map_chain_cleared() {
+        let mut one = OneHeaderMap::default();
+        one.insert("key", "value");
+        one.insert("key", "value");
+        one.insert("key", "value");
+        one.entries[1].clear();
+        let mut chain = one.as_chain();
+        let result = chain.copy_to_bytes(chain.remaining());
+        assert_eq!(result, one.into_bytes()); // CRLF only
+    }
+
+    #[test]
+    fn test_all_entries_cleared() {
+        let mut one = OneHeaderMap::default();
+        one.insert("a", "b");
+        one.insert("c", "d");
+        for entry in &mut one.entries {
+            entry.clear();
+        }
+        let mut chain = one.as_chain();
+        let result = chain.copy_to_bytes(chain.remaining());
+        assert_eq!(result, one.into_bytes());
+        assert_eq!(result, &b"\r\n"[..]);
+    }
+
+    #[test]
+    fn test_consecutive_cleared_entries() {
+        let mut one = OneHeaderMap::default();
+        one.insert("1", "1");
+        one.insert("2", "2");
+        one.insert("3", "3");
+        one.insert("4", "4");
+        one.entries[1].clear();
+        one.entries[2].clear();
+        let mut chain = one.as_chain();
+        let result = chain.copy_to_bytes(chain.remaining());
+        let expected = b"1: 1\r\n4: 4\r\n\r\n";
+        assert_eq!(result, &expected[..]);
+    }
+
+    #[test]
+    fn test_partial_advance_byte_by_byte() {
+        let mut one = OneHeaderMap::default();
+        one.insert("a", "b");
+
+        let mut chain = one.as_chain();
+        let mut accumulated = bytes::BytesMut::new();
+
+        while chain.remaining() > 0 {
+            let chunk = chain.chunk();
+            if !chunk.is_empty() {
+                accumulated.extend_from_slice(&chunk[0..1]);
+                chain.advance(1);
+            }
+        }
+
+        assert_eq!(accumulated, one.into_bytes());
+    }
+
+    #[test]
+    fn test_advance_exact_chunk_boundary() {
+        let mut one = OneHeaderMap::default();
+        one.insert("key", "val");
+
+        let mut chain = one.as_chain();
+        let chunk1 = chain.chunk();
+        let len1 = chunk1.len();
+        chain.advance(len1);
+
+        let chunk2 = chain.chunk();
+        assert!(!chunk2.is_empty());
+    }
+
+    #[test]
+    #[should_panic(expected = "advance past end of stream")]
+    fn test_advance_past_end_panics() {
+        let one = OneHeaderMap::default();
+        let mut chain = one.as_chain();
+        chain.advance(chain.remaining() + 1);
     }
 }
