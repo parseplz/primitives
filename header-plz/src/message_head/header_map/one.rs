@@ -248,7 +248,6 @@ mod tests {
         assert_eq!(header, expected);
         let mut chain = expected.as_chain();
         let verify = chain.copy_to_bytes(chain.remaining());
-        drop(chain);
         assert_eq!(verify, expected.into_bytes());
     }
 
@@ -263,7 +262,6 @@ mod tests {
         assert_eq!(header, expected);
         let mut chain = expected.as_chain();
         let verify = chain.copy_to_bytes(chain.remaining());
-        drop(chain);
         assert_eq!(verify, expected.into_bytes());
     }
 
@@ -279,7 +277,6 @@ mod tests {
         assert_eq!(header, expected);
         let mut chain = expected.as_chain();
         let verify = chain.copy_to_bytes(chain.remaining());
-        drop(chain);
         assert_eq!(verify, expected.into_bytes());
     }
 
@@ -294,7 +291,6 @@ mod tests {
         assert_eq!(header, expected);
         let mut chain = expected.as_chain();
         let verify = chain.copy_to_bytes(chain.remaining());
-        drop(chain);
         assert_eq!(verify, expected.into_bytes());
     }
 
@@ -309,7 +305,6 @@ mod tests {
         assert_eq!(header, expected);
         let mut chain = expected.as_chain();
         let verify = chain.copy_to_bytes(chain.remaining());
-        drop(chain);
         assert_eq!(verify, expected.into_bytes());
     }
 
@@ -324,7 +319,6 @@ mod tests {
         assert_eq!(header, expected);
         let mut chain = expected.as_chain();
         let verify = chain.copy_to_bytes(chain.remaining());
-        drop(chain);
         assert_eq!(verify, expected.into_bytes());
     }
 
@@ -354,7 +348,6 @@ mod tests {
         assert_eq!(header.value_as_ref(), b"application/json");
         let mut chain = header.as_chain();
         let verify = chain.copy_to_bytes(chain.remaining());
-        drop(chain);
         let toverify = header.into_bytes();
         assert_eq!(verify, toverify);
         assert_eq!(verify_ptr, toverify.as_ptr_range());
@@ -371,7 +364,6 @@ mod tests {
         assert_eq!(header.value_as_ref(), b"application/json");
         let mut chain = header.as_chain();
         let verify = chain.copy_to_bytes(chain.remaining());
-        drop(chain);
         let toverify = header.into_bytes();
         assert_eq!(verify, toverify);
         assert_eq!(verify_ptr, toverify.as_ptr_range());
@@ -388,7 +380,6 @@ mod tests {
         assert_eq!(header.value_as_ref(), b"");
         let mut chain = header.as_chain();
         let verify = chain.copy_to_bytes(chain.remaining());
-        drop(chain);
         let toverify = header.into_bytes();
         assert_eq!(verify, toverify);
         assert_eq!(verify_ptr, toverify.as_ptr_range());
