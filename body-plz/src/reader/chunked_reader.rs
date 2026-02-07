@@ -10,8 +10,7 @@ use super::content_length_reader::read_content_length;
 use header_plz::{OneHeaderMap, abnf::CRLF, message_head::MessageHead};
 
 // Enum to represent chunked reader errors
-#[cfg_attr(any(debug_assertions, test), derive(Eq, PartialEq))]
-#[derive(Debug, Error)]
+#[derive(Clone, Error, Eq, Debug, PartialEq)]
 pub enum ChunkReaderError {
     #[error("UnabletoFindCRLF| {}", .0)]
     SplitExtension(String),
@@ -22,8 +21,7 @@ pub enum ChunkReaderError {
 }
 
 // Enum to represent chunked reader state
-#[cfg_attr(any(debug_assertions, test), derive(Eq, PartialEq))]
-#[derive(Debug)]
+#[derive(Clone, Eq, Debug, PartialEq)]
 pub enum ChunkReaderState {
     ReadSize,
     ReadChunk(usize),

@@ -2,7 +2,7 @@ use bytes::BytesMut;
 use header_plz::OneHeaderMap;
 
 // Enum to represent different types of Chunked Body
-#[cfg_attr(any(test, debug_assertions), derive(Debug, PartialEq, Eq))]
+#[derive(Clone, Eq, Debug, PartialEq)]
 pub enum ChunkType {
     Size(BytesMut),
     Chunk(BytesMut),

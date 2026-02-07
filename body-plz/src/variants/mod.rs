@@ -4,7 +4,7 @@ use tracing::error;
 pub mod chunked;
 
 // Enum to represent Body
-#[cfg_attr(any(test, debug_assertions), derive(Debug, PartialEq, Eq))]
+#[derive(Clone, Eq, Debug, PartialEq)]
 pub enum Body {
     Chunked(Vec<ChunkType>),
     Raw(BytesMut),
