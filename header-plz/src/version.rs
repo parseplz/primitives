@@ -4,7 +4,7 @@ pub const HTTP_1_1: &str = "HTTP/1.1";
 pub const HTTP_2: &str = "HTTP/2";
 pub const HTTP_3: &str = "HTTP/3";
 
-#[derive(Debug)]
+#[derive(Clone, Eq, Debug, PartialEq)]
 pub enum Version {
     H09,
     H10,

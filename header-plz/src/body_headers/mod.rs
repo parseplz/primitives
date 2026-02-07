@@ -10,8 +10,7 @@ pub mod transfer_types;
 mod from_header_map;
 pub mod parse;
 
-#[derive(Default)]
-#[cfg_attr(any(test, debug_assertions), derive(Debug, PartialEq, Eq, Clone))]
+#[derive(Clone, Eq, Debug, Default, PartialEq)]
 pub struct BodyHeader {
     pub content_encoding: Option<Vec<EncodingInfo>>,
     pub content_type: Option<ContentType>,

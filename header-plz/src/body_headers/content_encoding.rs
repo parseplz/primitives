@@ -6,7 +6,7 @@ pub const GZIP: &str = "gzip";
 pub const IDENTITY: &str = "identity";
 pub const ZSTD: &str = "zstd";
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub enum ContentEncoding {
     Brotli,
     Chunked,

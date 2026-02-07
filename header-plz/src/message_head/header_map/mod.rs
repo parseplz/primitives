@@ -43,7 +43,7 @@ pub trait HeaderVersion {
 pub type OneHeaderMap = HMap<OneHeader>;
 pub type HeaderMap = HMap<Header>;
 
-#[derive(Debug, PartialEq, Eq, Clone)]
+#[derive(Clone, Eq, Debug, PartialEq)]
 pub struct HMap<T> {
     entries: Vec<T>,
     crlf: Option<BytesMut>,

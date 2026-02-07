@@ -26,7 +26,7 @@ const QUERY_ENCODE: &AsciiSet = &CONTROLS
 const STRICT_ENCODE: &AsciiSet = &QUERY_ENCODE.add(b'&').add(b'=').add(b'+').add(b'%');
 */
 
-#[derive(Default, PartialEq, Debug)]
+#[derive(Clone, Eq, Debug, Default, PartialEq)]
 pub struct PathAndQueryMut {
     path: BytesMut, // first "/" upto(including) "?"
     kvpair: Option<Vec<KvPair>>, // from "?" to end

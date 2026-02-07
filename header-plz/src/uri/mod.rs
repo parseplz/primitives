@@ -34,7 +34,7 @@ impl From<Infallible> for InvalidUri {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Clone, Debug)]
 pub struct Uri {
     pub(crate) scheme: Scheme,
     pub(crate) authority: BytesStr,

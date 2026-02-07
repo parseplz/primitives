@@ -1,6 +1,6 @@
 use crate::body_headers::content_encoding::ContentEncoding;
 
-#[cfg_attr(any(test, debug_assertions), derive(Debug, PartialEq, Eq, Clone))]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct EncodingInfo {
     pub header_index: usize,
     encodings: Vec<ContentEncoding>,

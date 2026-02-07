@@ -6,7 +6,7 @@ use crate::{
     uri::{InvalidUri, Uri, path::PathAndQuery, scheme::Scheme},
 };
 
-#[derive(Debug, Default, PartialEq)]
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct RequestLine {
     method: Method,
     uri: Uri,

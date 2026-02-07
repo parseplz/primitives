@@ -8,7 +8,7 @@ use crate::{
     version::Version,
 };
 
-#[derive(Debug, PartialEq, Eq, Clone)]
+#[derive(Clone, Eq, Debug, PartialEq)]
 pub struct OneHeader {
     key: BytesMut,   // key + ": "
     value: BytesMut, // value + "\r\n"

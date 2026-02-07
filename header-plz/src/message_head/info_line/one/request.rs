@@ -8,7 +8,7 @@ use crate::uri::InvalidUri;
 use crate::{Method, Uri, Version};
 
 // Request Info Line
-#[derive(Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct RequestLine {
     method: BytesMut,  // Method + Space
     uri: BytesMut,     //  Uri

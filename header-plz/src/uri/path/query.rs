@@ -2,7 +2,7 @@ use bytes::{BufMut, BytesMut};
 
 use crate::abnf::{AMBER, EQUAL};
 
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Clone, Eq, Debug, Default, PartialEq)]
 pub struct KvPair {
     pub(crate) data: BytesMut,
     pub(crate) eq_index: Option<usize>,

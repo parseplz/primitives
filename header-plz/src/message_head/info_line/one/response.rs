@@ -9,7 +9,7 @@ use crate::{
 use super::{InfoLine, InfoLineError};
 
 // Response Info Line
-#[derive(Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct ResponseLine {
     version: BytesMut, // Version + space
     status: BytesMut,  // status

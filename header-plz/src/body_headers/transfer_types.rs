@@ -1,4 +1,4 @@
-#[derive(Debug, PartialEq, Copy, Clone, Eq, PartialOrd, Ord)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq, PartialOrd, Ord)]
 pub enum TransferType {
     Close,
     ContentLength(usize),

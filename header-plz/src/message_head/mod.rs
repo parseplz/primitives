@@ -17,7 +17,7 @@ pub(crate) mod info_line;
 pub type OneMessageHead<I> = MessageHead<I, OneHeader>;
 
 // Represent the Header region Infoline + HeaderMap.
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Clone, Eq, Debug, PartialEq)]
 pub struct MessageHead<I, H> {
     info_line: I,
     header_map: HMap<H>,
