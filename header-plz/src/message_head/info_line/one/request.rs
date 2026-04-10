@@ -108,6 +108,10 @@ impl RequestLine {
     pub fn into_parts(self) -> (BytesMut, BytesMut, BytesMut) {
         (self.method, self.uri, self.version)
     }
+
+    pub fn version(&self) -> Option<Version> {
+        Version::parse_request_version(&self.version)
+    }
 }
 
 impl From<(Method, &Uri, Version)> for RequestLine {
