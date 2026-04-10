@@ -15,7 +15,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Set env
         run: echo "CRATE_TO_PUBLISH=$(echo ${{ github.ref_name }} | grep -oP '^[a-z-]+(?=-v)')" >> $GITHUB_ENV
