@@ -1,3 +1,4 @@
+pub mod error;
 use buffer_plz::Cursor;
 use bytes::{Buf, BytesMut};
 
@@ -21,16 +22,22 @@ pub type OneMessageHead<I> = MessageHead<I, OneHeader>;
 pub struct MessageHead<I, H> {
     info_line: I,
     header_map: HMap<H>,
+    crlf: BytesMut,
 }
 
-impl<T> MessageHead<T, OneHeader>
+impl<I> OneMessageHead<I>
 where
-    T: InfoLine,
+    I: InfoLine,
 {
-    pub fn new(info_line: T, header_map: OneHeaderMap) -> Self {
+    pub fn new(
+        info_line: I,
+        header_map: OneHeaderMap,
+        crlf: BytesMut,
+    ) -> Self {
         MessageHead {
             info_line,
             header_map,
+            crlf,
         }
     }
 
@@ -38,6 +45,7 @@ where
     pub fn into_bytes(self) -> BytesMut {
         let mut data = self.info_line.into_bytes();
         data.unsplit(self.header_map.into_bytes());
+        data.unsplit(self.crlf);
         data
     }
 
@@ -45,11 +53,11 @@ where
         &self.header_map
     }
 
-    pub fn info_line(&self) -> &T {
+    pub fn info_line(&self) -> &I {
         &self.info_line
     }
 
-    pub fn info_line_mut(&mut self) -> &mut T {
+    pub fn info_line_mut(&mut self) -> &mut I {
         &mut self.info_line
     }
 
@@ -58,7 +66,10 @@ where
     }
 
     pub fn as_chain(&self) -> impl Buf {
-        self.info_line().as_chain().chain(self.header_map.as_chain())
+        self.info_line()
+            .as_chain()
+            .chain(self.header_map.as_chain())
+            .chain(crate::abnf::CRLF)
     }
 }
 

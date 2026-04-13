@@ -46,7 +46,6 @@ pub type HeaderMap = HMap<Header>;
 #[derive(Clone, Eq, Debug, PartialEq)]
 pub struct HMap<T> {
     entries: Vec<T>,
-    crlf: Option<BytesMut>,
 }
 
 impl Default for HeaderMap {
@@ -57,9 +56,7 @@ impl Default for HeaderMap {
 
 impl Default for OneHeaderMap {
     fn default() -> Self {
-        let mut s = Self::new();
-        s.crlf = Some(CRLF.into());
-        s
+        Self::new()
     }
 }
 
@@ -70,7 +67,6 @@ where
     pub fn new() -> Self {
         HMap {
             entries: Vec::new(),
-            crlf: None,
         }
     }
 
@@ -393,7 +389,7 @@ where
 
     // ----- Misc
     pub fn len(&self) -> usize {
-        self.entries.iter().fold(0, |total, entry| total + entry.len()) + 2
+        self.entries.iter().fold(0, |total, entry| total + entry.len())
     }
 
     pub fn is_empty(&self) -> bool {
@@ -410,47 +406,47 @@ where
 }
 
 impl OneHeaderMap {
-    pub fn as_chain(&'_ self) -> HmapBuf<'_> {
-        let mut iter = self.entries.iter();
-        let crlf = self.crlf.as_deref().unwrap_or(b"\r\n");
-        let (current_chain, in_final_phase) = loop {
-            match iter.next() {
-                Some(h) => {
-                    let c = h.as_chain();
-                    if c.has_remaining() {
-                        break (c, false);
-                    }
-                }
-                None => {
-                    break (crlf.chain([].as_slice()), true);
-                }
-            }
-        };
-
-        HmapBuf {
-            iter,
-            current_chain,
-            final_crlf: crlf,
-            in_final_phase,
-        }
+    pub fn as_chain(&self) -> HmapBuf<'_> {
+        HmapBuf::new(&self.entries)
     }
 }
 
 pub struct HmapBuf<'a> {
     iter: std::slice::Iter<'a, OneHeader>,
     current_chain: Chain<&'a [u8], &'a [u8]>,
-    final_crlf: &'a [u8],
-    in_final_phase: bool,
+}
+
+impl<'a> HmapBuf<'a> {
+    pub fn new(headers: &'a [OneHeader]) -> Self {
+        let mut iter = headers.iter();
+        let current_chain = iter
+            .next()
+            .map(|h| h.as_chain())
+            .unwrap_or_else(|| (&[][..]).chain(&[][..]));
+
+        let mut curr = Self {
+            iter,
+            current_chain,
+        };
+        curr.skip_empty();
+        curr
+    }
+
+    fn skip_empty(&mut self) {
+        while !self.current_chain.has_remaining() {
+            if let Some(next) = self.iter.next() {
+                self.current_chain = next.as_chain();
+            } else {
+                break;
+            }
+        }
+    }
 }
 
 impl<'a> Buf for HmapBuf<'a> {
     fn remaining(&self) -> usize {
-        if self.in_final_phase {
-            return self.current_chain.remaining();
-        }
-        let current = self.current_chain.remaining();
-        let rem: usize = self.iter.as_slice().iter().map(|h| h.len()).sum();
-        current + rem + 2 // crlf.len()
+        self.current_chain.remaining()
+            + self.iter.as_slice().iter().map(|h| h.len()).sum::<usize>()
     }
 
     fn chunk(&self) -> &[u8] {
@@ -460,61 +456,26 @@ impl<'a> Buf for HmapBuf<'a> {
     fn advance(&mut self, mut cnt: usize) {
         while cnt > 0 {
             let rem = self.current_chain.remaining();
+
             if rem > cnt {
-                // advance within current header
                 self.current_chain.advance(cnt);
                 return;
             } else {
-                // Consume current header entirely
                 self.current_chain.advance(rem);
                 cnt -= rem;
-
-                loop {
-                    if self.in_final_phase {
-                        if cnt > 0 {
-                            panic!("advance past end of stream");
-                        }
-                        return;
-                    }
-
-                    match self.iter.next() {
-                        Some(next_header) => {
-                            let next_chain = next_header.as_chain();
-                            // If this header has data, set it and break the
-                            // inner loop
-                            if next_chain.has_remaining() {
-                                self.current_chain = next_chain;
-                                break;
-                            }
-                            // If empty, loop continues to the next header
-                        }
-                        None => {
-                            // No more headers. Load Final CRLF.
-                            self.in_final_phase = true;
-                            self.current_chain =
-                                self.final_crlf.chain([].as_slice());
-                            break;
-                        }
-                    }
+                if let Some(next) = self.iter.next() {
+                    self.current_chain = next.as_chain();
+                } else if cnt > 0 {
+                    panic!("advance past end of stream");
                 }
             }
         }
+        self.skip_empty();
     }
 }
 
-/* Steps:
- *      1. Split the final CRLF.
- *      2. Create a new Vec<Header>
- *      ----- loop while input is not empty -----
- *      3. Find CRLF index.
- *      4. Split the line at crlf_index + 2.
- *      5. Create a new Header.
- *      6. Add the new Header to the new HeaderMap.
- */
-
 impl From<BytesMut> for HMap<OneHeader> {
     fn from(mut input: BytesMut) -> Self {
-        let crlf = input.split_off(input.len() - 2);
         let mut entries = Vec::new();
         while !input.is_empty() {
             let crlf_index =
@@ -524,14 +485,14 @@ impl From<BytesMut> for HMap<OneHeader> {
         }
         HMap {
             entries,
-            crlf: Some(crlf),
         }
     }
 }
 
 impl HMap<OneHeader> {
-    pub fn into_bytes(self) -> BytesMut {
-        let mut buf = self.crlf.unwrap_or(CRLF.into());
+    pub fn into_bytes(mut self) -> BytesMut {
+        let mut buf =
+            self.entries.pop().map(|h| h.into_bytes()).unwrap_or_default();
         for header in self.entries.into_iter().rev() {
             let mut data = header.into_bytes();
             data.unsplit(buf);
@@ -556,7 +517,6 @@ impl From<HMap<OneHeader>> for HMap<Header> {
             .collect();
         HMap {
             entries,
-            crlf: None,
         }
     }
 }
@@ -576,7 +536,6 @@ impl From<HMap<Header>> for HMap<OneHeader> {
             .collect();
         HMap {
             entries,
-            crlf: Some(CRLF.into()),
         }
     }
 }
@@ -627,7 +586,7 @@ mod tests {
                      Content-Type:application/json\r\n\
                      Trailer: Some\r\n\
                      Connection: keep-alive\r\n\
-                     X-custom-header: somevalue\r\n\r\n";
+                     X-custom-header: somevalue\r\n";
         BytesMut::from(input)
     }
 
@@ -643,7 +602,7 @@ mod tests {
                      content-type: application/json\r\n\
                      trailer: Some\r\n\
                      connection: keep-alive\r\n\
-                     x-custom-header: somevalue\r\n\r\n";
+                     x-custom-header: somevalue\r\n";
         HMap::from(BytesMut::from(input))
     }
 
@@ -763,7 +722,7 @@ mod tests {
                      Content-Type:application/json\r\n\
                      Trailer: Some\r\n\
                      Connection: keep-alive\r\n\
-                     X-custom-header: somevalue\r\n\r\n";
+                     X-custom-header: somevalue\r\n";
         assert_eq!(result, verify);
         let result_range = result.as_ptr_range();
         assert_eq!(input_range, result_range);
@@ -790,7 +749,7 @@ mod tests {
                      Content-Type:application/json\r\n\
                      Trailer: Some\r\n\
                      Connection: keep-alive\r\n\
-                     X-custom-header: somevalue\r\n\r\n";
+                     X-custom-header: somevalue\r\n";
         assert_eq!(result, verify);
         let result_range = result.as_ptr_range();
         assert_eq!(input_range, result_range);
@@ -912,7 +871,7 @@ mod tests {
                      Content-Type:application/json\r\n\
                      Content-Length:20\r\n\
                      Trailer: Some\r\n\
-                     X-custom-header: somevalue\r\n\r\n";
+                     X-custom-header: somevalue\r\n";
         assert_eq!(result, verify);
     }
 
@@ -1184,17 +1143,17 @@ mod tests {
     #[test]
     fn test_hmap_len() {
         let map = build_test_one();
-        assert_eq!(map.len(), 290);
+        assert_eq!(map.len(), 288);
         let map = build_test_two();
-        assert_eq!(map.len(), 246);
+        assert_eq!(map.len(), 244);
     }
 
     #[test]
     fn test_header_map_len_small() {
-        let data = "a: b\r\n\r\n";
+        let data = "a: b\r\n";
         let buf = BytesMut::from(data);
         let header_map = HMap::from(buf);
-        assert_eq!(header_map.len(), 8);
+        assert_eq!(header_map.len(), 6);
 
         let mut map: HMap<Header> = HMap::new();
         let one = build_test_one();
@@ -1204,7 +1163,7 @@ mod tests {
                 Bytes::from(entry.value_as_ref().to_owned()),
             );
         }
-        assert_eq!(header_map.len(), 8);
+        assert_eq!(header_map.len(), 6);
     }
 
     // one to two
@@ -1450,7 +1409,7 @@ mod tests {
         let mut chain = one.as_chain();
         let result = chain.copy_to_bytes(chain.remaining());
         assert_eq!(result, one.into_bytes());
-        assert_eq!(result, &b"\r\n"[..]);
+        assert!(result.is_empty());
     }
 
     #[test]
@@ -1464,7 +1423,7 @@ mod tests {
         one.entries[2].clear();
         let mut chain = one.as_chain();
         let result = chain.copy_to_bytes(chain.remaining());
-        let expected = b"1: 1\r\n4: 4\r\n\r\n";
+        let expected = b"1: 1\r\n4: 4\r\n";
         assert_eq!(result, &expected[..]);
     }
 

@@ -1,20 +1,11 @@
 use super::MessageHead;
 use crate::{
     OneMessageHead,
-    error::MessageHeadError,
-    message_head::{OneHeaderMap, info_line::one::InfoLine},
+    message_head::{
+        OneHeaderMap, error::MessageHeadError, info_line::one::InfoLine,
+    },
 };
 use bytes::BytesMut;
-
-/* Steps:
- *      1. Find CR in buf.
- *      2. Split buf at CR_index + 2 (CRLF)
- *      3. Build Infoline
- *
- * Error:
- *      HttpReadError::InfoLine       [3]
- *      HttpReadError::HeaderStruct   [Default]
- */
 
 impl<T> TryFrom<BytesMut> for OneMessageHead<T>
 where
@@ -22,19 +13,38 @@ where
 {
     type Error = MessageHeadError;
 
-    fn try_from(mut data: BytesMut) -> Result<Self, MessageHeadError> {
-        if let Some(infoline_index) = data.iter().position(|&x| x == 13) {
-            let raw = data.split_to(infoline_index + 2);
-            let info_line = T::try_build_infoline(raw)?;
-            return Ok(MessageHead::new(info_line, OneHeaderMap::from(data)));
+    fn try_from(mut input: BytesMut) -> Result<Self, MessageHeadError> {
+        if let Some(infoline_index) = input.iter().position(|&x| x == 13) {
+            let crlf = input.split_off(input.len() - 2);
+            let info_line_buf = input.split_to(infoline_index + 2);
+            match T::try_build_infoline(info_line_buf) {
+                Ok(info_line) => Ok(MessageHead::new(
+                    info_line,
+                    OneHeaderMap::from(input),
+                    crlf,
+                )),
+                Err(mut e) => {
+                    input.unsplit(crlf);
+                    e.bytes_mut().unsplit(input);
+                    Err(e.into())
+                }
+            }
+        } else {
+            Err(MessageHeadError::NoInfoLine(input))
         }
-        Err(MessageHeadError::NoInfoLine(data))
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use crate::{OneRequestLine, OneResponseLine};
+    use rstest::rstest;
+
+    use crate::{
+        OneRequestLine, OneResponseLine,
+        message_head::info_line::one::error::{
+            InfoLineError, InfoLineErrorKind,
+        },
+    };
 
     use super::*;
 
@@ -73,15 +83,31 @@ mod tests {
     }
 
     #[test]
-    fn test_message_header_error() {
+    fn test_message_head_error_no_info_line() {
         let input = "This is not a valid message";
         let buf = BytesMut::from(input);
         let result = OneMessageHead::<OneRequestLine>::try_from(buf);
-        if let Err(e) = result {
-            let err = MessageHeadError::NoInfoLine(input.into());
-            assert_eq!(e, err);
+        assert_eq!(result, Err(MessageHeadError::NoInfoLine(input.into())));
+    }
+
+    #[rstest]
+    #[case("GET\r\n\r\n", InfoLineErrorKind::FirstOws)]
+    #[case("GET /testHTTP/1.1\r\na: b\r\n\r\n", InfoLineErrorKind::SecondOws)]
+    fn test_message_head_error_info_line(
+        #[case] input: &str,
+        #[case] err_kind: InfoLineErrorKind,
+    ) {
+        let buf = BytesMut::from(input);
+        let result = OneMessageHead::<OneRequestLine>::try_from(buf);
+        if let Err(MessageHeadError::ParseInfoLine(InfoLineError {
+            bytes,
+            error,
+        })) = result
+        {
+            assert_eq!(bytes, input);
+            assert_eq!(error, err_kind);
         } else {
-            panic!("Expected error");
+            panic!()
         }
     }
 }

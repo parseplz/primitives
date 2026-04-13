@@ -208,7 +208,7 @@ mod tests {
     }
 
     #[test]
-    fn test_error_too_short_for_version() {
+    fn test_response_line_err_first_ows() {
         let raw = "HTTP/1.1";
         let input = BytesMut::from(raw);
         let expected = input.clone();
@@ -218,7 +218,7 @@ mod tests {
     }
 
     #[test]
-    fn test_error_too_short_for_status() {
+    fn test_response_line_err_second_ows() {
         let raw = "HTTP/1.1 20";
         let input = BytesMut::from(raw);
         let expected = input.clone();

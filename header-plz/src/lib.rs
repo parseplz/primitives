@@ -2,7 +2,6 @@ pub mod abnf;
 pub mod body_headers;
 pub mod bytes_str;
 pub mod const_headers;
-pub mod error;
 pub mod message_head;
 pub mod method;
 pub mod status;

@@ -5,8 +5,8 @@ use thiserror::Error;
 #[derive(Debug, Error)]
 #[error("info line err| {}", self.error)]
 pub struct InfoLineError {
-    bytes: BytesMut,
-    error: InfoLineErrorKind,
+    pub(crate) bytes: BytesMut,
+    pub(crate) error: InfoLineErrorKind,
 }
 
 impl InfoLineError {
@@ -28,6 +28,10 @@ impl InfoLineError {
 
     pub fn into_bytes(self) -> BytesMut {
         self.bytes
+    }
+
+    pub fn bytes_mut(&mut self) -> &mut BytesMut {
+        &mut self.bytes
     }
 }
 
