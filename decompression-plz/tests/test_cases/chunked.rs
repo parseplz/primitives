@@ -6,7 +6,17 @@ use tests_utils::{INPUT, all_compressed_data};
 
 const CHUNKED_HEADER: &str = "Host: example.com\r\n\
                        Content-Type: text/html; charset=utf-8\r\n\
-                       Transfer-Encoding: chunked\r\n\r\n";
+                       Transfer-Encoding: chunked\r\n";
+
+const VERIFY_CHUNKED: &str = "Host: example.com\r\n\
+                        Content-Type: text/html; charset=utf-8\r\n\
+                        Content-Length: 11\r\n\
+                        hello world";
+
+const VERIFY_CHUNKED_BODY_AND_EXTRA: &str = "Host: example.com\r\n\
+                                                   Content-Type: text/html; charset=utf-8\r\n\
+                                                   Content-Length: 22\r\n\
+                                                   hello worldhello world";
 
 // converter
 fn build_chunked_body_large() -> Body {
@@ -43,7 +53,7 @@ fn test_chunked_to_raw() {
     chunked_to_raw(&mut tm, &mut buf);
     let verify = "Host: example.com\r\n\
                   Content-Type: text/html; charset=utf-8\r\n\
-                  Transfer-Encoding: chunked\r\n\r\n\
+                  Transfer-Encoding: chunked\r\n\
                   MozillaDeveloperNetwork";
     assert_eq!(tm.into_bytes(), verify);
 }
@@ -52,7 +62,7 @@ fn test_chunked_to_raw() {
 fn test_chunked_to_raw_with_trailer() {
     let mut body = build_chunked_body_large();
     let trailer_headers = "Header: Val\r\n\
-                           Another: Val\r\n\r\n";
+                           Another: Val\r\n";
     let trailer_chunk = ChunkType::Trailers(OneHeaderMap::from(
         BytesMut::from(trailer_headers),
     ));
@@ -64,7 +74,7 @@ fn test_chunked_to_raw_with_trailer() {
                   Content-Type: text/html; charset=utf-8\r\n\
                   Transfer-Encoding: chunked\r\n\
                   Header: Val\r\n\
-                  Another: Val\r\n\r\n\
+                  Another: Val\r\n\
                   MozillaDeveloperNetwork";
     assert_eq!(tm.into_bytes(), verify);
 }
@@ -102,7 +112,7 @@ fn test_chunked_body_large() {
     assert!(state.is_ended());
     let verify = "Host: example.com\r\n\
                   Content-Type: text/html; charset=utf-8\r\n\
-                  Content-Length: 23\r\n\r\n\
+                  Content-Length: 23\r\n\
                   MozillaDeveloperNetwork";
     let result = tm.into_bytes();
     assert_eq!(result, verify);
@@ -145,12 +155,12 @@ fn assert_chunked_encoding(
     let verify = if extra.is_none() {
         "Host: example.com\r\n\
          Content-Type: text/html; charset=utf-8\r\n\
-         Content-Length: 11\r\n\r\n\
+         Content-Length: 11\r\n\
          hello world"
     } else {
         "Host: example.com\r\n\
          Content-Type: text/html; charset=utf-8\r\n\
-         Content-Length: 22\r\n\r\n\
+         Content-Length: 22\r\n\
          hello worldhello world"
     };
 
@@ -183,8 +193,7 @@ fn assert_chunked_encoding(
 fn test_chunked_with_compression() {
     let headers = "Host: example.com\r\n\
                    Content-Type: text/html; charset=utf-8\r\n\
-                   Transfer-Encoding: br, deflate, identity, gzip, zstd, chunked\r\n\
-                   \r\n";
+                   Transfer-Encoding: br, deflate, identity, gzip, zstd, chunked\r\n";
 
     assert_chunked_encoding(headers, false, None);
 }
@@ -198,7 +207,7 @@ fn build_chunked_multi_header_body(encoding: &str) -> String {
         {encoding}: identity\r\n\
         {encoding}: gzip\r\n\
         {encoding}: zstd\r\n\
-        Transfer-Encoding: chunked\r\n\r\n"
+        Transfer-Encoding: chunked\r\n"
     )
 }
 
@@ -215,8 +224,7 @@ fn test_chunked_with_compression_multi_header() {
 fn test_chunked_with_compression_extra_raw() {
     let headers = "Host: example.com\r\n\
                    Content-Type: text/html; charset=utf-8\r\n\
-                   Transfer-Encoding: br, deflate, identity, gzip, zstd, chunked\r\n\
-                   \r\n";
+                   Transfer-Encoding: br, deflate, identity, gzip, zstd, chunked\r\n";
 
     assert_chunked_encoding(headers, false, Some(INPUT.into()));
 }
@@ -255,8 +263,7 @@ fn test_chunked_with_compress_extra_compressed_together() {
 
     let headers = "Host: example.com\r\n\
                    Content-Type: text/html; charset=utf-8\r\n\
-                   Transfer-Encoding: br, deflate, identity, gzip, zstd, chunked\r\n\
-                   \r\n";
+                   Transfer-Encoding: br, deflate, identity, gzip, zstd, chunked\r\n";
 
     let mut tm = TestMessage::new(headers.into(), chunk_body, Some(extra));
 
@@ -270,7 +277,8 @@ fn test_chunked_with_compress_extra_compressed_together() {
 
     state = state.try_next().unwrap();
     assert!(state.is_ended());
-    assert_eq!(tm.into_bytes(), VERIFY_SINGLE_HEADER_BODY_ONLY);
+
+    assert_eq!(tm.into_bytes(), VERIFY_CHUNKED);
 }
 
 #[test]
@@ -314,7 +322,7 @@ fn test_chunked_with_compress_extra_compressed_together_multi_header() {
 
     state = state.try_next().unwrap();
     assert!(state.is_ended());
-    assert_eq!(tm.into_bytes(), VERIFY_SINGLE_HEADER_BODY_ONLY);
+    assert_eq!(tm.into_bytes(), VERIFY_CHUNKED);
 }
 
 #[test]
@@ -324,8 +332,7 @@ fn test_chunked_with_compress_extra_compressed_separate() {
 
     let headers = "Host: example.com\r\n\
                    Content-Type: text/html; charset=utf-8\r\n\
-                   Transfer-Encoding: br, deflate, identity, gzip, zstd, chunked\r\n\
-                   \r\n";
+                   Transfer-Encoding: br, deflate, identity, gzip, zstd, chunked\r\n";
 
     let mut tm = TestMessage::new(headers.into(), body, Some(extra));
 
@@ -339,7 +346,7 @@ fn test_chunked_with_compress_extra_compressed_separate() {
 
     state = state.try_next().unwrap();
     assert!(state.is_ended());
-    assert_eq!(tm.into_bytes(), VERIFY_SINGLE_HEADER_BODY_AND_EXTRA);
+    assert_eq!(tm.into_bytes(), VERIFY_CHUNKED_BODY_AND_EXTRA);
 }
 
 #[test]
@@ -362,7 +369,7 @@ fn test_chunked_with_compress_extra_compressed_separate_multi_header() {
 
     state = state.try_next().unwrap();
     assert!(state.is_ended());
-    assert_eq!(tm.into_bytes(), VERIFY_SINGLE_HEADER_BODY_AND_EXTRA);
+    assert_eq!(tm.into_bytes(), VERIFY_CHUNKED_BODY_AND_EXTRA);
 }
 
 /// Ce
@@ -371,7 +378,7 @@ fn test_chunked_with_ce_compression() {
     let headers = "Host: example.com\r\n\
                    Content-Type: text/html; charset=utf-8\r\n\
                    Transfer-Encoding: chunked\r\n\
-                   Content-Encoding: br, deflate, identity, gzip, zstd\r\n\r\n";
+                   Content-Encoding: br, deflate, identity, gzip, zstd\r\n";
 
     assert_chunked_encoding(headers, true, None);
 }
@@ -381,7 +388,7 @@ fn test_chunked_with_ce_compression_extra_raw() {
     let headers = "Host: example.com\r\n\
                    Content-Type: text/html; charset=utf-8\r\n\
                    Transfer-Encoding: chunked\r\n\
-                   Content-Encoding: br, deflate, identity, gzip, zstd\r\n\r\n";
+                   Content-Encoding: br, deflate, identity, gzip, zstd\r\n";
 
     assert_chunked_encoding(headers, true, Some(INPUT.into()));
 }
@@ -412,8 +419,7 @@ fn test_chunked_with_ce_compress_extra_compressed_together() {
     let headers = "Host: example.com\r\n\
                    Content-Type: text/html; charset=utf-8\r\n\
                    Content-Encoding: br, deflate, identity, gzip, zstd\r\n\
-                   Transfer-Encoding: chunked\r\n\
-                   \r\n";
+                   Transfer-Encoding: chunked\r\n";
 
     let mut tm = TestMessage::new(headers.into(), chunk_body, Some(extra));
 
@@ -430,7 +436,7 @@ fn test_chunked_with_ce_compress_extra_compressed_together() {
 
     state = state.try_next().unwrap();
     assert!(state.is_ended());
-    assert_eq!(tm.into_bytes(), VERIFY_SINGLE_HEADER_BODY_ONLY);
+    assert_eq!(tm.into_bytes(), VERIFY_CHUNKED);
 }
 
 #[test]
@@ -441,8 +447,7 @@ fn test_chunked_with_ce_compress_extra_compressed_separate() {
     let headers = "Host: example.com\r\n\
                    Content-Type: text/html; charset=utf-8\r\n\
                    Content-Encoding: br, deflate, identity, gzip, zstd\r\n\
-                   Transfer-Encoding: chunked\r\n\
-                   \r\n";
+                   Transfer-Encoding: chunked\r\n";
 
     let mut tm = TestMessage::new(headers.into(), body, Some(extra));
 
@@ -459,5 +464,5 @@ fn test_chunked_with_ce_compress_extra_compressed_separate() {
 
     state = state.try_next().unwrap();
     assert!(state.is_ended());
-    assert_eq!(tm.into_bytes(), VERIFY_SINGLE_HEADER_BODY_AND_EXTRA);
+    assert_eq!(tm.into_bytes(), VERIFY_CHUNKED_BODY_AND_EXTRA);
 }
