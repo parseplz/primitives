@@ -1,14 +1,11 @@
-use bytes::{Buf, BufMut, BytesMut};
-
+use super::{InfoLine, InfoLineError};
 use crate::{
     Version,
     abnf::CRLF,
     status::{InvalidStatusCode, StatusCode},
 };
+use bytes::{Buf, BufMut, BytesMut};
 
-use super::{InfoLine, InfoLineError};
-
-// Response Info Line
 #[derive(Clone, Debug, PartialEq)]
 pub struct ResponseLine {
     version: BytesMut, // Version + space
@@ -16,11 +13,6 @@ pub struct ResponseLine {
     reason: BytesMut,  // space + Reason + CRLF
 }
 
-/* Steps:
- *      1. For http/1.1 | http/1.0 | http/0.9  => version = len(http/ *) + space + 1 = 9
- *      2. Status code is always 3 digits
- *      3. Remainder is reason + CRLF
- */
 impl InfoLine for ResponseLine {
     fn try_build_infoline(
         mut data: BytesMut,
@@ -56,6 +48,10 @@ impl InfoLine for ResponseLine {
 
     fn as_chain(&self) -> impl Buf {
         (self.version[..].chain(&self.status[..])).chain(&self.reason[..])
+    }
+
+    fn version(&self) -> Option<Version> {
+        Version::maybe_parse(&self.version)
     }
 }
 

@@ -3,6 +3,7 @@ use buffer_plz::Cursor;
 use bytes::{Buf, BytesMut};
 
 use crate::{
+    Version,
     abnf::HEADER_DELIMITER,
     message_head::{
         header_map::{HMap, OneHeaderMap, one::OneHeader},
@@ -70,6 +71,10 @@ where
             .as_chain()
             .chain(self.header_map.as_chain())
             .chain(crate::abnf::CRLF)
+    }
+
+    pub fn version(&self) -> Option<Version> {
+        self.info_line.version()
     }
 }
 

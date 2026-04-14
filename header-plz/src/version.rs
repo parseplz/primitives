@@ -1,8 +1,8 @@
-pub const HTTP_0_9: &str = "HTTP/0.9";
-pub const HTTP_1_0: &str = "HTTP/1.0";
-pub const HTTP_1_1: &str = "HTTP/1.1";
-pub const HTTP_2: &str = "HTTP/2";
-pub const HTTP_3: &str = "HTTP/3";
+pub const HTTP_0_9: &[u8] = b"HTTP/0.9";
+pub const HTTP_1_0: &[u8] = b"HTTP/1.0";
+pub const HTTP_1_1: &[u8] = b"HTTP/1.1";
+pub const HTTP_2: &[u8] = b"HTTP/2";
+pub const HTTP_3: &[u8] = b"HTTP/3";
 
 #[derive(Clone, Default, Eq, Debug, PartialEq)]
 pub enum Version {
@@ -17,13 +17,14 @@ pub enum Version {
 impl Version {
     pub fn as_str(&self) -> &str {
         use Version::*;
-        match self {
+        let v = match self {
             H11 => HTTP_1_1,
             H2 => HTTP_2,
             H09 => HTTP_0_9,
             H10 => HTTP_1_0,
             H3 => HTTP_3,
-        }
+        };
+        str::from_utf8(v).expect("")
     }
 
     pub fn for_request_line(&self) -> &str {
@@ -48,14 +49,14 @@ impl Version {
         }
     }
 
-    pub fn parse_request_version(input: &[u8]) -> Option<Version> {
+    pub fn maybe_parse(input: &[u8]) -> Option<Version> {
         use Version::*;
-        match input {
-            b" HTTP/1.1\r\n" => Some(H11),
-            b" HTTP/2\r\n" => Some(H2),
-            b" HTTP/0.9\r\n" => Some(H09),
-            b" HTTP/1.0\r\n" => Some(H10),
-            b" HTTP/3\r\n" => Some(H3),
+        match input.trim_ascii() {
+            HTTP_0_9 => Some(H09),
+            HTTP_1_1 => Some(H11),
+            HTTP_2 => Some(H2),
+            HTTP_1_0 => Some(H10),
+            HTTP_3 => Some(H3),
             _ => None,
         }
     }
@@ -68,15 +69,22 @@ mod tests {
     use crate::Version;
 
     #[rstest]
+    // request
     #[case(b" HTTP/0.9\r\n", Some(Version::H09))]
     #[case(b" HTTP/1.0\r\n", Some(Version::H10))]
     #[case(b" HTTP/1.1\r\n", Some(Version::H11))]
     #[case(b" HTTP/2\r\n", Some(Version::H2))]
     #[case(b" HTTP/3\r\n", Some(Version::H3))]
+    // response
+    #[case(b"HTTP/0.9 ", Some(Version::H09))]
+    #[case(b"HTTP/1.0 ", Some(Version::H10))]
+    #[case(b"HTTP/1.1 ", Some(Version::H11))]
+    #[case(b"HTTP/2 ", Some(Version::H2))]
+    #[case(b"HTTP/3 ", Some(Version::H3))]
     fn test_valid_http_versions(
         #[case] input: &[u8],
         #[case] expected: Option<Version>,
     ) {
-        assert_eq!(Version::parse_request_version(input), expected);
+        assert_eq!(Version::maybe_parse(input), expected);
     }
 }

@@ -7,25 +7,12 @@ use crate::abnf::SP;
 use crate::uri::InvalidUri;
 use crate::{Method, Uri, Version};
 
-// Request Info Line
 #[derive(Clone, Debug, PartialEq)]
 pub struct RequestLine {
     method: BytesMut,  // Method + Space
     uri: BytesMut,     //  Uri
     version: BytesMut, // Space + Version + CRLF
 }
-
-/* Steps:
- *      1. Find first OWS
- *      2. Call split_to(index)
- *      3. Find second OWS
- *      4. Call split_to(index)
- *      5. Return first, second, remaining (contains CRLF).
- *
- * Error:
- *      InfoLineError::FirstOWS     [1]
- *      InfoLineError::SecondOWS    [2]
- */
 
 impl InfoLine for RequestLine {
     fn try_build_infoline(
@@ -61,6 +48,10 @@ impl InfoLine for RequestLine {
 
     fn as_chain(&self) -> impl Buf {
         (self.method[..].chain(&self.uri[..])).chain(&self.version[..])
+    }
+
+    fn version(&self) -> Option<Version> {
+        Version::maybe_parse(&self.version)
     }
 }
 
@@ -107,10 +98,6 @@ impl RequestLine {
 
     pub fn into_parts(self) -> (BytesMut, BytesMut, BytesMut) {
         (self.method, self.uri, self.version)
-    }
-
-    pub fn version(&self) -> Option<Version> {
-        Version::parse_request_version(&self.version)
     }
 }
 

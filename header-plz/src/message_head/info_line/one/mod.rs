@@ -1,7 +1,8 @@
+pub mod error;
 pub mod request;
 pub mod response;
+use crate::Version;
 use bytes::{Buf, BytesMut};
-pub mod error;
 use error::*;
 
 // Trait for parsing info line of request and response.
@@ -13,4 +14,6 @@ pub trait InfoLine {
     fn into_bytes(self) -> BytesMut;
 
     fn as_chain(&self) -> impl Buf;
+
+    fn version(&self) -> Option<Version>;
 }
