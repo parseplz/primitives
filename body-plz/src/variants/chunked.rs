@@ -128,10 +128,7 @@ mod tests {
                    c: d\r\n\
                    \r\n";
         let mut chunk_vec = parse_chunked_body(data, true);
-        assert_eq!(
-            chunk_vec.pop().unwrap().into_bytes(),
-            "a: b\r\nc: d\r\n\r\n"
-        );
+        assert_eq!(chunk_vec.pop().unwrap().into_bytes(), "a: b\r\nc: d\r\n");
         assert_eq!(chunk_vec.pop().unwrap().into_bytes(), "0\r\n");
         assert_eq!(chunk_vec.pop().unwrap().into_bytes(), "Network\r\n");
         assert_eq!(chunk_vec.pop().unwrap().into_bytes(), "7\r\n");
