@@ -87,7 +87,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
         vectors = unique_across_vectors(vectors);
 
-        for (label, vec) in LABELS.iter().zip(vectors.into_iter()) {
+        for (label, vec) in LABELS.iter().zip(vectors) {
             let string = vec_to_string(label, vec);
             if let Err(e) = write_file(label.to_lowercase().as_str(), string) {
                 eprintln!("error writing file| {label}| {e}");
