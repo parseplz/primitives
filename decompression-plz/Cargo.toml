@@ -1,6 +1,6 @@
 [package]
 name = "decompression-plz"
-version = "0.0.29"
+version = "0.0.30"
 authors = ["darkseid", "sytten <emile@caido.io>"]
 description = "Decompression for ParsePlz ecosystem"
 repository = "https://github.com/parseplz/primitives"
@@ -9,8 +9,8 @@ edition = "2024"
 
 [dependencies]
 # Primitives
-header-plz = "0.0.47"
-body-plz = "0.0.52"
+header-plz = "0.0.48"
+body-plz = "0.0.53"
 
 # Compression
 brotli = "8.0.0"
