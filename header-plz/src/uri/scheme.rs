@@ -118,7 +118,7 @@ impl TryFrom<&[u8]> for Scheme {
     fn try_from(value: &[u8]) -> Result<Self, Self::Error> {
         match str::from_utf8(value) {
             Ok(v) => Ok(Scheme::parse_exact(v.as_bytes())),
-            Err(_) => Err(InvalidUri::InvalidScheme),
+            Err(_) => Err(InvalidUri::Scheme),
         }
     }
 }

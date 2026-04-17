@@ -1,4 +1,5 @@
 use bytes::Bytes;
+use thiserror::Error;
 
 use crate::{
     abnf::{FORWARD_SLASH, FRAGMENT, QMARK},
@@ -19,12 +20,17 @@ scheme          authority                 path            query         fragment
 
 */
 
-#[derive(Debug)]
+#[derive(Debug, Error)]
 pub enum InvalidUri {
-    InvalidScheme,
-    InvalidPath,
-    InvalidFormat,
+    #[error("Invalid Scheme")]
+    Scheme,
+    #[error("Invalid Path")]
+    Path,
+    #[error("Invalid Format")]
+    Format,
+    #[error("Invalid Authority")]
     Authority,
+    #[error("Empty")]
     Empty,
 }
 
@@ -94,11 +100,9 @@ impl Uri {
     }
 
     pub fn from_shared(s: Bytes) -> Result<Uri, InvalidUri> {
-        use InvalidUri::*;
-
         match s.len() {
             0 => {
-                return Err(Empty);
+                return Err(InvalidUri::Empty);
             }
             1 => match s[0] {
                 b'/' => {
@@ -174,7 +178,7 @@ fn parse_full(mut s: Bytes) -> Result<Uri, InvalidUri> {
 
     if scheme.is_none() {
         if authority_end != s.len() {
-            return Err(InvalidUri::InvalidFormat);
+            return Err(InvalidUri::Format);
         }
 
         let authority = unsafe { BytesStr::from_utf8_unchecked(s) };
@@ -188,7 +192,7 @@ fn parse_full(mut s: Bytes) -> Result<Uri, InvalidUri> {
 
     // Authority is required when absolute
     if authority_end == 0 {
-        return Err(InvalidUri::InvalidFormat);
+        return Err(InvalidUri::Format);
     }
 
     let authority = s.split_to(authority_end);
@@ -479,7 +483,7 @@ mod tests {
 
         assert!(matches!(
             Uri::from_shared(Bytes::from("example.com/foo")),
-            Err(InvalidUri::InvalidFormat)
+            Err(InvalidUri::Format)
         ));
     }
 

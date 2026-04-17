@@ -70,7 +70,7 @@ impl PathAndQuery {
                     b'"' |
                     b'{' | b'}' => {}
 
-                _ => return Err(InvalidUri::InvalidPath),
+                _ => return Err(InvalidUri::Path),
             }
         }
 
@@ -96,7 +96,7 @@ impl PathAndQuery {
                         fragment = Some(i);
                         break;
                     }
-                    _ => return Err(InvalidUri::InvalidPath),
+                    _ => return Err(InvalidUri::Path),
                 }
             }
         }
@@ -106,7 +106,7 @@ impl PathAndQuery {
         }
 
         let data = if is_maybe_not_utf8 {
-            BytesStr::from_utf8(src).map_err(|_| InvalidUri::InvalidPath)?
+            BytesStr::from_utf8(src).map_err(|_| InvalidUri::Path)?
         } else {
             unsafe { BytesStr::from_utf8_unchecked(src) }
         };
