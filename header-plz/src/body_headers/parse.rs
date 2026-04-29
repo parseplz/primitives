@@ -58,7 +58,7 @@ impl ResponseStatus for &ResponseLine {
 
 // If request method is in METHODS_WITH_BODY , build BodyHeader from HeaderMap
 #[inline]
-fn parse_body_headers_request<T, E>(
+pub fn parse_body_headers_request<T, E>(
     info_line: T,
     headers: &HMap<E>,
 ) -> Option<BodyHeader>
@@ -76,7 +76,7 @@ where
 // If status code is in 100-199, 204, 304, then return None else build
 // BodyHeader from HeaderMap
 #[inline]
-fn parse_body_headers_response<T, E>(
+pub fn parse_body_headers_response<T, E>(
     info_line: T,
     headers: &HMap<E>,
 ) -> Option<BodyHeader>
